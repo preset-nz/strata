@@ -260,10 +260,34 @@ fn list_bucket_counts(state: State<'_, AppState>) -> Result<Vec<BucketCount>, St
 }
 
 #[tauri::command]
-fn library_count(state: State<'_, AppState>) -> Result<i64, String> {
+fn library_count(
+    state: State<'_, AppState>,
+    buckets: Option<Vec<String>>,
+) -> Result<i64, String> {
+    let filter_buckets = buckets
+        .as_ref()
+        .map(|b| allowed_buckets(b))
+        .unwrap_or_default();
+
     let conn = state.db.0.lock().unwrap();
-    conn.query_row("SELECT COUNT(*) FROM images", [], |row| row.get::<_, i64>(0))
-        .map_err(|e| e.to_string())
+    if filter_buckets.is_empty() {
+        return conn
+            .query_row("SELECT COUNT(*) FROM images", [], |row| row.get::<_, i64>(0))
+            .map_err(|e| e.to_string());
+    }
+    let placeholders = vec!["?"; filter_buckets.len()].join(", ");
+    let sql = format!(
+        "SELECT COUNT(*) FROM images i
+         WHERE i.id IN (SELECT image_id FROM image_palette_bucket WHERE bucket IN ({placeholders}))"
+    );
+    let bound: Vec<duckdb::types::Value> = filter_buckets
+        .iter()
+        .map(|b| duckdb::types::Value::Text(b.clone()))
+        .collect();
+    conn.query_row(&sql, duckdb::params_from_iter(bound.iter()), |row| {
+        row.get::<_, i64>(0)
+    })
+    .map_err(|e| e.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

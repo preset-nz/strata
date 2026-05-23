@@ -22,6 +22,6 @@ export function listBucketCounts(): Promise<BucketCount[]> {
   return invoke<BucketCount[]>("list_bucket_counts")
 }
 
-export function libraryCount(): Promise<number> {
-  return invoke<number>("library_count")
+export function libraryCount(buckets?: Vga16Bucket[]): Promise<number> {
+  return invoke<number>("library_count", { buckets })
 }

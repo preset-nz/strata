@@ -1,5 +1,6 @@
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { open } from "@tauri-apps/plugin-dialog"
+import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 import { DropZone } from "./features/ingest/DropZone"
 import { ImportConfirmation } from "./features/ingest/ImportConfirmation"
 import { JobProgress } from "./features/ingest/JobProgress"
@@ -10,6 +11,7 @@ import { LeftRail, type SortKey } from "./components/shell/LeftRail"
 import { VGA16_BUCKETS, type Vga16Bucket } from "./lib/vga16"
 import { COLOUR_LABELS, type ColourLabel } from "./components/image-card/colour-label"
 import { prescan, startIngest, type PrescanSummary } from "./features/ingest/api"
+import { libraryCount, listBucketCounts } from "./features/library/api"
 
 type View =
   | { kind: "idle" }
@@ -41,6 +43,72 @@ function App() {
   const [selectedLabels, setSelectedLabels] = useState<Set<LabelSelector>>(
     () => new Set(),
   )
+  const [bucketCounts, setBucketCounts] =
+    useState<Record<Vga16Bucket, number>>(EMPTY_BUCKET_COUNTS)
+  const [totalCount, setTotalCount] = useState(0)
+  const [filteredCount, setFilteredCount] = useState<number | null>(null)
+
+  const bucketsForQuery = useMemo(
+    () => Array.from(selectedBuckets),
+    [selectedBuckets],
+  )
+
+  const refreshCounts = useCallback(async () => {
+    try {
+      const [total, counts] = await Promise.all([
+        libraryCount(),
+        listBucketCounts(),
+      ])
+      setTotalCount(total)
+      const next = { ...EMPTY_BUCKET_COUNTS }
+      for (const { bucket, count } of counts) next[bucket] = count
+      setBucketCounts(next)
+    } catch (e) {
+      console.error("refreshCounts failed:", e)
+    }
+  }, [])
+
+  useEffect(() => {
+    void refreshCounts()
+  }, [refreshCounts])
+
+  useEffect(() => {
+    const offs: UnlistenFn[] = []
+    let cancelled = false
+    ;(async () => {
+      offs.push(
+        await listen("ingest://batch-done", () => {
+          void refreshCounts()
+        }),
+      )
+      offs.push(
+        await listen("palette://backfill-done", () => {
+          void refreshCounts()
+        }),
+      )
+      if (cancelled) offs.forEach((o) => o())
+    })()
+    return () => {
+      cancelled = true
+      offs.forEach((o) => o())
+    }
+  }, [refreshCounts])
+
+  useEffect(() => {
+    if (bucketsForQuery.length === 0) {
+      setFilteredCount(null)
+      return
+    }
+    let cancelled = false
+    void libraryCount(bucketsForQuery)
+      .then((n) => {
+        if (!cancelled) setFilteredCount(n)
+      })
+      .catch((e) => console.error("filtered count failed:", e))
+    return () => {
+      cancelled = true
+    }
+  }, [bucketsForQuery])
 
   const handlePath = useCallback(async (path: string) => {
     setView({ kind: "scanning", path })
@@ -121,22 +189,28 @@ function App() {
         </>
       )
     }
-    return <LibrarySheet />
-  }, [view, handleConfirm])
+    return (
+      <LibrarySheet
+        sort={sort}
+        buckets={bucketsForQuery}
+        onLibraryChanged={refreshCounts}
+      />
+    )
+  }, [view, handleConfirm, sort, bucketsForQuery, refreshCounts])
 
   return (
     <div className="flex h-svh flex-col">
       <DropZone onDropped={handlePath} />
       <AppHeader
-        total={0}
-        filtered={null}
+        total={totalCount}
+        filtered={filteredCount}
         activeFilterCount={activeFilterCount}
         onAdd={handleAdd}
         addDisabled={addDisabled}
       />
       <div className="flex min-h-0 flex-1">
         <LeftRail
-          bucketCounts={EMPTY_BUCKET_COUNTS}
+          bucketCounts={bucketCounts}
           selectedBuckets={selectedBuckets}
           onToggleBucket={toggleBucket}
           labelCounts={EMPTY_LABEL_COUNTS}

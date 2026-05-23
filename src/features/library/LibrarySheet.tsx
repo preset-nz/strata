@@ -4,6 +4,8 @@ import { ImageCard } from "@/components/image-card"
 import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import type { ImportedRow } from "../contact-sheet/api"
 import { listImages } from "./api"
+import type { Vga16Bucket } from "@/lib/vga16"
+import type { SortKey } from "@/components/shell/LeftRail"
 
 type Cell = {
   key: string
@@ -23,18 +25,28 @@ function toCell(row: ImportedRow): Cell {
   }
 }
 
-export function LibrarySheet() {
+type Props = {
+  sort: SortKey
+  buckets: Vga16Bucket[]
+  onLibraryChanged?: () => void
+}
+
+export function LibrarySheet({ sort, buckets, onLibraryChanged }: Props) {
   const [items, setItems] = useState<Cell[]>([])
   const [hasMore, setHasMore] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const loadingRef = useRef(false)
   const offsetRef = useRef(0)
+  const queryRef = useRef({ sort, buckets })
+  queryRef.current = { sort, buckets }
 
   const loadNext = useCallback(async () => {
     if (loadingRef.current || !hasMore) return
     loadingRef.current = true
     try {
-      const rows = await listImages(offsetRef.current, PAGE_SIZE)
+      const { sort, buckets } = queryRef.current
+      const opts = buckets.length > 0 ? { sort, buckets } : { sort }
+      const rows = await listImages(offsetRef.current, PAGE_SIZE, opts)
       offsetRef.current += rows.length
       setItems((prev) => prev.concat(rows.map(toCell)))
       if (rows.length < PAGE_SIZE) setHasMore(false)
@@ -53,7 +65,9 @@ export function LibrarySheet() {
     setItems([])
     try {
       loadingRef.current = true
-      const rows = await listImages(0, PAGE_SIZE)
+      const { sort, buckets } = queryRef.current
+      const opts = buckets.length > 0 ? { sort, buckets } : { sort }
+      const rows = await listImages(0, PAGE_SIZE, opts)
       offsetRef.current = rows.length
       setItems(rows.map(toCell))
       if (rows.length < PAGE_SIZE) setHasMore(false)
@@ -67,17 +81,18 @@ export function LibrarySheet() {
 
   useEffect(() => {
     void reset()
-  }, [reset])
+  }, [reset, sort, buckets])
 
   useEffect(() => {
     let off: UnlistenFn | undefined
     ;(async () => {
       off = await listen("ingest://batch-done", () => {
         void reset()
+        onLibraryChanged?.()
       })
     })()
     return () => off?.()
-  }, [reset])
+  }, [reset, onLibraryChanged])
 
   return (
     <section className="flex min-h-0 flex-1 flex-col gap-2">
