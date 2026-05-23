@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 
 const CELL = 130
+const AFFORDANCE_ROW = 24
+const CARD_H = CELL + AFFORDANCE_ROW
 const GAP = 6
 
 type Props<T extends { key: string }> = {
@@ -40,7 +42,7 @@ export function ThumbGrid<T extends { key: string }>({
   const rowVirtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => CELL + GAP,
+    estimateSize: () => CARD_H + GAP,
     overscan: 6,
   })
 
@@ -82,8 +84,7 @@ export function ThumbGrid<T extends { key: string }>({
                 {slice.map((item) => (
                   <div
                     key={item.key}
-                    style={{ width: CELL, height: CELL }}
-                    className="bg-card"
+                    style={{ width: CELL, height: CARD_H }}
                   >
                     {renderCell(item)}
                   </div>

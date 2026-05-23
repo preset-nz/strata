@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
-import { Thumbnail } from "./Thumbnail"
+import { ImageCard, type ColourLabel } from "@/components/image-card"
 import { ThumbGrid } from "./ThumbGrid"
 import { batchImported, type ImportedRow } from "./api"
+
+type Marks = { isFavourite: boolean; colourLabel: ColourLabel | null }
 
 type FileState =
   | "queued"
@@ -64,6 +66,28 @@ export function ContactSheet({ batchId }: Props) {
   const [skipped, setSkipped] = useState<SkippedCell[]>([])
   const [failed, setFailed] = useState<FailedCell[]>([])
   const [done, setDone] = useState<BatchDoneEvent | null>(null)
+  const [marks, setMarks] = useState<Map<string, Marks>>(new Map())
+
+  const toggleFavourite = useCallback((key: string) => {
+    setMarks((prev) => {
+      const next = new Map(prev)
+      const cur = next.get(key) ?? { isFavourite: false, colourLabel: null }
+      next.set(key, { ...cur, isFavourite: !cur.isFavourite })
+      return next
+    })
+  }, [])
+
+  const setColourLabel = useCallback(
+    (key: string, label: ColourLabel | null) => {
+      setMarks((prev) => {
+        const next = new Map(prev)
+        const cur = next.get(key) ?? { isFavourite: false, colourLabel: null }
+        next.set(key, { ...cur, colourLabel: label })
+        return next
+      })
+    },
+    [],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -157,18 +181,40 @@ export function ContactSheet({ batchId }: Props) {
       <Section label={`Imported (${importedList.length})`}>
         <ThumbGrid
           items={importedList}
-          renderCell={(it) => (
-            <Thumbnail hash={it.hash} filename={it.filename} status={it.status} />
-          )}
+          renderCell={(it) => {
+            const m = marks.get(it.key)
+            return (
+              <ImageCard
+                hash={it.hash}
+                filename={it.filename}
+                status={it.status}
+                isFavourite={m?.isFavourite ?? false}
+                colourLabel={m?.colourLabel ?? null}
+                onFavouriteToggle={() => toggleFavourite(it.key)}
+                onColourLabelChange={(c) => setColourLabel(it.key, c)}
+              />
+            )
+          }}
         />
       </Section>
 
       <Section label={`Skipped — already in catalog (${skipped.length})`}>
         <ThumbGrid
           items={skipped}
-          renderCell={(it) => (
-            <Thumbnail hash={it.hash} filename={it.filename} status="ready" />
-          )}
+          renderCell={(it) => {
+            const m = marks.get(it.key)
+            return (
+              <ImageCard
+                hash={it.hash}
+                filename={it.filename}
+                status="ready"
+                isFavourite={m?.isFavourite ?? false}
+                colourLabel={m?.colourLabel ?? null}
+                onFavouriteToggle={() => toggleFavourite(it.key)}
+                onColourLabelChange={(c) => setColourLabel(it.key, c)}
+              />
+            )
+          }}
         />
       </Section>
 
