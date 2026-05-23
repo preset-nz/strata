@@ -26,6 +26,7 @@ import type {
   TextFieldDef,
   TextareaFieldDef,
   FileFieldDef,
+  VectorFieldDef,
 } from "./types"
 
 function ReadOnlyText({ children }: { children: React.ReactNode }) {
@@ -319,6 +320,111 @@ const FileRenderer: FieldRenderer<FileFieldDef> = ({
   )
 }
 
+function toNumberArray(value: unknown, arity: number): Array<number | null> {
+  if (!Array.isArray(value)) return Array.from({ length: arity }, () => null)
+  return Array.from({ length: arity }, (_, i) => {
+    const v = value[i]
+    if (v == null || v === "") return null
+    const n = Number(v)
+    return Number.isFinite(n) ? n : null
+  })
+}
+
+function formatComponent(
+  n: number | null,
+  integer: boolean,
+  precision?: number,
+): string {
+  if (n == null) return ""
+  if (integer) return Math.trunc(n).toLocaleString()
+  if (precision != null) return n.toFixed(precision)
+  return n.toLocaleString()
+}
+
+const VectorRenderer: FieldRenderer<VectorFieldDef> = ({
+  field,
+  value,
+  disabled,
+  onChange,
+}) => {
+  const arity = field.components.length
+  const values = toNumberArray(value, arity)
+  const isInt = Boolean(field.integer)
+
+  if (!onChange) {
+    return (
+      <FieldShell label={field.label ?? field.id}>
+        <div
+          className="grid gap-x-3 gap-y-1"
+          style={{ gridTemplateColumns: `repeat(${arity}, minmax(0, 1fr))` }}
+        >
+          {field.components.map((c, i) => (
+            <div key={i} className="flex flex-col gap-0.5 min-w-0">
+              {c.label && (
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {c.label}
+                </span>
+              )}
+              <div className="text-xs text-foreground tabular-nums truncate">
+                {values[i] == null ? (
+                  <Empty />
+                ) : (
+                  <>
+                    {formatComponent(values[i], isInt, field.precision)}
+                    {c.suffix && (
+                      <span className="text-muted-foreground">{c.suffix}</span>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </FieldShell>
+    )
+  }
+
+  return (
+    <FieldShell label={field.label ?? field.id}>
+      <div
+        className="grid gap-x-2"
+        style={{ gridTemplateColumns: `repeat(${arity}, minmax(0, 1fr))` }}
+      >
+        {field.components.map((c, i) => (
+          <div key={i} className="flex flex-col gap-0.5 min-w-0">
+            {c.label && (
+              <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                {c.label}
+              </span>
+            )}
+            <Input
+              type="number"
+              aria-label={c.label ?? `${field.id}[${i}]`}
+              value={values[i] != null ? String(values[i]) : ""}
+              min={c.min}
+              max={c.max}
+              step={c.step ?? (isInt ? 1 : 0.01)}
+              disabled={disabled}
+              onChange={(e) => {
+                const raw = e.target.value
+                const parsed = raw === "" ? null : Number(raw)
+                const next = values.slice()
+                next[i] =
+                  parsed != null && Number.isFinite(parsed)
+                    ? isInt
+                      ? Math.trunc(parsed)
+                      : parsed
+                    : null
+                onChange(next)
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    </FieldShell>
+  )
+}
+
 export function registerBuiltinRenderers(): void {
   registerFieldRenderer(
     "text",
@@ -351,6 +457,10 @@ export function registerBuiltinRenderers(): void {
   registerFieldRenderer(
     "file",
     FileRenderer as FieldRenderer<import("./types").FieldDef>,
+  )
+  registerFieldRenderer(
+    "vector",
+    VectorRenderer as FieldRenderer<import("./types").FieldDef>,
   )
 }
 

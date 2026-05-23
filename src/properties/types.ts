@@ -69,6 +69,25 @@ export interface CheckboxFieldDef extends BaseField {
   kind: "checkbox"
 }
 
+// A tuple of related scalars sharing one row. Houdini-style float3 / int2 /
+// stringN — variable arity, components share semantic context (LCh, RGB,
+// position, dimensions, …). The path resolves to an array; each component
+// describes one slot.
+export interface VectorComponentDef {
+  label?: string
+  suffix?: string
+  min?: number
+  max?: number
+  step?: number
+}
+
+export interface VectorFieldDef extends BaseField {
+  kind: "vector"
+  components: VectorComponentDef[]
+  integer?: boolean
+  precision?: number
+}
+
 export interface FileFieldDef extends BaseField {
   kind: "file"
   accept?: string
@@ -84,6 +103,7 @@ export type BuiltinFieldDef =
   | SliderFieldDef
   | CheckboxFieldDef
   | FileFieldDef
+  | VectorFieldDef
 
 export type FieldDef = BuiltinFieldDef | CustomFieldDef
 

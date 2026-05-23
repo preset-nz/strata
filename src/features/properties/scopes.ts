@@ -28,6 +28,7 @@ const IMAGE_SCHEMA: PropertySchema = {
     {
       id: "colour",
       title: "Colour",
+      description: "Dominant region of the image, in CIELCh.",
       rows: [
         {
           kind: "vga16-bucket",
@@ -35,25 +36,16 @@ const IMAGE_SCHEMA: PropertySchema = {
           label: "Dominant bucket",
           path: "dominantBucket",
         },
-        [
-          {
-            kind: "number",
-            id: "dominantL",
-            label: "L*",
-            path: "dominantL",
-          },
-          {
-            kind: "number",
-            id: "dominantC",
-            label: "C*",
-            path: "dominantC",
-          },
-        ],
         {
-          kind: "number",
-          id: "dominantH",
-          label: "h°",
-          path: "dominantH",
+          kind: "vector",
+          id: "dominantLCh",
+          path: "dominantLCh",
+          precision: 2,
+          components: [
+            { label: "L*" },
+            { label: "C*" },
+            { label: "h°", suffix: "°" },
+          ],
         },
       ],
     },
@@ -65,9 +57,7 @@ type ImageValues = {
   contentHash: string
   status: string
   dominantBucket: ImportedRow["dominant_bucket"]
-  dominantL: number | null
-  dominantC: number | null
-  dominantH: number | null
+  dominantLCh: [number | null, number | null, number | null]
 }
 
 const imageScope: Scope<
@@ -82,9 +72,7 @@ const imageScope: Scope<
       contentHash: row.content_hash,
       status: row.thumbnails_status,
       dominantBucket: row.dominant_bucket,
-      dominantL: row.dominant_l,
-      dominantC: row.dominant_c,
-      dominantH: row.dominant_h,
+      dominantLCh: [row.dominant_l, row.dominant_c, row.dominant_h],
     }
   },
 }
