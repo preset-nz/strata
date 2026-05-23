@@ -91,6 +91,10 @@ struct ImportedRow {
     content_hash: String,
     original_filename: String,
     thumbnails_status: String,
+    dominant_bucket: Option<String>,
+    dominant_l: Option<f32>,
+    dominant_c: Option<f32>,
+    dominant_h: Option<f32>,
 }
 
 #[tauri::command]
@@ -120,30 +124,88 @@ fn last_batch(state: State<'_, AppState>) -> Result<Option<LastBatch>, String> {
     Ok(row)
 }
 
+fn sort_clause(sort: &str) -> &'static str {
+    match sort {
+        "filename" => "i.original_filename ASC",
+        "created" => "COALESCE(i.exif_created_at, i.fs_mtime, i.imported_at) DESC",
+        "updated" => "COALESCE(p.extracted_at, i.imported_at) DESC",
+        "colour" => {
+            "p.dominant_l IS NULL, \
+             CASE WHEN p.dominant_c < 10 THEN 0 ELSE 1 END, \
+             CASE WHEN p.dominant_c < 10 THEN p.dominant_l ELSE p.dominant_h END"
+        }
+        _ => "i.imported_at DESC",
+    }
+}
+
+fn row_from(row: &duckdb::Row) -> duckdb::Result<ImportedRow> {
+    Ok(ImportedRow {
+        id: row.get::<_, String>(0)?,
+        content_hash: row.get::<_, String>(1)?,
+        original_filename: row.get::<_, String>(2)?,
+        thumbnails_status: row.get::<_, String>(3)?,
+        dominant_bucket: row.get::<_, Option<String>>(4)?,
+        dominant_l: row.get::<_, Option<f32>>(5)?,
+        dominant_c: row.get::<_, Option<f32>>(6)?,
+        dominant_h: row.get::<_, Option<f32>>(7)?,
+    })
+}
+
+const ROW_COLUMNS: &str = "i.id, i.content_hash, i.original_filename, i.thumbnails_status, \
+                           p.dominant_bucket, p.dominant_l, p.dominant_c, p.dominant_h";
+
+fn allowed_buckets(input: &[String]) -> Vec<String> {
+    input
+        .iter()
+        .filter(|b| {
+            crate::palette::vga16::VGA16
+                .iter()
+                .any(|v| v.name == b.as_str())
+        })
+        .cloned()
+        .collect()
+}
+
 #[tauri::command]
 fn list_images(
     state: State<'_, AppState>,
     offset: i64,
     limit: i64,
+    sort: Option<String>,
+    buckets: Option<Vec<String>>,
 ) -> Result<Vec<ImportedRow>, String> {
     let limit = limit.clamp(1, 1000);
     let offset = offset.max(0);
+    let sort_key = sort.as_deref().unwrap_or("imported");
+    let filter_buckets = buckets
+        .as_ref()
+        .map(|b| allowed_buckets(b))
+        .unwrap_or_default();
+
+    let mut sql = format!(
+        "SELECT {ROW_COLUMNS} FROM images i LEFT JOIN image_palette p ON p.image_id = i.id"
+    );
+    if !filter_buckets.is_empty() {
+        let placeholders = vec!["?"; filter_buckets.len()].join(", ");
+        sql.push_str(&format!(
+            " WHERE i.id IN (SELECT image_id FROM image_palette_bucket WHERE bucket IN ({placeholders}))"
+        ));
+    }
+    sql.push_str(&format!(
+        " ORDER BY {} LIMIT ? OFFSET ?",
+        sort_clause(sort_key)
+    ));
+
     let conn = state.db.0.lock().unwrap();
-    let mut stmt = conn
-        .prepare(
-            "SELECT id, content_hash, original_filename, thumbnails_status
-             FROM images ORDER BY imported_at DESC LIMIT ? OFFSET ?",
-        )
-        .map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let mut bound: Vec<duckdb::types::Value> = filter_buckets
+        .iter()
+        .map(|b| duckdb::types::Value::Text(b.clone()))
+        .collect();
+    bound.push(duckdb::types::Value::BigInt(limit));
+    bound.push(duckdb::types::Value::BigInt(offset));
     let rows = stmt
-        .query_map(params![limit, offset], |row| {
-            Ok(ImportedRow {
-                id: row.get::<_, String>(0)?,
-                content_hash: row.get::<_, String>(1)?,
-                original_filename: row.get::<_, String>(2)?,
-                thumbnails_status: row.get::<_, String>(3)?,
-            })
-        })
+        .query_map(duckdb::params_from_iter(bound.iter()), |row| row_from(row))
         .map_err(|e| e.to_string())?
         .filter_map(Result::ok)
         .collect();
@@ -154,24 +216,54 @@ fn list_images(
 fn batch_imported(state: State<'_, AppState>, batch_id: String) -> Result<Vec<ImportedRow>, String> {
     let conn = state.db.0.lock().unwrap();
     let mut stmt = conn
+        .prepare(&format!(
+            "SELECT {ROW_COLUMNS} \
+             FROM images i LEFT JOIN image_palette p ON p.image_id = i.id \
+             WHERE i.ingest_batch_id = ? ORDER BY i.imported_at ASC"
+        ))
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(params![batch_id], |row| row_from(row))
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect();
+    Ok(rows)
+}
+
+#[derive(Serialize)]
+struct BucketCount {
+    bucket: String,
+    count: i64,
+}
+
+#[tauri::command]
+fn list_bucket_counts(state: State<'_, AppState>) -> Result<Vec<BucketCount>, String> {
+    let conn = state.db.0.lock().unwrap();
+    let mut stmt = conn
         .prepare(
-            "SELECT id, content_hash, original_filename, thumbnails_status
-             FROM images WHERE ingest_batch_id = ? ORDER BY imported_at ASC",
+            "SELECT bucket, COUNT(*) AS n
+             FROM image_palette_bucket
+             GROUP BY bucket",
         )
         .map_err(|e| e.to_string())?;
     let rows = stmt
-        .query_map(params![batch_id], |row| {
-            Ok(ImportedRow {
-                id: row.get::<_, String>(0)?,
-                content_hash: row.get::<_, String>(1)?,
-                original_filename: row.get::<_, String>(2)?,
-                thumbnails_status: row.get::<_, String>(3)?,
+        .query_map([], |row| {
+            Ok(BucketCount {
+                bucket: row.get::<_, String>(0)?,
+                count: row.get::<_, i64>(1)?,
             })
         })
         .map_err(|e| e.to_string())?
         .filter_map(Result::ok)
         .collect();
     Ok(rows)
+}
+
+#[tauri::command]
+fn library_count(state: State<'_, AppState>) -> Result<i64, String> {
+    let conn = state.db.0.lock().unwrap();
+    conn.query_row("SELECT COUNT(*) FROM images", [], |row| row.get::<_, i64>(0))
+        .map_err(|e| e.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -212,6 +304,8 @@ pub fn run() {
             last_batch,
             batch_imported,
             list_images,
+            list_bucket_counts,
+            library_count,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
