@@ -59,9 +59,10 @@ type FailedCell = {
 
 type Props = {
   batchId: string
+  cellSize?: number
 }
 
-export function ContactSheet({ batchId }: Props) {
+export function ContactSheet({ batchId, cellSize }: Props) {
   const [imported, setImported] = useState<Map<string, ImportedCell>>(new Map())
   const [skipped, setSkipped] = useState<SkippedCell[]>([])
   const [failed, setFailed] = useState<FailedCell[]>([])
@@ -181,6 +182,7 @@ export function ContactSheet({ batchId }: Props) {
       <Section label={`Imported (${importedList.length})`}>
         <ThumbGrid
           items={importedList}
+          cellSize={cellSize}
           renderCell={(it) => {
             const m = marks.get(it.key)
             return (
@@ -201,6 +203,7 @@ export function ContactSheet({ batchId }: Props) {
       <Section label={`Skipped — already in catalog (${skipped.length})`}>
         <ThumbGrid
           items={skipped}
+          cellSize={cellSize}
           renderCell={(it) => {
             const m = marks.get(it.key)
             return (

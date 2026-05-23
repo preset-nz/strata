@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 
-const CELL = 130
 const AFFORDANCE_ROW = 24
-const CARD_H = CELL + AFFORDANCE_ROW
 const GAP = 6
+const DEFAULT_CELL = 130
 
 type Props<T extends { key: string }> = {
   items: T[]
@@ -12,6 +11,7 @@ type Props<T extends { key: string }> = {
   emptyLabel?: string
   onEndReached?: () => void
   endReachedThresholdRows?: number
+  cellSize?: number
 }
 
 export function ThumbGrid<T extends { key: string }>({
@@ -20,31 +20,37 @@ export function ThumbGrid<T extends { key: string }>({
   emptyLabel = "(none)",
   onEndReached,
   endReachedThresholdRows = 3,
+  cellSize = DEFAULT_CELL,
 }: Props<T>) {
   const parentRef = useRef<HTMLDivElement | null>(null)
   const [columns, setColumns] = useState(1)
+  const cardH = cellSize + AFFORDANCE_ROW
 
   useEffect(() => {
     const el = parentRef.current
     if (!el) return
     const measure = () => {
       const width = el.clientWidth
-      const cols = Math.max(1, Math.floor((width + GAP) / (CELL + GAP)))
+      const cols = Math.max(1, Math.floor((width + GAP) / (cellSize + GAP)))
       setColumns(cols)
     }
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [cellSize])
 
   const rowCount = Math.ceil(items.length / columns)
   const rowVirtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => CARD_H + GAP,
+    estimateSize: () => cardH + GAP,
     overscan: 6,
   })
+
+  useEffect(() => {
+    rowVirtualizer.measure()
+  }, [cellSize, rowVirtualizer])
 
   const virtualItems = rowVirtualizer.getVirtualItems()
   const lastVirtualIndex = virtualItems[virtualItems.length - 1]?.index ?? -1
@@ -75,7 +81,7 @@ export function ThumbGrid<T extends { key: string }>({
                 key={row.key}
                 style={{
                   transform: `translateY(${row.start}px)`,
-                  gridTemplateColumns: `repeat(${columns}, ${CELL}px)`,
+                  gridTemplateColumns: `repeat(${columns}, ${cellSize}px)`,
                   gap: GAP,
                   padding: GAP / 2,
                 }}
@@ -84,7 +90,7 @@ export function ThumbGrid<T extends { key: string }>({
                 {slice.map((item) => (
                   <div
                     key={item.key}
-                    style={{ width: CELL, height: CARD_H }}
+                    style={{ width: cellSize, height: cardH }}
                   >
                     {renderCell(item)}
                   </div>

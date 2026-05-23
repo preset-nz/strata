@@ -28,10 +28,16 @@ function toCell(row: ImportedRow): Cell {
 type Props = {
   sort: SortKey
   buckets: Vga16Bucket[]
+  cellSize?: number
   onLibraryChanged?: () => void
 }
 
-export function LibrarySheet({ sort, buckets, onLibraryChanged }: Props) {
+export function LibrarySheet({
+  sort,
+  buckets,
+  cellSize,
+  onLibraryChanged,
+}: Props) {
   const [items, setItems] = useState<Cell[]>([])
   const [hasMore, setHasMore] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -103,6 +109,7 @@ export function LibrarySheet({ sort, buckets, onLibraryChanged }: Props) {
       )}
       <ThumbGrid
         items={items}
+        cellSize={cellSize}
         emptyLabel="Nothing imported yet — drop a folder or click Add."
         onEndReached={loadNext}
         renderCell={(it) => (

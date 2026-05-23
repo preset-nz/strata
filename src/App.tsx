@@ -8,6 +8,10 @@ import { ContactSheet } from "./features/contact-sheet/ContactSheet"
 import { LibrarySheet } from "./features/library/LibrarySheet"
 import { AppHeader } from "./components/shell/AppHeader"
 import { LeftRail, type SortKey } from "./components/shell/LeftRail"
+import {
+  CARD_SIZE_DEFAULT,
+  StatusBar,
+} from "./components/shell/StatusBar"
 import { VGA16_BUCKETS, type Vga16Bucket } from "./lib/vga16"
 import { COLOUR_LABELS, type ColourLabel } from "./components/image-card/colour-label"
 import { prescan, startIngest, type PrescanSummary } from "./features/ingest/api"
@@ -37,6 +41,7 @@ const EMPTY_LABEL_COUNTS: Record<LabelSelector, number> = {
 function App() {
   const [view, setView] = useState<View>({ kind: "idle" })
   const [sort, setSort] = useState<SortKey>("imported")
+  const [cardSize, setCardSize] = useState<number>(CARD_SIZE_DEFAULT)
   const [selectedBuckets, setSelectedBuckets] = useState<Set<Vga16Bucket>>(
     () => new Set(),
   )
@@ -185,7 +190,7 @@ function App() {
       return (
         <>
           <JobProgress batchId={view.batchId} />
-          <ContactSheet batchId={view.batchId} />
+          <ContactSheet batchId={view.batchId} cellSize={cardSize} />
         </>
       )
     }
@@ -193,10 +198,11 @@ function App() {
       <LibrarySheet
         sort={sort}
         buckets={bucketsForQuery}
+        cellSize={cardSize}
         onLibraryChanged={refreshCounts}
       />
     )
-  }, [view, handleConfirm, sort, bucketsForQuery, refreshCounts])
+  }, [view, handleConfirm, sort, bucketsForQuery, cardSize, refreshCounts])
 
   return (
     <div className="flex h-svh flex-col">
@@ -221,6 +227,7 @@ function App() {
         />
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">{content}</main>
       </div>
+      <StatusBar cardSize={cardSize} onCardSizeChange={setCardSize} />
     </div>
   )
 }
