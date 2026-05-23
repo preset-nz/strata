@@ -166,6 +166,35 @@ fn allowed_buckets(input: &[String]) -> Vec<String> {
         .collect()
 }
 
+fn build_where(
+    filter_buckets: &[String],
+    batch_id: Option<&str>,
+) -> (String, Vec<duckdb::types::Value>) {
+    let mut clauses: Vec<String> = Vec::new();
+    let mut bound: Vec<duckdb::types::Value> = Vec::new();
+
+    if !filter_buckets.is_empty() {
+        let placeholders = vec!["?"; filter_buckets.len()].join(", ");
+        clauses.push(format!(
+            "i.id IN (SELECT image_id FROM image_palette_bucket WHERE bucket IN ({placeholders}))"
+        ));
+        for b in filter_buckets {
+            bound.push(duckdb::types::Value::Text(b.clone()));
+        }
+    }
+    if let Some(b) = batch_id {
+        clauses.push("i.ingest_batch_id = ?".to_string());
+        bound.push(duckdb::types::Value::Text(b.to_string()));
+    }
+
+    let where_sql = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", clauses.join(" AND "))
+    };
+    (where_sql, bound)
+}
+
 #[tauri::command]
 fn list_images(
     state: State<'_, AppState>,
@@ -173,6 +202,7 @@ fn list_images(
     limit: i64,
     sort: Option<String>,
     buckets: Option<Vec<String>>,
+    batch_id: Option<String>,
 ) -> Result<Vec<ImportedRow>, String> {
     let limit = limit.clamp(1, 1000);
     let offset = offset.max(0);
@@ -182,26 +212,14 @@ fn list_images(
         .map(|b| allowed_buckets(b))
         .unwrap_or_default();
 
-    let mut sql = format!(
-        "SELECT {ROW_COLUMNS} FROM images i LEFT JOIN image_palette p ON p.image_id = i.id"
+    let (where_sql, mut bound) = build_where(&filter_buckets, batch_id.as_deref());
+    let sql = format!(
+        "SELECT {ROW_COLUMNS} FROM images i LEFT JOIN image_palette p ON p.image_id = i.id{where_sql} ORDER BY {sort} LIMIT ? OFFSET ?",
+        sort = sort_clause(sort_key)
     );
-    if !filter_buckets.is_empty() {
-        let placeholders = vec!["?"; filter_buckets.len()].join(", ");
-        sql.push_str(&format!(
-            " WHERE i.id IN (SELECT image_id FROM image_palette_bucket WHERE bucket IN ({placeholders}))"
-        ));
-    }
-    sql.push_str(&format!(
-        " ORDER BY {} LIMIT ? OFFSET ?",
-        sort_clause(sort_key)
-    ));
 
     let conn = state.db.0.lock().unwrap();
     let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-    let mut bound: Vec<duckdb::types::Value> = filter_buckets
-        .iter()
-        .map(|b| duckdb::types::Value::Text(b.clone()))
-        .collect();
     bound.push(duckdb::types::Value::BigInt(limit));
     bound.push(duckdb::types::Value::BigInt(offset));
     let rows = stmt
@@ -263,31 +281,65 @@ fn list_bucket_counts(state: State<'_, AppState>) -> Result<Vec<BucketCount>, St
 fn library_count(
     state: State<'_, AppState>,
     buckets: Option<Vec<String>>,
+    batch_id: Option<String>,
 ) -> Result<i64, String> {
     let filter_buckets = buckets
         .as_ref()
         .map(|b| allowed_buckets(b))
         .unwrap_or_default();
+    let (where_sql, bound) = build_where(&filter_buckets, batch_id.as_deref());
 
+    let sql = format!("SELECT COUNT(*) FROM images i{where_sql}");
     let conn = state.db.0.lock().unwrap();
-    if filter_buckets.is_empty() {
-        return conn
-            .query_row("SELECT COUNT(*) FROM images", [], |row| row.get::<_, i64>(0))
-            .map_err(|e| e.to_string());
-    }
-    let placeholders = vec!["?"; filter_buckets.len()].join(", ");
-    let sql = format!(
-        "SELECT COUNT(*) FROM images i
-         WHERE i.id IN (SELECT image_id FROM image_palette_bucket WHERE bucket IN ({placeholders}))"
-    );
-    let bound: Vec<duckdb::types::Value> = filter_buckets
-        .iter()
-        .map(|b| duckdb::types::Value::Text(b.clone()))
-        .collect();
     conn.query_row(&sql, duckdb::params_from_iter(bound.iter()), |row| {
         row.get::<_, i64>(0)
     })
     .map_err(|e| e.to_string())
+}
+
+#[derive(Serialize)]
+struct BatchSummary {
+    id: String,
+    source_folder: String,
+    started_at: String,
+    finished_at: Option<String>,
+    imported_count: i64,
+    skipped_count: i64,
+    failed_count: i64,
+    image_count: i64,
+}
+
+#[tauri::command]
+fn list_batches(state: State<'_, AppState>) -> Result<Vec<BatchSummary>, String> {
+    let conn = state.db.0.lock().unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT b.id, b.source_folder, b.started_at, b.finished_at,
+                    b.imported_count, b.skipped_count, b.failed_count,
+                    (SELECT COUNT(*) FROM images i WHERE i.ingest_batch_id = b.id) AS image_count
+             FROM ingest_batches b
+             ORDER BY b.started_at DESC",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(BatchSummary {
+                id: row.get::<_, String>(0)?,
+                source_folder: row.get::<_, String>(1)?,
+                started_at: row.get::<_, chrono::DateTime<chrono::Utc>>(2)?.to_rfc3339(),
+                finished_at: row
+                    .get::<_, Option<chrono::DateTime<chrono::Utc>>>(3)?
+                    .map(|d| d.to_rfc3339()),
+                imported_count: row.get::<_, i64>(4)?,
+                skipped_count: row.get::<_, i64>(5)?,
+                failed_count: row.get::<_, i64>(6)?,
+                image_count: row.get::<_, i64>(7)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect();
+    Ok(rows)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -329,6 +381,7 @@ pub fn run() {
             batch_imported,
             list_images,
             list_bucket_counts,
+            list_batches,
             library_count,
         ])
         .run(tauri::generate_context!())

@@ -11,6 +11,7 @@ import {
   COLOUR_SWATCH,
   type ColourLabel,
 } from "@/components/image-card/colour-label"
+import type { BatchSummary } from "@/features/library/api"
 
 export const SORT_KEYS = [
   "imported",
@@ -41,6 +42,9 @@ type Props = {
   onToggleLabel: (label: LabelSelector) => void
   sort: SortKey
   onSortChange: (next: SortKey) => void
+  batches: BatchSummary[]
+  selectedBatchId: string | null
+  onSelectBatch: (id: string | null) => void
 }
 
 export function LeftRail({
@@ -52,6 +56,9 @@ export function LeftRail({
   onToggleLabel,
   sort,
   onSortChange,
+  batches,
+  selectedBatchId,
+  onSelectBatch,
 }: Props) {
   return (
     <aside className="flex w-[220px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-card/40 p-3 text-xs">
@@ -160,7 +167,77 @@ export function LeftRail({
           ))}
         </ul>
       </section>
+
+      <section className="flex flex-col gap-1">
+        <SectionHeading>Imports</SectionHeading>
+        {batches.length === 0 ? (
+          <p className="text-muted-foreground/70 px-1">(none yet)</p>
+        ) : (
+          <ul className="flex flex-col">
+            {batches.map((b) => (
+              <BatchRow
+                key={b.id}
+                batch={b}
+                selected={selectedBatchId === b.id}
+                onClick={() =>
+                  onSelectBatch(selectedBatchId === b.id ? null : b.id)
+                }
+              />
+            ))}
+          </ul>
+        )}
+      </section>
     </aside>
+  )
+}
+
+function BatchRow({
+  batch,
+  selected,
+  onClick,
+}: {
+  batch: BatchSummary
+  selected: boolean
+  onClick: () => void
+}) {
+  const date = new Date(batch.started_at)
+  const folder = batch.source_folder.split("/").filter(Boolean).pop() ?? "—"
+  const label = date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  })
+  const time = date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+  return (
+    <li>
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={onClick}
+        title={batch.source_folder}
+        className={cn(
+          "flex w-full flex-col rounded-sm px-1 py-1 text-left transition-colors",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          selected
+            ? "bg-muted text-foreground"
+            : "text-foreground hover:bg-muted/60",
+        )}
+      >
+        <span className="flex items-center justify-between gap-2">
+          <span className="truncate">{label}</span>
+          <span className="tabular-nums text-[10px] text-muted-foreground">
+            {batch.image_count.toLocaleString()}
+          </span>
+        </span>
+        <span className="flex items-center gap-1 text-[10px] text-muted-foreground/80">
+          <span className="tabular-nums">{time}</span>
+          <span>·</span>
+          <span className="truncate">{folder}</span>
+        </span>
+      </button>
+    </li>
   )
 }
 

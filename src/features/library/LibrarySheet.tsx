@@ -28,6 +28,7 @@ function toCell(row: ImportedRow): Cell {
 type Props = {
   sort: SortKey
   buckets: Vga16Bucket[]
+  batchId?: string | null
   cellSize?: number
   onLibraryChanged?: () => void
 }
@@ -35,6 +36,7 @@ type Props = {
 export function LibrarySheet({
   sort,
   buckets,
+  batchId,
   cellSize,
   onLibraryChanged,
 }: Props) {
@@ -43,15 +45,15 @@ export function LibrarySheet({
   const [error, setError] = useState<string | null>(null)
   const loadingRef = useRef(false)
   const offsetRef = useRef(0)
-  const queryRef = useRef({ sort, buckets })
-  queryRef.current = { sort, buckets }
+  const queryRef = useRef({ sort, buckets, batchId })
+  queryRef.current = { sort, buckets, batchId }
 
   const loadNext = useCallback(async () => {
     if (loadingRef.current || !hasMore) return
     loadingRef.current = true
     try {
-      const { sort, buckets } = queryRef.current
-      const opts = buckets.length > 0 ? { sort, buckets } : { sort }
+      const { sort, buckets, batchId } = queryRef.current
+      const opts = { sort, buckets, batchId }
       const rows = await listImages(offsetRef.current, PAGE_SIZE, opts)
       offsetRef.current += rows.length
       setItems((prev) => prev.concat(rows.map(toCell)))
@@ -71,8 +73,8 @@ export function LibrarySheet({
     setItems([])
     try {
       loadingRef.current = true
-      const { sort, buckets } = queryRef.current
-      const opts = buckets.length > 0 ? { sort, buckets } : { sort }
+      const { sort, buckets, batchId } = queryRef.current
+      const opts = { sort, buckets, batchId }
       const rows = await listImages(0, PAGE_SIZE, opts)
       offsetRef.current = rows.length
       setItems(rows.map(toCell))
@@ -87,7 +89,7 @@ export function LibrarySheet({
 
   useEffect(() => {
     void reset()
-  }, [reset, sort, buckets])
+  }, [reset, sort, buckets, batchId])
 
   useEffect(() => {
     let off: UnlistenFn | undefined

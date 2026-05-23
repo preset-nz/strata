@@ -15,7 +15,12 @@ import {
 import { VGA16_BUCKETS, type Vga16Bucket } from "./lib/vga16"
 import { COLOUR_LABELS, type ColourLabel } from "./components/image-card/colour-label"
 import { prescan, startIngest, type PrescanSummary } from "./features/ingest/api"
-import { libraryCount, listBucketCounts } from "./features/library/api"
+import {
+  libraryCount,
+  listBatches,
+  listBucketCounts,
+  type BatchSummary,
+} from "./features/library/api"
 
 type View =
   | { kind: "idle" }
@@ -53,6 +58,8 @@ function App() {
     useState<Record<Vga16Bucket, number>>(EMPTY_BUCKET_COUNTS)
   const [totalCount, setTotalCount] = useState(0)
   const [filteredCount, setFilteredCount] = useState<number | null>(null)
+  const [batches, setBatches] = useState<BatchSummary[]>([])
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
 
   const bucketsForQuery = useMemo(
     () => Array.from(selectedBuckets),
@@ -61,14 +68,16 @@ function App() {
 
   const refreshCounts = useCallback(async () => {
     try {
-      const [total, counts] = await Promise.all([
+      const [total, counts, bs] = await Promise.all([
         libraryCount(),
         listBucketCounts(),
+        listBatches(),
       ])
       setTotalCount(total)
       const next = { ...EMPTY_BUCKET_COUNTS }
       for (const { bucket, count } of counts) next[bucket] = count
       setBucketCounts(next)
+      setBatches(bs)
     } catch (e) {
       console.error("refreshCounts failed:", e)
     }
@@ -102,12 +111,12 @@ function App() {
   }, [refreshCounts])
 
   useEffect(() => {
-    if (bucketsForQuery.length === 0) {
+    if (bucketsForQuery.length === 0 && selectedBatchId === null) {
       setFilteredCount(null)
       return
     }
     let cancelled = false
-    void libraryCount(bucketsForQuery)
+    void libraryCount(bucketsForQuery, selectedBatchId)
       .then((n) => {
         if (!cancelled) setFilteredCount(n)
       })
@@ -115,7 +124,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [bucketsForQuery])
+  }, [bucketsForQuery, selectedBatchId])
 
   const handlePath = useCallback(async (path: string) => {
     setView({ kind: "scanning", path })
@@ -176,7 +185,8 @@ function App() {
     })
   }, [])
 
-  const activeFilterCount = selectedBuckets.size + selectedLabels.size
+  const activeFilterCount =
+    selectedBuckets.size + selectedLabels.size + (selectedBatchId ? 1 : 0)
   const addDisabled =
     view.kind === "scanning" ||
     view.kind === "scanned" ||
@@ -218,11 +228,20 @@ function App() {
       <LibrarySheet
         sort={sort}
         buckets={bucketsForQuery}
+        batchId={selectedBatchId}
         cellSize={cardSize}
         onLibraryChanged={refreshCounts}
       />
     )
-  }, [view, handleConfirm, sort, bucketsForQuery, cardSize, refreshCounts])
+  }, [
+    view,
+    handleConfirm,
+    sort,
+    bucketsForQuery,
+    selectedBatchId,
+    cardSize,
+    refreshCounts,
+  ])
 
   return (
     <div className="flex h-svh flex-col">
@@ -245,6 +264,9 @@ function App() {
           onToggleLabel={toggleLabel}
           sort={sort}
           onSortChange={setSort}
+          batches={batches}
+          selectedBatchId={selectedBatchId}
+          onSelectBatch={setSelectedBatchId}
         />
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">{content}</main>
       </div>
