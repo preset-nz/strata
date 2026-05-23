@@ -6,6 +6,7 @@ use trash::TrashContext;
 #[cfg(target_os = "macos")]
 use trash::macos::{DeleteMethod, TrashContextExtMacos};
 
+#[allow(dead_code)]
 pub fn move_to_trash(path: &Path) -> Result<()> {
     let mut ctx = TrashContext::default();
     // Default on macOS is DeleteMethod::Finder, which routes through

@@ -13,7 +13,6 @@ use crate::ingest::events::{
     emit_batch_done, emit_file, BatchDoneEvent, FileEvent, FileState,
 };
 use crate::ingest::scan::prescan;
-use crate::ingest::trash::move_to_trash;
 use crate::ingest::{
     exif as exif_read, extension_for, hash::hash_file, mime_for_ext, store::copy_and_verify,
 };
@@ -209,16 +208,6 @@ fn process_one(
             Some(id),
             None,
         );
-        send(FileState::Trashing, Some(hash_hex.clone()), None, None);
-        if let Err(e) = move_to_trash(source) {
-            send(
-                FileState::Failed,
-                Some(hash_hex),
-                None,
-                Some(format!("trash failed: {e}")),
-            );
-            return Ok(Outcome::Failed);
-        }
         send(FileState::Done, Some(hash_hex), None, None);
         return Ok(Outcome::Skipped);
     }
@@ -308,22 +297,6 @@ fn process_one(
             &image_id,
             &db,
         );
-    }
-
-    send(
-        FileState::Trashing,
-        Some(hash_hex.clone()),
-        Some(image_id.clone()),
-        None,
-    );
-    if let Err(e) = move_to_trash(source) {
-        send(
-            FileState::Failed,
-            Some(hash_hex),
-            Some(image_id),
-            Some(format!("trash failed: {e}")),
-        );
-        return Ok(Outcome::Failed);
     }
 
     send(FileState::Done, Some(hash_hex), Some(image_id), None);

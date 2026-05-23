@@ -13,6 +13,7 @@ pub enum FileState {
     Verifying,
     Indexing,
     Thumbnailing,
+    #[allow(dead_code)]
     Trashing,
     Done,
     SkippedDuplicate,
