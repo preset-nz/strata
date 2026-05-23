@@ -1,20 +1,21 @@
-import { open } from "@tauri-apps/plugin-dialog";
+import { open } from "@tauri-apps/plugin-dialog"
+import { Button } from "@/components/ui/button"
 
 type Props = {
-  onPicked: (path: string) => void;
-  disabled?: boolean;
-};
+  onPicked: (path: string) => void
+  disabled?: boolean
+}
 
 export function FolderPicker({ onPicked, disabled }: Props) {
   async function pick() {
-    const result = await open({ directory: true, multiple: false });
+    const result = await open({ directory: true, multiple: false })
     if (typeof result === "string") {
-      onPicked(result);
+      onPicked(result)
     }
   }
   return (
-    <button type="button" onClick={pick} disabled={disabled}>
+    <Button onClick={pick} disabled={disabled}>
       Choose folder
-    </button>
-  );
+    </Button>
+  )
 }

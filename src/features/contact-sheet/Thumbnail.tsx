@@ -1,31 +1,19 @@
 type Props = {
-  hash: string;
-  filename: string;
-  status: "ready" | "missing" | "failed" | string;
-};
+  hash: string
+  filename: string
+  status: "ready" | "missing" | "failed" | string
+}
 
 export function Thumbnail({ hash, filename, status }: Props) {
   if (status !== "ready") {
     return (
       <div
         title={filename}
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#222",
-          color: "#888",
-          fontSize: 10,
-          padding: 4,
-          boxSizing: "border-box",
-          textAlign: "center",
-        }}
+        className="flex h-full w-full items-center justify-center bg-muted p-1 text-center text-[10px] text-muted-foreground"
       >
         no thumb
       </div>
-    );
+    )
   }
   return (
     <img
@@ -33,13 +21,7 @@ export function Thumbnail({ hash, filename, status }: Props) {
       alt={filename}
       title={filename}
       loading="lazy"
-      style={{
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-        background: "#111",
-        display: "block",
-      }}
+      className="block h-full w-full bg-card object-cover"
     />
-  );
+  )
 }

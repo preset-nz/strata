@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react"
+import { Button } from "@/components/ui/button"
 import { FolderPicker } from "./features/ingest/FolderPicker"
 import { DropZone } from "./features/ingest/DropZone"
 import { ImportConfirmation } from "./features/ingest/ImportConfirmation"
@@ -45,23 +46,26 @@ function App() {
           onPicked={handlePath}
           disabled={view.kind === "scanning" || view.kind === "running"}
         />
-        <button
-          type="button"
-          className="rounded-sm border border-border bg-background px-2.5 py-1 text-xs hover:bg-muted"
+        <Button
+          variant="outline"
           onClick={() => setView({ kind: "idle" })}
         >
           New import
-        </button>
+        </Button>
         <span className="text-xs text-muted-foreground">
           or drop a folder onto this window
         </span>
       </div>
 
       {view.kind === "scanning" && (
-        <p className="text-sm text-muted-foreground">Scanning {view.path}...</p>
+        <p className="text-sm text-muted-foreground">
+          Scanning <span className="select-text">{view.path}</span>...
+        </p>
       )}
       {view.kind === "error" && (
-        <p className="text-sm text-destructive">Error: {view.message}</p>
+        <p className="text-sm text-destructive">
+          Error: <span className="select-text">{view.message}</span>
+        </p>
       )}
       {view.kind === "scanned" && (
         <ImportConfirmation
