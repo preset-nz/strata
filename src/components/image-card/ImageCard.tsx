@@ -15,6 +15,7 @@ type Props = {
   onFavouriteToggle?: () => void
   onColourLabelChange?: (next: ColourLabel | null) => void
   onActivate?: () => void
+  onSelect?: () => void
 }
 
 export function ImageCard({
@@ -27,13 +28,19 @@ export function ImageCard({
   onFavouriteToggle,
   onColourLabelChange,
   onActivate,
+  onSelect,
 }: Props) {
   const pressRef = useHardPress<HTMLDivElement>(onActivate)
   return (
     <div
       ref={pressRef}
+      onClick={(e) => {
+        const target = e.target as Element | null
+        if (target?.closest("button, [role='button'], input, select")) return
+        onSelect?.()
+      }}
       className={cn(
-        "group/card relative flex h-full w-full flex-col",
+        "group/card relative flex h-full w-full flex-col cursor-pointer",
         "rounded-sm border bg-card p-1 shadow-sm",
         "transition-[box-shadow,border-color,background-color] duration-150 ease-out",
         selected

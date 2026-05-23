@@ -7,12 +7,14 @@ import type { ImportedRow } from "../contact-sheet/api"
 import { listImages } from "./api"
 import type { Vga16Bucket } from "@/lib/vga16"
 import type { SortKey } from "@/components/shell/LeftRail"
+import { useSelection } from "@/stores/selection"
 
 type Cell = {
   key: string
   hash: string
   filename: string
   status: string
+  row: ImportedRow
 }
 
 const PAGE_SIZE = 100
@@ -23,6 +25,7 @@ function toCell(row: ImportedRow): Cell {
     hash: row.content_hash,
     filename: row.original_filename,
     status: row.thumbnails_status,
+    row,
   }
 }
 
@@ -49,6 +52,9 @@ export function LibrarySheet({
   const offsetRef = useRef(0)
   const queryRef = useRef({ sort, buckets, batchId })
   queryRef.current = { sort, buckets, batchId }
+  const { selection, selectImage } = useSelection()
+  const selectedImageId =
+    selection.kind === "image" ? selection.id : null
 
   const loadNext = useCallback(async () => {
     if (loadingRef.current || !hasMore) return
@@ -121,7 +127,9 @@ export function LibrarySheet({
             hash={it.hash}
             filename={it.filename}
             status={it.status}
+            selected={selectedImageId === it.key}
             onActivate={() => setQuickviewIndex(idx)}
+            onSelect={() => selectImage(it.row)}
           />
         )}
       />

@@ -21,6 +21,8 @@ import {
   listBucketCounts,
   type BatchSummary,
 } from "./features/library/api"
+import { SelectionProvider, useSelection } from "./stores/selection"
+import { PropertiesPane } from "./features/properties/PropertiesPane"
 
 type View =
   | { kind: "idle" }
@@ -43,7 +45,8 @@ const EMPTY_LABEL_COUNTS: Record<LabelSelector, number> = {
   >),
 }
 
-function App() {
+function AppShell() {
+  const { selection, selectBatch, clear } = useSelection()
   const [view, setView] = useState<View>({ kind: "idle" })
   const [sort, setSort] = useState<SortKey>("imported")
   const [cardSize, setCardSize] = useState<number>(CARD_SIZE_DEFAULT)
@@ -60,6 +63,19 @@ function App() {
   const [filteredCount, setFilteredCount] = useState<number | null>(null)
   const [batches, setBatches] = useState<BatchSummary[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
+
+  const handleSelectBatch = useCallback(
+    (id: string | null) => {
+      setSelectedBatchId(id)
+      if (id === null) {
+        if (selection.kind === "batch") clear()
+        return
+      }
+      const batch = batches.find((b) => b.id === id)
+      if (batch) selectBatch(batch)
+    },
+    [batches, selection.kind, selectBatch, clear],
+  )
 
   const bucketsForQuery = useMemo(
     () => Array.from(selectedBuckets),
@@ -266,12 +282,21 @@ function App() {
           onSortChange={setSort}
           batches={batches}
           selectedBatchId={selectedBatchId}
-          onSelectBatch={setSelectedBatchId}
+          onSelectBatch={handleSelectBatch}
         />
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">{content}</main>
+        <PropertiesPane />
       </div>
       <StatusBar cardSize={cardSize} onCardSizeChange={setCardSize} />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <SelectionProvider>
+      <AppShell />
+    </SelectionProvider>
   )
 }
 
