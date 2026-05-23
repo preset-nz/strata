@@ -86,6 +86,25 @@ struct LastBatch {
 }
 
 #[derive(Serialize)]
+struct ImageDetails {
+    id: String,
+    content_hash: String,
+    original_filename: String,
+    original_path: String,
+    byte_size: i64,
+    mime: String,
+    imported_at: String,
+    ingest_batch_id: String,
+    thumbnails_status: String,
+    exif_created_at: Option<String>,
+    fs_mtime: Option<String>,
+    dominant_bucket: Option<String>,
+    dominant_l: Option<f32>,
+    dominant_c: Option<f32>,
+    dominant_h: Option<f32>,
+}
+
+#[derive(Serialize)]
 struct ImportedRow {
     id: String,
     content_hash: String,
@@ -248,6 +267,51 @@ fn batch_imported(state: State<'_, AppState>, batch_id: String) -> Result<Vec<Im
     Ok(rows)
 }
 
+#[tauri::command]
+fn get_image_details(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Option<ImageDetails>, String> {
+    let conn = state.db.0.lock().unwrap();
+    let result = conn
+        .query_row(
+            "SELECT i.id, i.content_hash, i.original_filename, i.original_path, \
+                    i.byte_size, i.mime, i.imported_at, i.ingest_batch_id, \
+                    i.thumbnails_status, i.exif_created_at, i.fs_mtime, \
+                    p.dominant_bucket, p.dominant_l, p.dominant_c, p.dominant_h \
+             FROM images i LEFT JOIN image_palette p ON p.image_id = i.id \
+             WHERE i.id = ?",
+            params![id],
+            |row| {
+                Ok(ImageDetails {
+                    id: row.get(0)?,
+                    content_hash: row.get(1)?,
+                    original_filename: row.get(2)?,
+                    original_path: row.get(3)?,
+                    byte_size: row.get(4)?,
+                    mime: row.get(5)?,
+                    imported_at: row
+                        .get::<_, chrono::DateTime<chrono::Utc>>(6)?
+                        .to_rfc3339(),
+                    ingest_batch_id: row.get(7)?,
+                    thumbnails_status: row.get(8)?,
+                    exif_created_at: row
+                        .get::<_, Option<chrono::DateTime<chrono::Utc>>>(9)?
+                        .map(|d| d.to_rfc3339()),
+                    fs_mtime: row
+                        .get::<_, Option<chrono::DateTime<chrono::Utc>>>(10)?
+                        .map(|d| d.to_rfc3339()),
+                    dominant_bucket: row.get(11)?,
+                    dominant_l: row.get(12)?,
+                    dominant_c: row.get(13)?,
+                    dominant_h: row.get(14)?,
+                })
+            },
+        )
+        .ok();
+    Ok(result)
+}
+
 #[derive(Serialize)]
 struct BucketCount {
     bucket: String,
@@ -383,6 +447,7 @@ pub fn run() {
             list_bucket_counts,
             list_batches,
             library_count,
+            get_image_details,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

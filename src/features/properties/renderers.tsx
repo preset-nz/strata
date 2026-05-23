@@ -92,8 +92,47 @@ const StatusRenderer: FieldRenderer = ({ field, value }) => {
   )
 }
 
+const DATE_FMT = new Intl.DateTimeFormat(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+})
+
+const DateRenderer: FieldRenderer = ({ field, value }) => {
+  const iso = value as string | null | undefined
+  const formatted = iso ? DATE_FMT.format(new Date(iso)) : null
+  return (
+    <FieldShell label={field.label ?? field.id}>
+      <span className="text-xs text-foreground tabular-nums">
+        {formatted ?? <span className="text-muted-foreground">—</span>}
+      </span>
+    </FieldShell>
+  )
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+const FileSizeRenderer: FieldRenderer = ({ field, value }) => {
+  const bytes = value as number | null | undefined
+  return (
+    <FieldShell label={field.label ?? field.id}>
+      <span className="text-xs text-foreground tabular-nums">
+        {bytes != null ? formatBytes(bytes) : <span className="text-muted-foreground">—</span>}
+      </span>
+    </FieldShell>
+  )
+}
+
 export function registerStrataRenderers(): void {
   registerFieldRenderer("vga16-bucket", Vga16BucketRenderer)
   registerFieldRenderer("colour-label", ColourLabelRenderer)
   registerFieldRenderer("status-pill", StatusRenderer)
+  registerFieldRenderer("date", DateRenderer)
+  registerFieldRenderer("file-size", FileSizeRenderer)
 }

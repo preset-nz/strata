@@ -3,6 +3,7 @@ import { PropertyPanel, registerBuiltinRenderers } from "@/properties"
 import { useSelection } from "@/stores/selection"
 import { registerStrataRenderers } from "./renderers"
 import { registerStrataScopes } from "./scopes"
+import { useImageDetails } from "./useImageDetails"
 
 // Run at module import time: renderers and scopes are registered before
 // any component that consumes them renders.
@@ -10,18 +11,24 @@ registerBuiltinRenderers()
 registerStrataRenderers()
 registerStrataScopes()
 
-// Strata's scopes need no ctx today (read functions close over the selection).
-// Hoisted so PropertyPanel's read-memo deps stay stable across renders.
 const EMPTY_CTX = Object.freeze({})
 
 export function PropertiesPane() {
   const { selection } = useSelection()
+
+  const imageId = selection.kind === "image" ? selection.row.id : null
+  const details = useImageDetails(imageId)
 
   const title = useMemo(() => {
     if (selection.kind === "image") return "Image"
     if (selection.kind === "batch") return "Batch"
     return "Properties"
   }, [selection.kind])
+
+  const ctx = useMemo(
+    () => (details ? { details } : EMPTY_CTX),
+    [details],
+  )
 
   return (
     <aside
@@ -44,7 +51,7 @@ export function PropertiesPane() {
           <PropertyPanel
             scopeKey={selection.kind}
             selection={selection}
-            ctx={EMPTY_CTX}
+            ctx={ctx}
             readOnly
           />
         )}

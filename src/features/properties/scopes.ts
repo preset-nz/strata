@@ -1,6 +1,6 @@
-import { registerScope, type PropertySchema, type Scope } from "@/properties"
+import { registerScope, type PropertySchema, type Scope, type ScopeContext } from "@/properties"
 import type { Selection } from "@/stores/selection"
-import type { ImportedRow } from "@/features/contact-sheet/api"
+import type { ImportedRow, ImageDetails } from "@/features/contact-sheet/api"
 import type { BatchSummary } from "@/features/library/api"
 
 const IMAGE_SCHEMA: PropertySchema = {
@@ -11,17 +11,29 @@ const IMAGE_SCHEMA: PropertySchema = {
       title: "File",
       rows: [
         { kind: "text", id: "filename", label: "Filename", path: "filename" },
-        {
-          kind: "text",
-          id: "contentHash",
-          label: "Content hash",
-          path: "contentHash",
-        },
+        { kind: "text", id: "originalPath", label: "Source path", path: "originalPath" },
+        [
+          { kind: "file-size", id: "byteSize", label: "Size", path: "byteSize" },
+          { kind: "text", id: "mime", label: "Type", path: "mime" },
+        ],
+        { kind: "date", id: "importedAt", label: "Imported", path: "importedAt" },
         {
           kind: "status-pill",
           id: "status",
-          label: "Thumbnail status",
+          label: "Thumbnail",
           path: "status",
+        },
+      ],
+    },
+    {
+      id: "dates",
+      title: "Dates",
+      rows: [
+        {
+          kind: "date",
+          id: "exifCreatedAt",
+          label: "Date taken",
+          path: "exifCreatedAt",
         },
       ],
     },
@@ -55,8 +67,12 @@ const IMAGE_SCHEMA: PropertySchema = {
 
 type ImageValues = {
   filename: string
-  contentHash: string
+  originalPath: string | null
+  byteSize: number | null
+  mime: string | null
+  importedAt: string | null
   status: string
+  exifCreatedAt: string | null
   dominantBucket: ImportedRow["dominant_bucket"]
   dominantLCh: [number | null, number | null, number | null]
 }
@@ -66,12 +82,17 @@ const imageScope: Scope<
   ImageValues
 > = {
   schema: IMAGE_SCHEMA,
-  read: (selection) => {
+  read: (selection, ctx: ScopeContext) => {
     const row = selection.row
+    const details = ctx.details as ImageDetails | undefined
     return {
       filename: row.original_filename,
-      contentHash: row.content_hash,
+      originalPath: details?.original_path ?? null,
+      byteSize: details?.byte_size ?? null,
+      mime: details?.mime ?? null,
+      importedAt: details?.imported_at ?? null,
       status: row.thumbnails_status,
+      exifCreatedAt: details?.exif_created_at ?? null,
       dominantBucket: row.dominant_bucket,
       dominantLCh: [row.dominant_l, row.dominant_c, row.dominant_h],
     }
