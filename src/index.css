@@ -1,12 +1,33 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+
+/* Body text */
+@import "@fontsource-variable/geist";
+/* Headings — DIN-adjacent industrial sans. Barlow is the current pick. */
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow/700.css";
+/* Monospace */
 @import "@fontsource-variable/jetbrains-mono";
+
+/* Experimental swap-in candidates — uncomment in --font-heading or
+   --font-sans below to try. */
+@import "@fontsource-variable/saira";
+@import "@fontsource-variable/oswald";
+@import "@fontsource-variable/inter";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-    --font-heading: var(--font-mono);
+    /* Heading face — DIN-adjacent. Alternatives: 'Saira Variable',
+       'Oswald Variable'. Inter / Geist also work if you want a less
+       industrial feel. */
+    --font-heading: 'Barlow', 'Saira Variable', sans-serif;
+    /* Body text face. Geist is the current pick. Alternatives:
+       'Inter Variable', 'Barlow'. */
+    --font-sans: 'Geist Variable', 'Inter Variable', sans-serif;
     --font-mono: 'JetBrains Mono Variable', monospace;
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
@@ -125,7 +146,7 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-mono;
+    @apply font-sans;
   }
 
   /* Make it feel like a native desktop app, not a webpage. */
