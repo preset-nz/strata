@@ -131,6 +131,64 @@ const MIGRATIONS: &[(i64, &str)] = &[
             ON image_keyword(keyword);
         "#,
     ),
+    // v4 re-applies v3's CREATE TABLE statements idempotently. A local dev DB
+    // accumulated a stale v3 row (from an earlier placeholder migration) without
+    // the corresponding tables; bumping the version lets the migrator make
+    // forward progress without manually editing schema_version.
+    (
+        4,
+        r#"
+        CREATE TABLE IF NOT EXISTS image_metadata (
+            image_id UUID PRIMARY KEY REFERENCES images(id),
+
+            camera_make TEXT,
+            camera_model TEXT,
+            lens_make TEXT,
+            lens_model TEXT,
+            focal_length_mm REAL,
+            focal_length_35mm REAL,
+
+            iso INTEGER,
+            f_number REAL,
+            exposure_time_sec REAL,
+            exposure_bias REAL,
+            exposure_program TEXT,
+            metering_mode TEXT,
+            flash_fired BOOLEAN,
+
+            pixel_width INTEGER,
+            pixel_height INTEGER,
+            orientation INTEGER,
+            color_space TEXT,
+
+            gps_latitude REAL,
+            gps_longitude REAL,
+            gps_altitude_m REAL,
+
+            iptc_title TEXT,
+            iptc_caption TEXT,
+            iptc_byline TEXT,
+            iptc_copyright TEXT,
+            iptc_city TEXT,
+            iptc_state TEXT,
+            iptc_country TEXT,
+            iptc_date_created TIMESTAMP,
+
+            software TEXT,
+            extracted_at TIMESTAMP NOT NULL,
+            stage_version TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS image_keyword (
+            image_id UUID NOT NULL REFERENCES images(id),
+            keyword TEXT NOT NULL,
+            PRIMARY KEY (image_id, keyword)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_image_keyword_keyword
+            ON image_keyword(keyword);
+        "#,
+    ),
 ];
 
 fn apply_migrations(conn: &Connection) -> Result<()> {
