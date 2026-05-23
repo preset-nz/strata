@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 import { ImageCard } from "@/components/image-card"
+import { Quickview } from "@/features/quickview/Quickview"
 import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import type { ImportedRow } from "../contact-sheet/api"
 import { listImages } from "./api"
@@ -43,6 +44,7 @@ export function LibrarySheet({
   const [items, setItems] = useState<Cell[]>([])
   const [hasMore, setHasMore] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [quickviewIndex, setQuickviewIndex] = useState<number | null>(null)
   const loadingRef = useRef(false)
   const offsetRef = useRef(0)
   const queryRef = useRef({ sort, buckets, batchId })
@@ -114,14 +116,23 @@ export function LibrarySheet({
         cellSize={cellSize}
         emptyLabel="Nothing imported yet — drop a folder or click Add."
         onEndReached={loadNext}
-        renderCell={(it) => (
+        renderCell={(it, idx) => (
           <ImageCard
             hash={it.hash}
             filename={it.filename}
             status={it.status}
+            onActivate={() => setQuickviewIndex(idx)}
           />
         )}
       />
+      {quickviewIndex !== null && (
+        <Quickview
+          items={items}
+          index={quickviewIndex}
+          onClose={() => setQuickviewIndex(null)}
+          onIndexChange={setQuickviewIndex}
+        />
+      )}
     </section>
   )
 }

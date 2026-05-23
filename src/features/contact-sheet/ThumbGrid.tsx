@@ -7,7 +7,7 @@ const DEFAULT_CELL = 130
 
 type Props<T extends { key: string }> = {
   items: T[]
-  renderCell: (item: T) => React.ReactNode
+  renderCell: (item: T, index: number) => React.ReactNode
   emptyLabel?: string
   onEndReached?: () => void
   endReachedThresholdRows?: number
@@ -87,12 +87,12 @@ export function ThumbGrid<T extends { key: string }>({
                 }}
                 className="absolute top-0 left-0 box-border grid w-full"
               >
-                {slice.map((item) => (
+                {slice.map((item, j) => (
                   <div
                     key={item.key}
                     style={{ width: cellSize, height: cardH }}
                   >
-                    {renderCell(item)}
+                    {renderCell(item, start + j)}
                   </div>
                 ))}
               </div>

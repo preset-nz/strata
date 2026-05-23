@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils"
 import { Thumbnail } from "@/features/contact-sheet/Thumbnail"
+import { useHardPress } from "@/lib/use-hard-press"
 import { FavouriteToggle } from "./FavouriteToggle"
 import { ColourLabelSwatch } from "./ColourLabelSwatch"
 import type { ColourLabel } from "./colour-label"
@@ -13,6 +14,7 @@ type Props = {
   selected?: boolean
   onFavouriteToggle?: () => void
   onColourLabelChange?: (next: ColourLabel | null) => void
+  onActivate?: () => void
 }
 
 export function ImageCard({
@@ -24,9 +26,12 @@ export function ImageCard({
   selected = false,
   onFavouriteToggle,
   onColourLabelChange,
+  onActivate,
 }: Props) {
+  const pressRef = useHardPress<HTMLDivElement>(onActivate)
   return (
     <div
+      ref={pressRef}
       className={cn(
         "group/card relative flex h-full w-full flex-col",
         "rounded-sm border bg-card p-1 shadow-sm transition-shadow",
