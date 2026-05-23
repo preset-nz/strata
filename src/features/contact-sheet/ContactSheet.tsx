@@ -64,8 +64,8 @@ type Props = {
 
 export function ContactSheet({ batchId, cellSize }: Props) {
   const [imported, setImported] = useState<Map<string, ImportedCell>>(new Map())
-  const [skipped, setSkipped] = useState<SkippedCell[]>([])
-  const [failed, setFailed] = useState<FailedCell[]>([])
+  const [skipped, setSkipped] = useState<Map<string, SkippedCell>>(new Map())
+  const [failed, setFailed] = useState<Map<string, FailedCell>>(new Map())
   const [done, setDone] = useState<BatchDoneEvent | null>(null)
   const [marks, setMarks] = useState<Map<string, Marks>>(new Map())
 
@@ -124,25 +124,27 @@ export function ContactSheet({ batchId, cellSize }: Props) {
             return next
           })
         } else if (ev.state === "skipped_duplicate" && ev.content_hash) {
-          setSkipped((prev) => [
-            ...prev,
-            {
+          setSkipped((prev) => {
+            const next = new Map(prev)
+            next.set(ev.source_path, {
               key: ev.source_path,
               hash: ev.content_hash!,
               filename: ev.original_filename,
               existingId: ev.image_id ?? "",
-            },
-          ])
+            })
+            return next
+          })
         } else if (ev.state === "failed") {
-          setFailed((prev) => [
-            ...prev,
-            {
+          setFailed((prev) => {
+            const next = new Map(prev)
+            next.set(ev.source_path, {
               key: ev.source_path,
               filename: ev.original_filename,
               sourcePath: ev.source_path,
               error: ev.error ?? "unknown",
-            },
-          ])
+            })
+            return next
+          })
         }
       })
       off2 = await listen<BatchDoneEvent>("ingest://batch-done", async (event) => {
@@ -166,6 +168,8 @@ export function ContactSheet({ batchId, cellSize }: Props) {
     () => Array.from(imported.values()),
     [imported],
   )
+  const skippedList = useMemo(() => Array.from(skipped.values()), [skipped])
+  const failedList = useMemo(() => Array.from(failed.values()), [failed])
 
   return (
     <section className="mt-4">
@@ -200,9 +204,9 @@ export function ContactSheet({ batchId, cellSize }: Props) {
         />
       </Section>
 
-      <Section label={`Skipped — already in catalog (${skipped.length})`}>
+      <Section label={`Skipped — already in catalog (${skippedList.length})`}>
         <ThumbGrid
-          items={skipped}
+          items={skippedList}
           cellSize={cellSize}
           renderCell={(it) => {
             const m = marks.get(it.key)
@@ -221,9 +225,9 @@ export function ContactSheet({ batchId, cellSize }: Props) {
         />
       </Section>
 
-      <Section label={`Failed (${failed.length})`}>
+      <Section label={`Failed (${failedList.length})`}>
         <ul className="m-0 list-disc pl-5">
-          {failed.map((f) => (
+          {failedList.map((f) => (
             <li key={f.key} className="text-xs">
               <code className="select-text rounded-sm bg-muted px-1 py-0.5 text-[11px]">
                 {f.filename}
