@@ -35,17 +35,17 @@ export function ImageCard({
           : "border-border/70 hover:shadow",
       )}
     >
-      <div className="min-h-0 flex-1 overflow-hidden bg-muted/30">
+      <div className="aspect-square w-full overflow-hidden bg-muted/30">
         <Thumbnail hash={hash} filename={filename} status={status} />
       </div>
       <div className="mt-1 flex h-4 items-center justify-between px-0.5">
-        <FavouriteToggle
-          isFavourite={isFavourite}
-          onToggle={() => onFavouriteToggle?.()}
-        />
         <ColourLabelSwatch
           value={colourLabel}
           onChange={(next) => onColourLabelChange?.(next)}
+        />
+        <FavouriteToggle
+          isFavourite={isFavourite}
+          onToggle={() => onFavouriteToggle?.()}
         />
       </div>
     </div>
