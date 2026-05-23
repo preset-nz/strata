@@ -5,6 +5,18 @@ import "./index.css"
 import App from "./App.tsx"
 import { ThemeProvider } from "@/components/theme-provider.tsx"
 
+// Suppress WKWebView-default browser interactions that don't belong in a
+// desktop app: right-click context menu and Cmd+R reload / Cmd+0/+/-/= zoom.
+// Devtools remain reachable via Cmd+Option+I in dev builds.
+window.addEventListener("contextmenu", (e) => e.preventDefault())
+window.addEventListener("keydown", (e) => {
+  if (!(e.metaKey || e.ctrlKey)) return
+  const key = e.key.toLowerCase()
+  if (key === "r" || key === "0" || key === "=" || key === "-" || key === "+") {
+    e.preventDefault()
+  }
+})
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ThemeProvider>
