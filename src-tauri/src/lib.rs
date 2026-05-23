@@ -193,6 +193,11 @@ pub fn run() {
             let db_path = app_data_dir.join("strata.duckdb");
             let db = Arc::new(Db::open(&db_path)?);
 
+            let backfill_handle = app.handle().clone();
+            let backfill_db = db.clone();
+            let backfill_store = store.clone();
+            palette::backfill::schedule(backfill_handle, backfill_db, backfill_store);
+
             app.manage(AppState {
                 db,
                 store,
