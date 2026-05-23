@@ -1,0 +1,58 @@
+export const VGA16_BUCKETS = [
+  "black",
+  "maroon",
+  "red",
+  "purple",
+  "fuchsia",
+  "green",
+  "lime",
+  "olive",
+  "yellow",
+  "navy",
+  "blue",
+  "teal",
+  "aqua",
+  "silver",
+  "gray",
+  "white",
+] as const
+
+export type Vga16Bucket = (typeof VGA16_BUCKETS)[number]
+
+export const VGA16_HEX: Record<Vga16Bucket, string> = {
+  black: "#000000",
+  maroon: "#800000",
+  red: "#ff0000",
+  purple: "#800080",
+  fuchsia: "#ff00ff",
+  green: "#008000",
+  lime: "#00ff00",
+  olive: "#808000",
+  yellow: "#ffff00",
+  navy: "#000080",
+  blue: "#0000ff",
+  teal: "#008080",
+  aqua: "#00ffff",
+  silver: "#c0c0c0",
+  gray: "#808080",
+  white: "#ffffff",
+}
+
+export const VGA16_LABEL: Record<Vga16Bucket, string> = {
+  black: "Black",
+  maroon: "Maroon",
+  red: "Red",
+  purple: "Purple",
+  fuchsia: "Fuchsia",
+  green: "Green",
+  lime: "Lime",
+  olive: "Olive",
+  yellow: "Yellow",
+  navy: "Navy",
+  blue: "Blue",
+  teal: "Teal",
+  aqua: "Aqua",
+  silver: "Silver",
+  gray: "Grey",
+  white: "White",
+}

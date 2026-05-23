@@ -80,13 +80,7 @@ export function LibrarySheet() {
   }, [reset])
 
   return (
-    <section className="mt-4">
-      <h2 className="my-2 flex items-baseline gap-2 font-heading text-base font-medium">
-        Library
-        <span className="text-sm font-normal text-muted-foreground">
-          {items.length} loaded{hasMore ? " · more on scroll" : ""}
-        </span>
-      </h2>
+    <section className="flex min-h-0 flex-1 flex-col gap-2">
       {error && (
         <p className="text-xs text-destructive">
           Error: <span className="select-text">{error}</span>
@@ -94,7 +88,7 @@ export function LibrarySheet() {
       )}
       <ThumbGrid
         items={items}
-        emptyLabel="Nothing imported yet — drop a folder or pick one above."
+        emptyLabel="Nothing imported yet — drop a folder or click Add."
         onEndReached={loadNext}
         renderCell={(it) => (
           <ImageCard

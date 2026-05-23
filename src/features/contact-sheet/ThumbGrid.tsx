@@ -58,7 +58,7 @@ export function ThumbGrid<T extends { key: string }>({
   return (
     <div
       ref={parentRef}
-      className="max-h-[480px] min-h-[60px] overflow-y-auto rounded-sm border border-border"
+      className="min-h-[60px] flex-1 overflow-y-auto rounded-sm border border-border"
     >
       {items.length === 0 ? (
         <div className="p-2 text-xs text-muted-foreground/70">{emptyLabel}</div>
