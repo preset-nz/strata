@@ -279,14 +279,22 @@ fn process_one(
     let thumb_status = match crate::ingest::thumb::generate(&store, &stored.target_path, &hash_hex)
     {
         Ok(()) => "ready",
-        Err(_) => "missing",
+        Err(e) => {
+            eprintln!(
+                "thumb::generate failed for {}: {e:?}",
+                stored.target_path.display()
+            );
+            "missing"
+        }
     };
     {
         let conn = db.0.lock().unwrap();
-        let _ = conn.execute(
+        if let Err(e) = conn.execute(
             "UPDATE images SET thumbnails_status = ? WHERE id = ?",
             params![thumb_status, image_id],
-        );
+        ) {
+            eprintln!("thumb status UPDATE failed for {image_id}: {e:?}");
+        }
     }
 
     if thumb_status == "ready" {
