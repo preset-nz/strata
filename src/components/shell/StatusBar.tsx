@@ -18,7 +18,10 @@ export function StatusBar({ cardSize, onCardSizeChange }: Props) {
       )}
     >
       <div className="ml-auto flex items-center gap-2">
-        <label className="uppercase" htmlFor="card-size">
+        <label
+          className="font-heading text-[11px] font-semibold tracking-[0.08em] uppercase"
+          htmlFor="card-size"
+        >
           Size
         </label>
         <input

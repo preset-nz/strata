@@ -34,7 +34,9 @@ export function AppHeader({
           Library
         </Button>
       )}
-      <h1 className="font-heading text-sm font-medium tracking-wide">Strata</h1>
+      <h1 className="font-heading text-base font-semibold tracking-[0.04em] uppercase">
+        Strata
+      </h1>
       <span className="text-xs text-muted-foreground">{summary}</span>
       {activeFilterCount > 0 && (
         <span className="text-xs text-muted-foreground">

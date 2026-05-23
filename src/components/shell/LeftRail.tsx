@@ -243,7 +243,7 @@ function BatchRow({
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+    <h2 className="font-heading text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
       {children}
     </h2>
   )

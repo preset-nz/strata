@@ -265,7 +265,7 @@ function Section({
 }) {
   return (
     <div className="mb-6">
-      <h3 className="my-2 text-sm font-medium text-muted-foreground">
+      <h3 className="my-2 font-heading text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground">
         {label}
       </h3>
       {children}
