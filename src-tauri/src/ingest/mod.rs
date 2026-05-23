@@ -1,4 +1,5 @@
 pub mod events;
+pub mod exif;
 pub mod hash;
 pub mod job;
 pub mod scan;

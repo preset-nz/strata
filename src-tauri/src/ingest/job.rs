@@ -14,7 +14,9 @@ use crate::ingest::events::{
 };
 use crate::ingest::scan::prescan;
 use crate::ingest::trash::move_to_trash;
-use crate::ingest::{extension_for, hash::hash_file, mime_for_ext, store::copy_and_verify};
+use crate::ingest::{
+    exif as exif_read, extension_for, hash::hash_file, mime_for_ext, store::copy_and_verify,
+};
 use crate::store::StoreRoot;
 
 #[derive(Debug, Clone, Serialize)]
@@ -246,12 +248,14 @@ fn process_one(
         .to_string_lossy()
         .to_string();
     let imported_at = Utc::now();
+    let exif_created_at = exif_read::read_created_at(source);
+    let fs_mtime = exif_read::fs_mtime(source);
 
     send(FileState::Indexing, Some(hash_hex.clone()), Some(image_id.clone()), None);
     {
         let conn = db.0.lock().unwrap();
         if let Err(e) = conn.execute(
-            "INSERT INTO images (id, content_hash, store_path, original_filename, original_path, byte_size, mime, imported_at, ingest_batch_id, thumbnails_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO images (id, content_hash, store_path, original_filename, original_path, byte_size, mime, imported_at, ingest_batch_id, thumbnails_status, exif_created_at, fs_mtime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             params![
                 image_id,
                 hash_hex,
@@ -263,6 +267,8 @@ fn process_one(
                 imported_at,
                 batch_id,
                 "missing",
+                exif_created_at,
+                fs_mtime,
             ],
         ) {
             send(

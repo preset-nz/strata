@@ -2,7 +2,8 @@ use std::path::Path;
 use std::sync::Mutex;
 
 use anyhow::Result;
-use duckdb::Connection;
+use chrono::Utc;
+use duckdb::{params, Connection};
 
 pub struct Db(pub Mutex<Connection>);
 
@@ -12,13 +13,14 @@ impl Db {
             std::fs::create_dir_all(parent)?;
         }
         let conn = Connection::open(path)?;
-        init_schema(&conn)?;
+        apply_migrations(&conn)?;
         Ok(Self(Mutex::new(conn)))
     }
 }
 
-fn init_schema(conn: &Connection) -> Result<()> {
-    conn.execute_batch(
+const MIGRATIONS: &[(i64, &str)] = &[
+    (
+        1,
         r#"
         CREATE TABLE IF NOT EXISTS images (
             id UUID PRIMARY KEY,
@@ -45,6 +47,60 @@ fn init_schema(conn: &Connection) -> Result<()> {
             failed_count INTEGER NOT NULL DEFAULT 0
         );
         "#,
+    ),
+    (
+        2,
+        r#"
+        ALTER TABLE images ADD COLUMN exif_created_at TIMESTAMP;
+        ALTER TABLE images ADD COLUMN fs_mtime TIMESTAMP;
+
+        CREATE TABLE IF NOT EXISTS image_palette (
+            image_id UUID PRIMARY KEY REFERENCES images(id),
+            swatches TEXT NOT NULL,
+            dominant_bucket TEXT NOT NULL,
+            dominant_l REAL NOT NULL,
+            dominant_c REAL NOT NULL,
+            dominant_h REAL NOT NULL,
+            extracted_at TIMESTAMP NOT NULL,
+            stage_version TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS image_palette_bucket (
+            image_id UUID NOT NULL REFERENCES images(id),
+            bucket TEXT NOT NULL,
+            PRIMARY KEY (image_id, bucket)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_image_palette_dominant_bucket
+            ON image_palette(dominant_bucket);
+        CREATE INDEX IF NOT EXISTS idx_image_palette_bucket_bucket
+            ON image_palette_bucket(bucket);
+        "#,
+    ),
+];
+
+fn apply_migrations(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS schema_version (
+            version INTEGER PRIMARY KEY,
+            applied_at TIMESTAMP NOT NULL
+        );",
     )?;
+
+    let current: i64 = conn.query_row(
+        "SELECT COALESCE(MAX(version), 0) FROM schema_version",
+        [],
+        |r| r.get(0),
+    )?;
+
+    for (version, sql) in MIGRATIONS {
+        if *version > current {
+            conn.execute_batch(sql)?;
+            conn.execute(
+                "INSERT INTO schema_version (version, applied_at) VALUES (?, ?)",
+                params![version, Utc::now()],
+            )?;
+        }
+    }
     Ok(())
 }
