@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
-import { Thumbnail } from "../contact-sheet/Thumbnail"
+import { ImageCard } from "@/components/image-card"
 import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import type { ImportedRow } from "../contact-sheet/api"
 import { listImages } from "./api"
@@ -97,7 +97,11 @@ export function LibrarySheet() {
         emptyLabel="Nothing imported yet — drop a folder or pick one above."
         onEndReached={loadNext}
         renderCell={(it) => (
-          <Thumbnail hash={it.hash} filename={it.filename} status={it.status} />
+          <ImageCard
+            hash={it.hash}
+            filename={it.filename}
+            status={it.status}
+          />
         )}
       />
     </section>
