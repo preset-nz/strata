@@ -1,4 +1,4 @@
-import { Plus } from "@phosphor-icons/react"
+import { Plus, ArrowLeft } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 
 type Props = {
@@ -7,6 +7,7 @@ type Props = {
   activeFilterCount: number
   onAdd: () => void
   addDisabled?: boolean
+  onBack?: () => void
 }
 
 export function AppHeader({
@@ -15,6 +16,7 @@ export function AppHeader({
   activeFilterCount,
   onAdd,
   addDisabled,
+  onBack,
 }: Props) {
   const summary = (() => {
     if (total === 0) return "Library"
@@ -26,6 +28,12 @@ export function AppHeader({
 
   return (
     <header className="flex h-10 shrink-0 items-center gap-3 border-b border-border px-3">
+      {onBack && (
+        <Button size="sm" variant="ghost" onClick={onBack} aria-label="Back to library">
+          <ArrowLeft weight="bold" />
+          Library
+        </Button>
+      )}
       <h1 className="font-heading text-sm font-medium tracking-wide">Strata</h1>
       <span className="text-xs text-muted-foreground">{summary}</span>
       {activeFilterCount > 0 && (

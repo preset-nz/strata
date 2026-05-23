@@ -42,6 +42,7 @@ function App() {
   const [view, setView] = useState<View>({ kind: "idle" })
   const [sort, setSort] = useState<SortKey>("imported")
   const [cardSize, setCardSize] = useState<number>(CARD_SIZE_DEFAULT)
+  const [runningBatchId, setRunningBatchId] = useState<string | null>(null)
   const [selectedBuckets, setSelectedBuckets] = useState<Set<Vga16Bucket>>(
     () => new Set(),
   )
@@ -83,6 +84,7 @@ function App() {
     ;(async () => {
       offs.push(
         await listen("ingest://batch-done", () => {
+          setRunningBatchId(null)
           void refreshCounts()
         }),
       )
@@ -128,10 +130,25 @@ function App() {
   const handleConfirm = useCallback(async (scan: PrescanSummary) => {
     try {
       const result = await startIngest(scan.root)
+      setRunningBatchId(result.batch_id)
       setView({ kind: "running", batchId: result.batch_id })
     } catch (e) {
       setView({ kind: "error", message: String(e) })
     }
+  }, [])
+
+  const handleBack = useCallback(() => {
+    setView({ kind: "idle" })
+  }, [])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setView((v) => (v.kind === "idle" ? v : { kind: "idle" }))
+      }
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
   }, [])
 
   const handleAdd = useCallback(async () => {
@@ -160,7 +177,10 @@ function App() {
   }, [])
 
   const activeFilterCount = selectedBuckets.size + selectedLabels.size
-  const addDisabled = view.kind === "scanning" || view.kind === "running"
+  const addDisabled =
+    view.kind === "scanning" ||
+    view.kind === "scanned" ||
+    runningBatchId !== null
 
   const content = useMemo(() => {
     if (view.kind === "scanning") {
@@ -213,6 +233,7 @@ function App() {
         activeFilterCount={activeFilterCount}
         onAdd={handleAdd}
         addDisabled={addDisabled}
+        onBack={view.kind !== "idle" ? handleBack : undefined}
       />
       <div className="flex min-h-0 flex-1">
         <LeftRail
