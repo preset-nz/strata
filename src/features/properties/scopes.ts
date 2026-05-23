@@ -39,6 +39,7 @@ const IMAGE_SCHEMA: PropertySchema = {
         {
           kind: "vector",
           id: "dominantLCh",
+          label: "CIELCh",
           path: "dominantLCh",
           precision: 2,
           components: [
