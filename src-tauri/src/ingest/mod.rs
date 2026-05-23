@@ -3,6 +3,7 @@ pub mod exif;
 pub mod hash;
 pub mod job;
 pub mod scan;
+pub mod stages;
 pub mod store;
 pub mod thumb;
 pub mod trash;

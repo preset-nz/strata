@@ -1,5 +1,6 @@
 mod db;
 mod ingest;
+mod palette;
 mod server;
 mod store;
 

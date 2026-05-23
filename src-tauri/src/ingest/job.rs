@@ -300,6 +300,16 @@ fn process_one(
         );
     }
 
+    if thumb_status == "ready" {
+        let _ = crate::ingest::stages::palette::run(
+            &store,
+            &stored.target_path,
+            &hash_hex,
+            &image_id,
+            &db,
+        );
+    }
+
     send(
         FileState::Trashing,
         Some(hash_hex.clone()),
