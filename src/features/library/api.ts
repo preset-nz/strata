@@ -44,6 +44,10 @@ export function listBatches(): Promise<BatchSummary[]> {
   return invoke<BatchSummary[]>("list_batches")
 }
 
+export function getBatch(id: string): Promise<BatchSummary | null> {
+  return invoke<BatchSummary | null>("get_batch", { id })
+}
+
 export function libraryCount(
   buckets?: Vga16Bucket[],
   batchId?: string | null,

@@ -4,9 +4,8 @@ import { useSelection } from "@/stores/selection"
 import { registerStrataRenderers } from "./renderers"
 import { registerStrataScopes } from "./scopes"
 import { useImageDetails } from "./useImageDetails"
+import { useBatchDetails } from "./useBatchDetails"
 
-// Run at module import time: renderers and scopes are registered before
-// any component that consumes them renders.
 registerBuiltinRenderers()
 registerStrataRenderers()
 registerStrataScopes()
@@ -16,8 +15,11 @@ const EMPTY_CTX = Object.freeze({})
 export function PropertiesPane() {
   const { selection } = useSelection()
 
-  const imageId = selection.kind === "image" ? selection.row.id : null
+  const imageId = selection.kind === "image" ? selection.id : null
+  const batchId = selection.kind === "batch" ? selection.id : null
+
   const details = useImageDetails(imageId)
+  const batch = useBatchDetails(batchId)
 
   const title = useMemo(() => {
     if (selection.kind === "image") return "Image"
@@ -25,10 +27,11 @@ export function PropertiesPane() {
     return "Properties"
   }, [selection.kind])
 
-  const ctx = useMemo(
-    () => (details ? { details } : EMPTY_CTX),
-    [details],
-  )
+  const ctx = useMemo(() => {
+    if (selection.kind === "image") return details ? { details } : EMPTY_CTX
+    if (selection.kind === "batch") return batch ? { batch } : EMPTY_CTX
+    return EMPTY_CTX
+  }, [selection.kind, details, batch])
 
   return (
     <aside

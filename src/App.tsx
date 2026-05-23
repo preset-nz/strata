@@ -21,7 +21,7 @@ import {
   listBucketCounts,
   type BatchSummary,
 } from "./features/library/api"
-import { SelectionProvider, useSelection } from "./stores/selection"
+import { useSelection } from "./stores/selection"
 import { PropertiesPane } from "./features/properties/PropertiesPane"
 
 type View =
@@ -71,10 +71,9 @@ function AppShell() {
         if (selection.kind === "batch") clear()
         return
       }
-      const batch = batches.find((b) => b.id === id)
-      if (batch) selectBatch(batch)
+      selectBatch(id)
     },
-    [batches, selection.kind, selectBatch, clear],
+    [selection.kind, selectBatch, clear],
   )
 
   const bucketsForQuery = useMemo(
@@ -292,12 +291,6 @@ function AppShell() {
   )
 }
 
-function App() {
-  return (
-    <SelectionProvider>
-      <AppShell />
-    </SelectionProvider>
-  )
+export default function App() {
+  return <AppShell />
 }
-
-export default App

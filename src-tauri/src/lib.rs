@@ -374,6 +374,40 @@ struct BatchSummary {
 }
 
 #[tauri::command]
+fn get_batch(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Option<BatchSummary>, String> {
+    let conn = state.db.0.lock().unwrap();
+    let result = conn
+        .query_row(
+            "SELECT b.id, b.source_folder, b.started_at, b.finished_at,
+                    b.imported_count, b.skipped_count, b.failed_count,
+                    (SELECT COUNT(*) FROM images i WHERE i.ingest_batch_id = b.id) AS image_count
+             FROM ingest_batches b WHERE b.id = ?",
+            params![id],
+            |row| {
+                Ok(BatchSummary {
+                    id: row.get::<_, String>(0)?,
+                    source_folder: row.get::<_, String>(1)?,
+                    started_at: row
+                        .get::<_, chrono::DateTime<chrono::Utc>>(2)?
+                        .to_rfc3339(),
+                    finished_at: row
+                        .get::<_, Option<chrono::DateTime<chrono::Utc>>>(3)?
+                        .map(|d| d.to_rfc3339()),
+                    imported_count: row.get::<_, i64>(4)?,
+                    skipped_count: row.get::<_, i64>(5)?,
+                    failed_count: row.get::<_, i64>(6)?,
+                    image_count: row.get::<_, i64>(7)?,
+                })
+            },
+        )
+        .ok();
+    Ok(result)
+}
+
+#[tauri::command]
 fn list_batches(state: State<'_, AppState>) -> Result<Vec<BatchSummary>, String> {
     let conn = state.db.0.lock().unwrap();
     let mut stmt = conn
@@ -448,6 +482,7 @@ pub fn run() {
             list_batches,
             library_count,
             get_image_details,
+            get_batch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

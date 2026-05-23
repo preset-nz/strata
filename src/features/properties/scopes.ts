@@ -1,7 +1,9 @@
 import { registerScope, type PropertySchema, type Scope, type ScopeContext } from "@/properties"
-import type { Selection } from "@/stores/selection"
-import type { ImportedRow, ImageDetails } from "@/features/contact-sheet/api"
+import type { ImageDetails } from "@/features/contact-sheet/api"
 import type { BatchSummary } from "@/features/library/api"
+
+type ImageSelection = { kind: "image"; id: string }
+type BatchSelection = { kind: "batch"; id: string }
 
 const IMAGE_SCHEMA: PropertySchema = {
   version: 1,
@@ -66,35 +68,31 @@ const IMAGE_SCHEMA: PropertySchema = {
 }
 
 type ImageValues = {
-  filename: string
+  filename: string | null
   originalPath: string | null
   byteSize: number | null
   mime: string | null
   importedAt: string | null
-  status: string
+  status: string | null
   exifCreatedAt: string | null
-  dominantBucket: ImportedRow["dominant_bucket"]
+  dominantBucket: string | null
   dominantLCh: [number | null, number | null, number | null]
 }
 
-const imageScope: Scope<
-  Extract<Selection, { kind: "image" }>,
-  ImageValues
-> = {
+const imageScope: Scope<ImageSelection, ImageValues> = {
   schema: IMAGE_SCHEMA,
-  read: (selection, ctx: ScopeContext) => {
-    const row = selection.row
-    const details = ctx.details as ImageDetails | undefined
+  read: (_selection, ctx: ScopeContext) => {
+    const d = ctx.details as ImageDetails | undefined
     return {
-      filename: row.original_filename,
-      originalPath: details?.original_path ?? null,
-      byteSize: details?.byte_size ?? null,
-      mime: details?.mime ?? null,
-      importedAt: details?.imported_at ?? null,
-      status: row.thumbnails_status,
-      exifCreatedAt: details?.exif_created_at ?? null,
-      dominantBucket: row.dominant_bucket,
-      dominantLCh: [row.dominant_l, row.dominant_c, row.dominant_h],
+      filename: d?.original_filename ?? null,
+      originalPath: d?.original_path ?? null,
+      byteSize: d?.byte_size ?? null,
+      mime: d?.mime ?? null,
+      importedAt: d?.imported_at ?? null,
+      status: d?.thumbnails_status ?? null,
+      exifCreatedAt: d?.exif_created_at ?? null,
+      dominantBucket: d?.dominant_bucket ?? null,
+      dominantLCh: d ? [d.dominant_l, d.dominant_c, d.dominant_h] : [null, null, null],
     }
   },
 }
@@ -171,32 +169,29 @@ const BATCH_SCHEMA: PropertySchema = {
 }
 
 type BatchValues = {
-  id: string
-  sourceFolder: string
-  startedAt: string
+  id: string | null
+  sourceFolder: string | null
+  startedAt: string | null
   finishedAt: string | null
-  imageCount: number
-  importedCount: number
-  skippedCount: number
-  failedCount: number
+  imageCount: number | null
+  importedCount: number | null
+  skippedCount: number | null
+  failedCount: number | null
 }
 
-const batchScope: Scope<
-  Extract<Selection, { kind: "batch" }>,
-  BatchValues
-> = {
+const batchScope: Scope<BatchSelection, BatchValues> = {
   schema: BATCH_SCHEMA,
-  read: (selection) => {
-    const b: BatchSummary = selection.batch
+  read: (_selection, ctx: ScopeContext) => {
+    const b = ctx.batch as BatchSummary | undefined
     return {
-      id: b.id,
-      sourceFolder: b.source_folder,
-      startedAt: b.started_at,
-      finishedAt: b.finished_at,
-      imageCount: b.image_count,
-      importedCount: b.imported_count,
-      skippedCount: b.skipped_count,
-      failedCount: b.failed_count,
+      id: b?.id ?? null,
+      sourceFolder: b?.source_folder ?? null,
+      startedAt: b?.started_at ?? null,
+      finishedAt: b?.finished_at ?? null,
+      imageCount: b?.image_count ?? null,
+      importedCount: b?.imported_count ?? null,
+      skippedCount: b?.skipped_count ?? null,
+      failedCount: b?.failed_count ?? null,
     }
   },
 }

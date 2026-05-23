@@ -129,7 +129,7 @@ export function LibrarySheet({
             status={it.status}
             selected={selectedImageId === it.key}
             onActivate={() => setQuickviewIndex(idx)}
-            onSelect={() => selectImage(it.row)}
+            onSelect={() => selectImage(it.row.id)}
           />
         )}
       />
