@@ -2,9 +2,6 @@ import { useEffect, useRef } from "react"
 
 const LONG_PRESS_MS = 350
 const MOVE_THRESHOLD_PX = 4
-const FORCE_THRESHOLD = 0.5
-
-type WebKitForceEvent = MouseEvent & { webkitForce?: number }
 
 export function useHardPress<T extends HTMLElement>(
   onActivate: (() => void) | undefined,
@@ -57,9 +54,12 @@ export function useHardPress<T extends HTMLElement>(
         cancel()
       }
     }
-    const onForceChanged = (e: WebKitForceEvent) => {
-      if ((e.webkitForce ?? 0) >= FORCE_THRESHOLD) fire()
-    }
+    // webkitmouseforcedown fires ONCE when the user crosses the OS-level
+    // force-click threshold on a pressure-sensitive trackpad. We
+    // deliberately do not subscribe to webkitmouseforcechanged — that fires
+    // continuously and would trigger on every normal click as pressure
+    // ramps through any threshold we set.
+    const onForceDown = () => fire()
 
     el.addEventListener("pointerdown", onPointerDown)
     el.addEventListener("pointermove", onPointerMove)
@@ -67,8 +67,8 @@ export function useHardPress<T extends HTMLElement>(
     el.addEventListener("pointerleave", cancel)
     el.addEventListener("pointercancel", cancel)
     el.addEventListener(
-      "webkitmouseforcechanged" as keyof HTMLElementEventMap,
-      onForceChanged as EventListener,
+      "webkitmouseforcedown" as keyof HTMLElementEventMap,
+      onForceDown as EventListener,
     )
 
     return () => {
@@ -79,8 +79,8 @@ export function useHardPress<T extends HTMLElement>(
       el.removeEventListener("pointerleave", cancel)
       el.removeEventListener("pointercancel", cancel)
       el.removeEventListener(
-        "webkitmouseforcechanged" as keyof HTMLElementEventMap,
-        onForceChanged as EventListener,
+        "webkitmouseforcedown" as keyof HTMLElementEventMap,
+        onForceDown as EventListener,
       )
     }
   }, [])
