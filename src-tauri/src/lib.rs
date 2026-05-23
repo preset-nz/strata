@@ -102,6 +102,42 @@ struct ImageDetails {
     dominant_l: Option<f32>,
     dominant_c: Option<f32>,
     dominant_h: Option<f32>,
+
+    camera_make: Option<String>,
+    camera_model: Option<String>,
+    lens_make: Option<String>,
+    lens_model: Option<String>,
+    focal_length_mm: Option<f32>,
+    focal_length_35mm: Option<f32>,
+
+    iso: Option<i32>,
+    f_number: Option<f32>,
+    exposure_time_sec: Option<f32>,
+    exposure_bias: Option<f32>,
+    exposure_program: Option<String>,
+    metering_mode: Option<String>,
+    flash_fired: Option<bool>,
+
+    pixel_width: Option<i32>,
+    pixel_height: Option<i32>,
+    orientation: Option<i32>,
+    color_space: Option<String>,
+
+    gps_latitude: Option<f32>,
+    gps_longitude: Option<f32>,
+    gps_altitude_m: Option<f32>,
+
+    iptc_title: Option<String>,
+    iptc_caption: Option<String>,
+    iptc_byline: Option<String>,
+    iptc_copyright: Option<String>,
+    iptc_city: Option<String>,
+    iptc_state: Option<String>,
+    iptc_country: Option<String>,
+    iptc_date_created: Option<String>,
+
+    software: Option<String>,
+    keywords: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -278,8 +314,19 @@ fn get_image_details(
             "SELECT i.id, i.content_hash, i.original_filename, i.original_path, \
                     i.byte_size, i.mime, i.imported_at, i.ingest_batch_id, \
                     i.thumbnails_status, i.exif_created_at, i.fs_mtime, \
-                    p.dominant_bucket, p.dominant_l, p.dominant_c, p.dominant_h \
-             FROM images i LEFT JOIN image_palette p ON p.image_id = i.id \
+                    p.dominant_bucket, p.dominant_l, p.dominant_c, p.dominant_h, \
+                    m.camera_make, m.camera_model, m.lens_make, m.lens_model, \
+                    m.focal_length_mm, m.focal_length_35mm, \
+                    m.iso, m.f_number, m.exposure_time_sec, m.exposure_bias, \
+                    m.exposure_program, m.metering_mode, m.flash_fired, \
+                    m.pixel_width, m.pixel_height, m.orientation, m.color_space, \
+                    m.gps_latitude, m.gps_longitude, m.gps_altitude_m, \
+                    m.iptc_title, m.iptc_caption, m.iptc_byline, m.iptc_copyright, \
+                    m.iptc_city, m.iptc_state, m.iptc_country, m.iptc_date_created, \
+                    m.software \
+             FROM images i \
+             LEFT JOIN image_palette p ON p.image_id = i.id \
+             LEFT JOIN image_metadata m ON m.image_id = i.id \
              WHERE i.id = ?",
             params![id],
             |row| {
@@ -305,10 +352,64 @@ fn get_image_details(
                     dominant_l: row.get(12)?,
                     dominant_c: row.get(13)?,
                     dominant_h: row.get(14)?,
+
+                    camera_make: row.get(15)?,
+                    camera_model: row.get(16)?,
+                    lens_make: row.get(17)?,
+                    lens_model: row.get(18)?,
+                    focal_length_mm: row.get(19)?,
+                    focal_length_35mm: row.get(20)?,
+
+                    iso: row.get(21)?,
+                    f_number: row.get(22)?,
+                    exposure_time_sec: row.get(23)?,
+                    exposure_bias: row.get(24)?,
+                    exposure_program: row.get(25)?,
+                    metering_mode: row.get(26)?,
+                    flash_fired: row.get(27)?,
+
+                    pixel_width: row.get(28)?,
+                    pixel_height: row.get(29)?,
+                    orientation: row.get(30)?,
+                    color_space: row.get(31)?,
+
+                    gps_latitude: row.get(32)?,
+                    gps_longitude: row.get(33)?,
+                    gps_altitude_m: row.get(34)?,
+
+                    iptc_title: row.get(35)?,
+                    iptc_caption: row.get(36)?,
+                    iptc_byline: row.get(37)?,
+                    iptc_copyright: row.get(38)?,
+                    iptc_city: row.get(39)?,
+                    iptc_state: row.get(40)?,
+                    iptc_country: row.get(41)?,
+                    iptc_date_created: row
+                        .get::<_, Option<chrono::DateTime<chrono::Utc>>>(42)?
+                        .map(|d| d.to_rfc3339()),
+
+                    software: row.get(43)?,
+                    keywords: Vec::new(),
                 })
             },
         )
         .ok();
+
+    let result = match result {
+        Some(mut details) => {
+            let mut stmt = conn
+                .prepare("SELECT keyword FROM image_keyword WHERE image_id = ? ORDER BY keyword")
+                .map_err(|e| e.to_string())?;
+            let keywords: Vec<String> = stmt
+                .query_map(params![id], |row| row.get::<_, String>(0))
+                .map_err(|e| e.to_string())?
+                .filter_map(Result::ok)
+                .collect();
+            details.keywords = keywords;
+            Some(details)
+        }
+        None => None,
+    };
     Ok(result)
 }
 
@@ -459,10 +560,15 @@ pub fn run() {
             let db_path = app_data_dir.join("strata.duckdb");
             let db = Arc::new(Db::open(&db_path)?);
 
-            let backfill_handle = app.handle().clone();
-            let backfill_db = db.clone();
-            let backfill_store = store.clone();
-            palette::backfill::schedule(backfill_handle, backfill_db, backfill_store);
+            let palette_handle = app.handle().clone();
+            let palette_db = db.clone();
+            let palette_store = store.clone();
+            palette::backfill::schedule(palette_handle, palette_db, palette_store);
+
+            let metadata_handle = app.handle().clone();
+            let metadata_db = db.clone();
+            let metadata_store = store.clone();
+            ingest::metadata::backfill::schedule(metadata_handle, metadata_db, metadata_store);
 
             app.manage(AppState {
                 db,

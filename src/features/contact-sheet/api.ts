@@ -28,6 +28,42 @@ export type ImageDetails = {
   dominant_l: number | null
   dominant_c: number | null
   dominant_h: number | null
+
+  camera_make: string | null
+  camera_model: string | null
+  lens_make: string | null
+  lens_model: string | null
+  focal_length_mm: number | null
+  focal_length_35mm: number | null
+
+  iso: number | null
+  f_number: number | null
+  exposure_time_sec: number | null
+  exposure_bias: number | null
+  exposure_program: string | null
+  metering_mode: string | null
+  flash_fired: boolean | null
+
+  pixel_width: number | null
+  pixel_height: number | null
+  orientation: number | null
+  color_space: string | null
+
+  gps_latitude: number | null
+  gps_longitude: number | null
+  gps_altitude_m: number | null
+
+  iptc_title: string | null
+  iptc_caption: string | null
+  iptc_byline: string | null
+  iptc_copyright: string | null
+  iptc_city: string | null
+  iptc_state: string | null
+  iptc_country: string | null
+  iptc_date_created: string | null
+
+  software: string | null
+  keywords: string[]
 }
 
 export function batchImported(batchId: string): Promise<ImportedRow[]> {

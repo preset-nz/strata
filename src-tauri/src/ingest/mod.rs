@@ -1,7 +1,7 @@
 pub mod events;
-pub mod exif;
 pub mod hash;
 pub mod job;
+pub mod metadata;
 pub mod scan;
 pub mod stages;
 pub mod store;

@@ -14,7 +14,7 @@ use crate::ingest::events::{
 };
 use crate::ingest::scan::prescan;
 use crate::ingest::{
-    exif as exif_read, extension_for, hash::hash_file, mime_for_ext, store::copy_and_verify,
+    extension_for, hash::hash_file, metadata, mime_for_ext, store::copy_and_verify,
 };
 use crate::store::StoreRoot;
 
@@ -237,8 +237,9 @@ fn process_one(
         .to_string_lossy()
         .to_string();
     let imported_at = Utc::now();
-    let exif_created_at = exif_read::read_created_at(source);
-    let fs_mtime = exif_read::fs_mtime(source);
+    let extracted = metadata::extract(source);
+    let exif_created_at = metadata::date_time_original(&extracted);
+    let fs_mtime = metadata::exif::fs_mtime(source);
 
     send(FileState::Indexing, Some(hash_hex.clone()), Some(image_id.clone()), None);
     {
@@ -268,6 +269,10 @@ fn process_one(
             );
             return Ok(Outcome::Failed);
         }
+    }
+
+    if let Err(e) = metadata::write(&db, &image_id, &extracted) {
+        eprintln!("metadata::write failed for {image_id}: {e:?}");
     }
 
     send(

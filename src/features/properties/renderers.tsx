@@ -129,10 +129,33 @@ const FileSizeRenderer: FieldRenderer = ({ field, value }) => {
   )
 }
 
+const KeywordsRenderer: FieldRenderer = ({ field, value }) => {
+  const list = Array.isArray(value) ? (value as string[]) : []
+  return (
+    <FieldShell label={field.label ?? field.id}>
+      {list.length === 0 ? (
+        <span className="text-xs text-muted-foreground">—</span>
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          {list.map((kw) => (
+            <span
+              key={kw}
+              className="inline-flex items-center border border-border bg-muted/40 px-1.5 py-0.5 text-[11px] text-foreground"
+            >
+              {kw}
+            </span>
+          ))}
+        </div>
+      )}
+    </FieldShell>
+  )
+}
+
 export function registerStrataRenderers(): void {
   registerFieldRenderer("vga16-bucket", Vga16BucketRenderer)
   registerFieldRenderer("colour-label", ColourLabelRenderer)
   registerFieldRenderer("status-pill", StatusRenderer)
   registerFieldRenderer("date", DateRenderer)
   registerFieldRenderer("file-size", FileSizeRenderer)
+  registerFieldRenderer("keyword-chips", KeywordsRenderer)
 }
