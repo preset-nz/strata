@@ -38,7 +38,7 @@ export function ImageCard({
         "transition-[box-shadow,border-color,background-color] duration-150 ease-out",
         selected
           ? "border-foreground/60 shadow"
-          : "border-border/70 hover:border-foreground/40 hover:bg-accent/40 hover:shadow",
+          : "border-border/70 hover:bg-muted hover:shadow",
       )}
     >
       <div className="aspect-square w-full overflow-hidden bg-muted/30">
