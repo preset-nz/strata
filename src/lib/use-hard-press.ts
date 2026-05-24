@@ -66,6 +66,10 @@ export function useHardPress<T extends HTMLElement>(
     el.addEventListener("pointerup", cancel)
     el.addEventListener("pointerleave", cancel)
     el.addEventListener("pointercancel", cancel)
+    // HTML5 DnD suppresses pointermove during an active drag, so the
+    // motion-threshold cancel never fires and the long-press timer would
+    // pop mid-drag. Treat dragstart as an explicit cancel signal.
+    el.addEventListener("dragstart", cancel)
     el.addEventListener(
       "webkitmouseforcedown" as keyof HTMLElementEventMap,
       onForceDown as EventListener,
@@ -78,6 +82,7 @@ export function useHardPress<T extends HTMLElement>(
       el.removeEventListener("pointerup", cancel)
       el.removeEventListener("pointerleave", cancel)
       el.removeEventListener("pointercancel", cancel)
+      el.removeEventListener("dragstart", cancel)
       el.removeEventListener(
         "webkitmouseforcedown" as keyof HTMLElementEventMap,
         onForceDown as EventListener,
