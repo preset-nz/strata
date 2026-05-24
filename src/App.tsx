@@ -30,6 +30,7 @@ import {
 import { useSelection } from "./stores/selection"
 import { PropertiesPane } from "./features/properties/PropertiesPane"
 import { SnackbarProvider } from "./components/ui/snackbar"
+import { useMoveToTrash } from "./features/library/use-move-to-trash"
 
 type View =
   | { kind: "idle" }
@@ -82,6 +83,14 @@ function AppShell() {
   const [filteredCount, setFilteredCount] = useState<number | null>(null)
   const [batches, setBatches] = useState<BatchSummary[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
+  const [trashCount, setTrashCount] = useState(0)
+  const moveToTrash = useMoveToTrash()
+  const onTrashDrop = useCallback(
+    (ids: string[]) => {
+      void moveToTrash(ids)
+    },
+    [moveToTrash],
+  )
 
   const handleSelectBatch = useCallback(
     (id: string | null) => {
@@ -102,16 +111,18 @@ function AppShell() {
 
   const refreshCounts = useCallback(async () => {
     try {
-      const [total, counts, bs] = await Promise.all([
+      const [total, counts, bs, trashed] = await Promise.all([
         libraryCount(),
         listBucketCounts(),
         listBatches(),
+        libraryCount({ onlyDeleted: true }),
       ])
       setTotalCount(total)
       const next = { ...EMPTY_BUCKET_COUNTS }
       for (const { bucket, count } of counts) next[bucket] = count
       setBucketCounts(next)
       setBatches(bs)
+      setTrashCount(trashed)
     } catch (e) {
       console.error("refreshCounts failed:", e)
     }
@@ -133,6 +144,16 @@ function AppShell() {
       )
       offs.push(
         await listen("palette://backfill-done", () => {
+          void refreshCounts()
+        }),
+      )
+      offs.push(
+        await listen("library://images-trashed", () => {
+          void refreshCounts()
+        }),
+      )
+      offs.push(
+        await listen("library://images-restored", () => {
           void refreshCounts()
         }),
       )
@@ -304,6 +325,8 @@ function AppShell() {
           batches={batches}
           selectedBatchId={selectedBatchId}
           onSelectBatch={handleSelectBatch}
+          trashCount={trashCount}
+          onTrashDrop={onTrashDrop}
         />
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">{content}</main>
         <PropertiesPane />

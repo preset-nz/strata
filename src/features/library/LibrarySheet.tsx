@@ -5,11 +5,12 @@ import { CardContextMenu } from "@/components/image-card/CardContextMenu"
 import { Quickview } from "@/features/quickview/Quickview"
 import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import type { ImportedRow } from "../contact-sheet/api"
-import { deleteImages, listImages, restoreImages, type SortDirection } from "./api"
+import { listImages, type SortDirection } from "./api"
+import { useMoveToTrash } from "./use-move-to-trash"
 import type { Vga16Bucket } from "@/lib/vga16"
 import type { SortKey } from "@/components/shell/LeftRail"
 import { useSelection } from "@/stores/selection"
-import { SnackbarViewport, useSnackbar } from "@/components/ui/snackbar"
+import { SnackbarViewport } from "@/components/ui/snackbar"
 
 type Cell = {
   key: string
@@ -56,10 +57,13 @@ export function LibrarySheet({
   const offsetRef = useRef(0)
   const queryRef = useRef({ sort, direction, buckets, batchId })
   queryRef.current = { sort, direction, buckets, batchId }
-  const { selection, selectImage, clear: clearSelection } = useSelection()
+  const pendingUndoRef = useRef<Map<string, { cell: Cell; idx: number }>>(
+    new Map(),
+  )
+  const { selection, selectImage } = useSelection()
   const selectedImageId =
     selection.kind === "image" ? selection.id : null
-  const { show: showSnackbar } = useSnackbar()
+  const moveToTrash = useMoveToTrash()
 
   const loadNext = useCallback(async () => {
     if (loadingRef.current || !hasMore) return
@@ -84,6 +88,7 @@ export function LibrarySheet({
     offsetRef.current = 0
     setHasMore(true)
     setItems([])
+    pendingUndoRef.current.clear()
     try {
       loadingRef.current = true
       const { sort, direction, buckets, batchId } = queryRef.current
@@ -115,53 +120,65 @@ export function LibrarySheet({
     return () => off?.()
   }, [reset, onLibraryChanged])
 
-  const moveToTrash = useCallback(
-    async (id: string) => {
-      const idx = items.findIndex((c) => c.key === id)
-      if (idx === -1) return
-      const removed = items[idx]
-
-      setItems((prev) => prev.filter((c) => c.key !== id))
-      offsetRef.current = Math.max(0, offsetRef.current - 1)
-      if (selectedImageId === id) clearSelection()
-
-      try {
-        await deleteImages([id])
-        onLibraryChanged?.()
-        showSnackbar({
-          message: "Moved to Trash",
-          action: {
-            label: "Undo",
-            onClick: () => {
-              void (async () => {
-                try {
-                  await restoreImages([id])
-                  setItems((prev) => {
-                    if (prev.some((c) => c.key === id)) return prev
-                    const next = [...prev]
-                    next.splice(Math.min(idx, next.length), 0, removed)
-                    return next
-                  })
-                  offsetRef.current += 1
-                  onLibraryChanged?.()
-                } catch (e) {
-                  setError(String(e))
-                }
-              })()
-            },
-          },
-        })
-      } catch (e) {
-        setItems((prev) => {
-          const next = [...prev]
-          next.splice(Math.min(idx, next.length), 0, removed)
-          return next
-        })
-        setError(String(e))
-      }
-    },
-    [items, selectedImageId, clearSelection, onLibraryChanged, showSnackbar],
-  )
+  useEffect(() => {
+    const offs: UnlistenFn[] = []
+    let cancelled = false
+    ;(async () => {
+      offs.push(
+        await listen<string[]>("library://images-trashed", (e) => {
+          const ids = new Set(e.payload)
+          if (ids.size === 0) return
+          setItems((prev) => {
+            const next: Cell[] = []
+            prev.forEach((cell, idx) => {
+              if (ids.has(cell.key)) {
+                pendingUndoRef.current.set(cell.key, { cell, idx })
+              } else {
+                next.push(cell)
+              }
+            })
+            offsetRef.current = Math.max(0, offsetRef.current - (prev.length - next.length))
+            return next
+          })
+          const sel = useSelection.getState().selection
+          if (sel.kind === "image" && ids.has(sel.id)) {
+            useSelection.getState().clear()
+          }
+          onLibraryChanged?.()
+        }),
+      )
+      offs.push(
+        await listen<string[]>("library://images-restored", (e) => {
+          const ids = e.payload
+          if (ids.length === 0) return
+          setItems((prev) => {
+            const next = [...prev]
+            const captured = ids
+              .map((id) => pendingUndoRef.current.get(id))
+              .filter(
+                (x): x is { cell: Cell; idx: number } => x !== undefined,
+              )
+              .sort((a, b) => a.idx - b.idx)
+            let added = 0
+            captured.forEach(({ cell, idx }) => {
+              if (next.some((c) => c.key === cell.key)) return
+              next.splice(Math.min(idx, next.length), 0, cell)
+              pendingUndoRef.current.delete(cell.key)
+              added += 1
+            })
+            offsetRef.current += added
+            return next
+          })
+          onLibraryChanged?.()
+        }),
+      )
+      if (cancelled) offs.forEach((o) => o())
+    })()
+    return () => {
+      cancelled = true
+      offs.forEach((o) => o())
+    }
+  }, [onLibraryChanged])
 
   return (
     <section className="relative flex min-h-0 flex-1 flex-col gap-2">
@@ -178,9 +195,11 @@ export function LibrarySheet({
         renderCell={(it, idx) => (
           <CardContextMenu
             mode="library"
-            onMoveToTrash={() => void moveToTrash(it.row.id)}
+            onMoveToTrash={() => void moveToTrash([it.row.id])}
           >
             <ImageCard
+              id={it.row.id}
+              draggable
               hash={it.hash}
               filename={it.filename}
               status={it.status}

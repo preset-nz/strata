@@ -4,14 +4,17 @@ import { useHardPress } from "@/lib/use-hard-press"
 import { FavouriteToggle } from "./FavouriteToggle"
 import { ColourLabelSwatch } from "./ColourLabelSwatch"
 import type { ColourLabel } from "./colour-label"
+import { useDraggableCard } from "./use-draggable-card"
 
 type Props = {
+  id?: string
   hash: string
   filename: string
   status: "ready" | "missing" | "failed" | string
   isFavourite?: boolean
   colourLabel?: ColourLabel | null
   selected?: boolean
+  draggable?: boolean
   onFavouriteToggle?: () => void
   onColourLabelChange?: (next: ColourLabel | null) => void
   onActivate?: () => void
@@ -19,21 +22,26 @@ type Props = {
 }
 
 export function ImageCard({
+  id,
   hash,
   filename,
   status,
   isFavourite = false,
   colourLabel = null,
   selected = false,
+  draggable = false,
   onFavouriteToggle,
   onColourLabelChange,
   onActivate,
   onSelect,
 }: Props) {
   const pressRef = useHardPress<HTMLDivElement>(onActivate)
+  const dragProps = useDraggableCard({ id: id ?? "" })
+  const dragHandlers = draggable && id ? dragProps : null
   return (
     <div
       ref={pressRef}
+      {...(dragHandlers ?? {})}
       onClick={(e) => {
         const target = e.target as Element | null
         if (target?.closest("button, [role='button'], input, select")) return

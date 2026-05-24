@@ -1,5 +1,7 @@
-import { ArrowDown, ArrowUp, CaretRight, Heart } from "@phosphor-icons/react"
+import { useState } from "react"
+import { ArrowDown, ArrowUp, CaretRight, Heart, Trash } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
+import { readStrataImagePayload } from "@/components/image-card/use-draggable-card"
 import { usePersistedState } from "@/lib/use-persisted-state"
 import {
   VGA16_BUCKETS,
@@ -42,7 +44,7 @@ export const DEFAULT_DIRECTION: Record<SortKey, SortDirection> = {
   colour: "asc",
 }
 
-type SectionId = "sort" | "content_colour" | "label" | "imports"
+type SectionId = "sort" | "content_colour" | "label" | "imports" | "system"
 
 type LabelSelector = "favourite" | ColourLabel
 
@@ -60,6 +62,8 @@ type Props = {
   batches: BatchSummary[]
   selectedBatchId: string | null
   onSelectBatch: (id: string | null) => void
+  trashCount: number
+  onTrashDrop: (ids: string[]) => void
 }
 
 export function LeftRail({
@@ -76,6 +80,8 @@ export function LeftRail({
   batches,
   selectedBatchId,
   onSelectBatch,
+  trashCount,
+  onTrashDrop,
 }: Props) {
   const [collapsed, setCollapsed] = usePersistedState<Record<SectionId, boolean>>(
     "strata.rail.collapsed",
@@ -84,6 +90,7 @@ export function LeftRail({
       content_colour: false,
       label: false,
       imports: false,
+      system: false,
     },
   )
   const toggle = (id: SectionId) =>
@@ -259,7 +266,80 @@ export function LeftRail({
           </ul>
         )}
       </Section>
+
+      <Section
+        id="system"
+        title="System"
+        collapsed={collapsed.system}
+        onToggle={() => toggle("system")}
+        summary={trashCount > 0 ? trashCount : undefined}
+      >
+        <ul className="flex flex-col">
+          <TrashRow count={trashCount} onDrop={onTrashDrop} />
+        </ul>
+      </Section>
     </aside>
+  )
+}
+
+function TrashRow({
+  count,
+  onDrop,
+}: {
+  count: number
+  onDrop: (ids: string[]) => void
+}) {
+  const [over, setOver] = useState(false)
+  return (
+    <li>
+      <div
+        aria-label={`Trash — ${count.toLocaleString()} items`}
+        onDragOver={(e) => {
+          if (!e.dataTransfer.types.includes(
+            "application/x-strata-image",
+          )) return
+          e.preventDefault()
+          e.dataTransfer.dropEffect = "move"
+          if (!over) setOver(true)
+        }}
+        onDragEnter={(e) => {
+          if (!e.dataTransfer.types.includes(
+            "application/x-strata-image",
+          )) return
+          e.preventDefault()
+          setOver(true)
+        }}
+        onDragLeave={(e) => {
+          if (e.currentTarget.contains(e.relatedTarget as Node)) return
+          setOver(false)
+        }}
+        onDrop={(e) => {
+          const ids = readStrataImagePayload(e.dataTransfer)
+          setOver(false)
+          if (!ids || ids.length === 0) return
+          e.preventDefault()
+          onDrop(ids)
+        }}
+        className={cn(
+          "flex w-full items-center gap-2 rounded-sm px-1 py-0.5 transition-colors",
+          over
+            ? "bg-destructive/15 text-destructive ring-1 ring-destructive/50"
+            : "text-foreground",
+        )}
+      >
+        <Trash
+          weight="bold"
+          className={cn(
+            "size-3 shrink-0",
+            over ? "text-destructive" : "text-muted-foreground",
+          )}
+        />
+        <span className="flex-1 truncate">Trash</span>
+        <span className="tabular-nums text-[10px] text-muted-foreground">
+          {count.toLocaleString()}
+        </span>
+      </div>
+    </li>
   )
 }
 
