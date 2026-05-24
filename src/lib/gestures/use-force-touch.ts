@@ -4,8 +4,9 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 /**
  * Payload of the `force-touch` Tauri event emitted by the macOS NSEvent
  * monitor (`src-tauri/src/gestures/force_touch.rs`). Coordinates are
- * window-local CSS pixels; pressure is the raw NSEvent `pressure()` value
- * at the moment `stage()` reached 2.
+ * window-local CSS pixels in the top-left frame — the Rust side reports
+ * Cocoa coords (bottom-left origin) and this hook flips Y here using
+ * `window.innerHeight` before handing the payload to consumers.
  *
  * See `~/rhizomatic-preset/guidance/design/native-gesture-bridge.md`.
  */
@@ -27,7 +28,14 @@ export function useForceTouch(handler: (payload: ForceTouchPayload) => void) {
   useEffect(() => {
     let unlisten: UnlistenFn | undefined
     let cancelled = false
-    listen<ForceTouchPayload>("force-touch", (event) => handler(event.payload))
+    listen<ForceTouchPayload>("force-touch", (event) => {
+      const flipped: ForceTouchPayload = {
+        pressure: event.payload.pressure,
+        x: event.payload.x,
+        y: window.innerHeight - event.payload.y,
+      }
+      handler(flipped)
+    })
       .then((fn) => {
         if (cancelled) fn()
         else unlisten = fn
