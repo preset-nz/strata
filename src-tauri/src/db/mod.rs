@@ -205,10 +205,17 @@ const MIGRATIONS: &[(i64, &str)] = &[
     // writer local-first and the hard-delete cascade is managed explicitly
     // in Rust, so the FKs were never carrying enforcement weight.
     // DuckDB's ALTER TABLE DROP CONSTRAINT support is patchy for unnamed FKs,
-    // so we recreate each side table by copy-rename.
+    // so we recreate each side table by copy-rename. Indexes are dropped
+    // explicitly before the table swap — leaving them implicit triggered
+    // `unbound_index.cpp` assertion failures from orphaned column-id mappings
+    // on the persisted catalog after the rename.
     (
         6,
         r#"
+        DROP INDEX IF EXISTS idx_image_palette_dominant_bucket;
+        DROP INDEX IF EXISTS idx_image_palette_bucket_bucket;
+        DROP INDEX IF EXISTS idx_image_keyword_keyword;
+
         CREATE TABLE image_palette_new (
             image_id UUID PRIMARY KEY,
             swatches TEXT NOT NULL,
@@ -222,7 +229,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
         INSERT INTO image_palette_new SELECT * FROM image_palette;
         DROP TABLE image_palette;
         ALTER TABLE image_palette_new RENAME TO image_palette;
-        CREATE INDEX IF NOT EXISTS idx_image_palette_dominant_bucket
+        CREATE INDEX idx_image_palette_dominant_bucket
             ON image_palette(dominant_bucket);
 
         CREATE TABLE image_palette_bucket_new (
@@ -233,7 +240,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
         INSERT INTO image_palette_bucket_new SELECT * FROM image_palette_bucket;
         DROP TABLE image_palette_bucket;
         ALTER TABLE image_palette_bucket_new RENAME TO image_palette_bucket;
-        CREATE INDEX IF NOT EXISTS idx_image_palette_bucket_bucket
+        CREATE INDEX idx_image_palette_bucket_bucket
             ON image_palette_bucket(bucket);
 
         CREATE TABLE image_metadata_new (
@@ -288,8 +295,7 @@ const MIGRATIONS: &[(i64, &str)] = &[
         INSERT INTO image_keyword_new SELECT * FROM image_keyword;
         DROP TABLE image_keyword;
         ALTER TABLE image_keyword_new RENAME TO image_keyword;
-        CREATE INDEX IF NOT EXISTS idx_image_keyword_keyword
-            ON image_keyword(keyword);
+        CREATE INDEX idx_image_keyword_keyword ON image_keyword(keyword);
         "#,
     ),
 ];
