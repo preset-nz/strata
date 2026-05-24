@@ -38,3 +38,8 @@ num_cpus = "1"
 hex = "0.4"
 kamadak-exif = "0.6"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.5"
+objc2-app-kit = { version = "0.2", features = ["NSEvent", "NSApplication", "block2"] }
+block2 = "0.5"
+

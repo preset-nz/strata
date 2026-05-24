@@ -1,4 +1,5 @@
 mod db;
+mod gestures;
 mod ingest;
 mod palette;
 mod server;
@@ -788,6 +789,9 @@ pub fn run() {
             let db = Arc::new(Db::open(&db_path)?);
 
             purge_expired_on_start(db.clone(), store.clone());
+
+            #[cfg(target_os = "macos")]
+            crate::gestures::force_touch::install(app.handle().clone());
 
             let palette_handle = app.handle().clone();
             let palette_db = db.clone();

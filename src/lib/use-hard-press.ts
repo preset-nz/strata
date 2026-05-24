@@ -1,8 +1,23 @@
-import { useEffect, useRef } from "react"
+import { useCallback, useRef } from "react"
+import {
+  useForceTouch,
+  type ForceTouchPayload,
+} from "./gestures/use-force-touch"
 
-const LONG_PRESS_MS = 350
-const MOVE_THRESHOLD_PX = 4
-
+/**
+ * Hard-press handler bound to a single element. The press is the macOS
+ * Force Touch stage-2 gesture — see
+ * `~/rhizomatic-preset/guidance/design/native-gesture-bridge.md`. The hook
+ * returns a ref you attach to the element; when a `force-touch` event fires
+ * with `{ x, y }` inside the element's viewport rectangle, `onActivate`
+ * runs.
+ *
+ * No long-press fallback: long-press collided with HTML5 drag (the browser
+ * suppresses pointermove during a drag session, so the timer couldn't be
+ * cancelled by motion) and force-touch is the canonical haptic-trackpad
+ * trigger. Non-Mac and non-haptic users will get a keyboard/menu surface
+ * for Quickview when those land.
+ */
 export function useHardPress<T extends HTMLElement>(
   onActivate: (() => void) | undefined,
 ) {
@@ -10,85 +25,20 @@ export function useHardPress<T extends HTMLElement>(
   const cbRef = useRef(onActivate)
   cbRef.current = onActivate
 
-  useEffect(() => {
+  const onForceTouch = useCallback((p: ForceTouchPayload) => {
     const el = ref.current
     if (!el || !cbRef.current) return
-
-    let timer: number | undefined
-    let startX = 0
-    let startY = 0
-    let armed = false
-    let fired = false
-
-    const fire = () => {
-      if (fired) return
-      fired = true
-      cbRef.current?.()
-    }
-
-    const cancel = () => {
-      armed = false
-      if (timer !== undefined) {
-        window.clearTimeout(timer)
-        timer = undefined
-      }
-    }
-
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as Element | null
-      if (target?.closest("button, [role='button'], input, select")) return
-      armed = true
-      fired = false
-      startX = e.clientX
-      startY = e.clientY
-      timer = window.setTimeout(() => {
-        if (armed) fire()
-      }, LONG_PRESS_MS)
-    }
-    const onPointerMove = (e: PointerEvent) => {
-      if (!armed) return
-      if (
-        Math.abs(e.clientX - startX) > MOVE_THRESHOLD_PX ||
-        Math.abs(e.clientY - startY) > MOVE_THRESHOLD_PX
-      ) {
-        cancel()
-      }
-    }
-    // webkitmouseforcedown fires ONCE when the user crosses the OS-level
-    // force-click threshold on a pressure-sensitive trackpad. We
-    // deliberately do not subscribe to webkitmouseforcechanged — that fires
-    // continuously and would trigger on every normal click as pressure
-    // ramps through any threshold we set.
-    const onForceDown = () => fire()
-
-    el.addEventListener("pointerdown", onPointerDown)
-    el.addEventListener("pointermove", onPointerMove)
-    el.addEventListener("pointerup", cancel)
-    el.addEventListener("pointerleave", cancel)
-    el.addEventListener("pointercancel", cancel)
-    // HTML5 DnD suppresses pointermove during an active drag, so the
-    // motion-threshold cancel never fires and the long-press timer would
-    // pop mid-drag. Treat dragstart as an explicit cancel signal.
-    el.addEventListener("dragstart", cancel)
-    el.addEventListener(
-      "webkitmouseforcedown" as keyof HTMLElementEventMap,
-      onForceDown as EventListener,
-    )
-
-    return () => {
-      cancel()
-      el.removeEventListener("pointerdown", onPointerDown)
-      el.removeEventListener("pointermove", onPointerMove)
-      el.removeEventListener("pointerup", cancel)
-      el.removeEventListener("pointerleave", cancel)
-      el.removeEventListener("pointercancel", cancel)
-      el.removeEventListener("dragstart", cancel)
-      el.removeEventListener(
-        "webkitmouseforcedown" as keyof HTMLElementEventMap,
-        onForceDown as EventListener,
-      )
+    const rect = el.getBoundingClientRect()
+    if (
+      p.x >= rect.left &&
+      p.x <= rect.right &&
+      p.y >= rect.top &&
+      p.y <= rect.bottom
+    ) {
+      cbRef.current()
     }
   }, [])
 
+  useForceTouch(onForceTouch)
   return ref
 }
