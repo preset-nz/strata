@@ -150,6 +150,7 @@ struct ImportedRow {
     dominant_l: Option<f32>,
     dominant_c: Option<f32>,
     dominant_h: Option<f32>,
+    deleted_at: Option<String>,
 }
 
 #[tauri::command]
@@ -202,6 +203,7 @@ fn sort_clause(sort: &str, direction: Option<&str>) -> String {
              CASE WHEN p.dominant_c < 10 THEN 0 ELSE 1 END {dir}, \
              CASE WHEN p.dominant_c < 10 THEN p.dominant_l ELSE p.dominant_h END {dir}"
         ),
+        "deleted" => format!("i.deleted_at {dir}"),
         _ => format!("i.imported_at {dir}"),
     }
 }
@@ -216,11 +218,15 @@ fn row_from(row: &duckdb::Row) -> duckdb::Result<ImportedRow> {
         dominant_l: row.get::<_, Option<f32>>(5)?,
         dominant_c: row.get::<_, Option<f32>>(6)?,
         dominant_h: row.get::<_, Option<f32>>(7)?,
+        deleted_at: row
+            .get::<_, Option<chrono::DateTime<chrono::Utc>>>(8)?
+            .map(|d| d.to_rfc3339()),
     })
 }
 
 const ROW_COLUMNS: &str = "i.id, i.content_hash, i.original_filename, i.thumbnails_status, \
-                           p.dominant_bucket, p.dominant_l, p.dominant_c, p.dominant_h";
+                           p.dominant_bucket, p.dominant_l, p.dominant_c, p.dominant_h, \
+                           i.deleted_at";
 
 fn allowed_buckets(input: &[String]) -> Vec<String> {
     input
@@ -619,6 +625,76 @@ fn delete_image(
     Ok(n)
 }
 
+/// Hard-delete the catalog rows and filesystem artefacts for a single image.
+/// Side tables go first; the parent `images` row goes last so a partial failure
+/// keeps the row soft-deleted (deleted_at IS NOT NULL) and a future sweep can
+/// retry. Filesystem misses are logged but don't fail the operation — orphan
+/// binaries on disk are cheaper than orphan catalog rows.
+fn purge_one(
+    conn: &duckdb::Connection,
+    store: &crate::store::StoreRoot,
+    id: &str,
+) -> Result<(), String> {
+    let (content_hash, store_path): (String, String) = conn
+        .query_row(
+            "SELECT content_hash, store_path FROM images WHERE id = ?",
+            params![id],
+            |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+
+    for sql in [
+        "DELETE FROM image_palette_bucket WHERE image_id = ?",
+        "DELETE FROM image_palette WHERE image_id = ?",
+        "DELETE FROM image_metadata WHERE image_id = ?",
+        "DELETE FROM image_keyword WHERE image_id = ?",
+        "DELETE FROM images WHERE id = ?",
+    ] {
+        conn.execute(sql, params![id]).map_err(|e| e.to_string())?;
+    }
+
+    let binary = store.root().join(&store_path);
+    remove_quiet(&binary);
+    for size in [256u32, 512, 1024] {
+        remove_quiet(&store.thumb_path(&content_hash, size));
+    }
+    Ok(())
+}
+
+fn remove_quiet(path: &std::path::Path) {
+    if let Err(e) = std::fs::remove_file(path) {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            eprintln!("purge: could not remove {}: {}", path.display(), e);
+        }
+    }
+}
+
+#[tauri::command]
+fn purge_image(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    ids: Vec<String>,
+) -> Result<usize, String> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    let purged: Vec<String> = {
+        let conn = state.db.0.lock().unwrap();
+        let mut ok = Vec::with_capacity(ids.len());
+        for id in &ids {
+            match purge_one(&conn, &state.store, id) {
+                Ok(()) => ok.push(id.clone()),
+                Err(e) => eprintln!("purge_image({id}): {e}"),
+            }
+        }
+        ok
+    };
+    if !purged.is_empty() {
+        let _ = app.emit("library://images-purged", &purged);
+    }
+    Ok(purged.len())
+}
+
 #[tauri::command]
 fn restore_image(
     app: AppHandle,
@@ -650,6 +726,48 @@ fn restore_image(
     Ok(n)
 }
 
+const RETENTION_DAYS: i64 = 30;
+
+/// One-shot at app start: hard-delete every image whose soft-delete window has
+/// elapsed. Runs on a background thread so the UI isn't blocked while the
+/// cascade walks the filesystem. Daily timer is deferred (epic 11 open Q).
+fn purge_expired_on_start(db: Arc<Db>, store: crate::store::StoreRoot) {
+    std::thread::spawn(move || {
+        let cutoff = chrono::Utc::now() - chrono::Duration::days(RETENTION_DAYS);
+        let ids: Vec<String> = {
+            let conn = db.0.lock().unwrap();
+            let mut stmt = match conn.prepare(
+                "SELECT id FROM images \
+                 WHERE deleted_at IS NOT NULL AND deleted_at < ?",
+            ) {
+                Ok(s) => s,
+                Err(e) => {
+                    eprintln!("purge sweep: prepare failed: {e}");
+                    return;
+                }
+            };
+            let rows = stmt.query_map(params![cutoff], |row| row.get::<_, String>(0));
+            match rows {
+                Ok(it) => it.filter_map(Result::ok).collect(),
+                Err(e) => {
+                    eprintln!("purge sweep: query failed: {e}");
+                    return;
+                }
+            }
+        };
+        if ids.is_empty() {
+            return;
+        }
+        eprintln!("purge sweep: hard-deleting {} expired images", ids.len());
+        let conn = db.0.lock().unwrap();
+        for id in &ids {
+            if let Err(e) = purge_one(&conn, &store, id) {
+                eprintln!("purge sweep: {id}: {e}");
+            }
+        }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -668,6 +786,8 @@ pub fn run() {
 
             let db_path = app_data_dir.join("strata.duckdb");
             let db = Arc::new(Db::open(&db_path)?);
+
+            purge_expired_on_start(db.clone(), store.clone());
 
             let palette_handle = app.handle().clone();
             let palette_db = db.clone();
@@ -700,6 +820,7 @@ pub fn run() {
             get_batch,
             delete_image,
             restore_image,
+            purge_image,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
