@@ -204,7 +204,10 @@ export function LibrarySheet({
               filename={it.filename}
               status={it.status}
               selected={selectedImageId === it.key}
-              onActivate={() => setQuickviewIndex(idx)}
+              onActivate={() => {
+                selectImage(it.row.id)
+                setQuickviewIndex(idx)
+              }}
               onSelect={() => selectImage(it.row.id)}
             />
           </CardContextMenu>
