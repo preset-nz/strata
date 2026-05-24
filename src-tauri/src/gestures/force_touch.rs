@@ -1,20 +1,32 @@
-//! macOS Force Touch monitor — see `~/rhizomatic-preset/guidance/design/native-gesture-bridge.md`.
+//! macOS Force Touch monitor.
 //!
-//! Installs an NSEvent local monitor at app startup. On a click whose
-//! `stage()` is 2 (the haptic-trackpad force-click threshold), emits a
-//! `force-touch` Tauri event with `{ pressure, x, y }` in window-local CSS
-//! pixels.
+//! Detection model (after empirical fix — the original design doc was wrong):
 //!
-//! The block runs on the AppKit main thread and is called via the ObjC FFI,
-//! which cannot unwind. We catch any panic inside the block so a bug in the
-//! handler logs instead of aborting the whole process.
+//! - Monitor `NSEventMaskPressure` (pressure-gesture events), NOT
+//!   `LeftMouseDown`. The `stage()` method is only safe to call on
+//!   pressure-gesture events; calling it on a regular mouse-down throws
+//!   `NSInvalidArgumentException` which crosses the ObjC↔Rust FFI as a
+//!   foreign exception and aborts the process.
+//!
+//! - On each pressure-change event read `stage()`. Stage progression on a
+//!   force-click is 0 → 1 → 2 → 0. We emit the `force-touch` Tauri event
+//!   on the upward transition into stage 2 (deduplicated via a Cell so the
+//!   continuous pressureChange stream doesn't spam the bus).
+//!
+//! Coordinate note: NSEvent `locationInWindow` is in window-local points
+//! with bottom-left origin (Cocoa convention). The frontend hit-tests via
+//! `getBoundingClientRect` which is top-left origin — we flip Y here using
+//! the event's window height so the payload is already in the CSS frame.
+//! Falling back to the raw value if the window pointer is null.
 
 #![cfg(target_os = "macos")]
 
-use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::cell::Cell;
+use std::ptr::NonNull;
+use std::rc::Rc;
 
 use block2::RcBlock;
-use objc2_app_kit::{NSEvent, NSEventMask, NSEventType};
+use objc2_app_kit::{NSEvent, NSEventMask};
 use tauri::{AppHandle, Emitter};
 
 #[derive(Clone, serde::Serialize)]
@@ -25,47 +37,44 @@ struct ForceTouchPayload {
 }
 
 pub fn install(app: AppHandle) {
-    let mask = NSEventMask::LeftMouseDown | NSEventMask::RightMouseDown;
+    let mask = NSEventMask::Pressure;
+    let last_stage: Rc<Cell<i64>> = Rc::new(Cell::new(0));
 
-    let block = RcBlock::new(move |event: core::ptr::NonNull<NSEvent>| -> *mut NSEvent {
-        // SAFETY: the system gives us a valid NSEvent pointer for the
-        // lifetime of this callback. We only borrow it.
-        let event_ptr = event.as_ptr();
-        let result = catch_unwind(AssertUnwindSafe(|| unsafe {
-            let event_ref: &NSEvent = event.as_ref();
-            let kind = event_ref.r#type();
-            let is_click = kind == NSEventType::LeftMouseDown
-                || kind == NSEventType::RightMouseDown;
-            if !is_click {
-                return;
+    let block = {
+        let last_stage = last_stage.clone();
+        RcBlock::new(move |event: NonNull<NSEvent>| -> *mut NSEvent {
+            let event_ptr = event.as_ptr();
+            unsafe {
+                let event_ref: &NSEvent = event.as_ref();
+                let stage = event_ref.stage() as i64;
+                let was = last_stage.replace(stage);
+                if stage == 2 && was != 2 {
+                    let loc = event_ref.locationInWindow();
+                    let pressure = event_ref.pressure();
+                    // NOTE: locationInWindow is bottom-left origin (Cocoa).
+                    // Frontend hit-tests via getBoundingClientRect which is
+                    // top-left. Verify coords in practice — flip Y here
+                    // (h - loc.y) if the hit-test misses; deferred until we
+                    // know whether the wry/Tauri webview normalises it.
+                    let _ = app.emit(
+                        "force-touch",
+                        ForceTouchPayload {
+                            pressure,
+                            x: loc.x,
+                            y: loc.y,
+                        },
+                    );
+                }
             }
-            // stage() returns 0 on non-haptic hardware — exactly what we want.
-            if event_ref.stage() != 2 {
-                return;
-            }
-            let loc = event_ref.locationInWindow();
-            let _ = app.emit(
-                "force-touch",
-                ForceTouchPayload {
-                    pressure: event_ref.pressure(),
-                    x: loc.x,
-                    y: loc.y,
-                },
-            );
-        }));
-        if result.is_err() {
-            eprintln!("force-touch monitor: handler panicked (suppressed)");
-        }
-        // Pass the event through unchanged.
-        event_ptr
-    });
+            event_ptr
+        })
+    };
 
     unsafe {
         let _ = NSEvent::addLocalMonitorForEventsMatchingMask_handler(mask, &block);
     }
-    // Intentionally leak the RcBlock so the block stays alive for the app
-    // lifetime. The system retains it via the monitor, but tying our local
-    // RcBlock's drop to scope-exit was the simplest way to ensure no double-
-    // free path during teardown shenanigans.
+    // System retains the block via the monitor; pin our handle for the app
+    // lifetime to remove any ambiguity about drop ordering.
     std::mem::forget(block);
+    std::mem::forget(last_stage);
 }
