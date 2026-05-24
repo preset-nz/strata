@@ -29,6 +29,7 @@ import {
 } from "./features/library/api"
 import { useSelection } from "./stores/selection"
 import { PropertiesPane } from "./features/properties/PropertiesPane"
+import { SnackbarProvider } from "./components/ui/snackbar"
 
 type View =
   | { kind: "idle" }
@@ -313,5 +314,9 @@ function AppShell() {
 }
 
 export default function App() {
-  return <AppShell />
+  return (
+    <SnackbarProvider>
+      <AppShell />
+    </SnackbarProvider>
+  )
 }

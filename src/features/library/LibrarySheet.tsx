@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 import { ImageCard } from "@/components/image-card"
+import { CardContextMenu } from "@/components/image-card/CardContextMenu"
 import { Quickview } from "@/features/quickview/Quickview"
 import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import type { ImportedRow } from "../contact-sheet/api"
-import { listImages, type SortDirection } from "./api"
+import { deleteImages, listImages, restoreImages, type SortDirection } from "./api"
 import type { Vga16Bucket } from "@/lib/vga16"
 import type { SortKey } from "@/components/shell/LeftRail"
 import { useSelection } from "@/stores/selection"
+import { SnackbarViewport, useSnackbar } from "@/components/ui/snackbar"
 
 type Cell = {
   key: string
@@ -54,9 +56,10 @@ export function LibrarySheet({
   const offsetRef = useRef(0)
   const queryRef = useRef({ sort, direction, buckets, batchId })
   queryRef.current = { sort, direction, buckets, batchId }
-  const { selection, selectImage } = useSelection()
+  const { selection, selectImage, clear: clearSelection } = useSelection()
   const selectedImageId =
     selection.kind === "image" ? selection.id : null
+  const { show: showSnackbar } = useSnackbar()
 
   const loadNext = useCallback(async () => {
     if (loadingRef.current || !hasMore) return
@@ -112,8 +115,56 @@ export function LibrarySheet({
     return () => off?.()
   }, [reset, onLibraryChanged])
 
+  const moveToTrash = useCallback(
+    async (id: string) => {
+      const idx = items.findIndex((c) => c.key === id)
+      if (idx === -1) return
+      const removed = items[idx]
+
+      setItems((prev) => prev.filter((c) => c.key !== id))
+      offsetRef.current = Math.max(0, offsetRef.current - 1)
+      if (selectedImageId === id) clearSelection()
+
+      try {
+        await deleteImages([id])
+        onLibraryChanged?.()
+        showSnackbar({
+          message: "Moved to Trash",
+          action: {
+            label: "Undo",
+            onClick: () => {
+              void (async () => {
+                try {
+                  await restoreImages([id])
+                  setItems((prev) => {
+                    if (prev.some((c) => c.key === id)) return prev
+                    const next = [...prev]
+                    next.splice(Math.min(idx, next.length), 0, removed)
+                    return next
+                  })
+                  offsetRef.current += 1
+                  onLibraryChanged?.()
+                } catch (e) {
+                  setError(String(e))
+                }
+              })()
+            },
+          },
+        })
+      } catch (e) {
+        setItems((prev) => {
+          const next = [...prev]
+          next.splice(Math.min(idx, next.length), 0, removed)
+          return next
+        })
+        setError(String(e))
+      }
+    },
+    [items, selectedImageId, clearSelection, onLibraryChanged, showSnackbar],
+  )
+
   return (
-    <section className="flex min-h-0 flex-1 flex-col gap-2">
+    <section className="relative flex min-h-0 flex-1 flex-col gap-2">
       {error && (
         <p className="text-xs text-destructive">
           Error: <span className="select-text">{error}</span>
@@ -125,14 +176,19 @@ export function LibrarySheet({
         emptyLabel="Nothing imported yet — drop a folder or click Add."
         onEndReached={loadNext}
         renderCell={(it, idx) => (
-          <ImageCard
-            hash={it.hash}
-            filename={it.filename}
-            status={it.status}
-            selected={selectedImageId === it.key}
-            onActivate={() => setQuickviewIndex(idx)}
-            onSelect={() => selectImage(it.row.id)}
-          />
+          <CardContextMenu
+            mode="library"
+            onMoveToTrash={() => void moveToTrash(it.row.id)}
+          >
+            <ImageCard
+              hash={it.hash}
+              filename={it.filename}
+              status={it.status}
+              selected={selectedImageId === it.key}
+              onActivate={() => setQuickviewIndex(idx)}
+              onSelect={() => selectImage(it.row.id)}
+            />
+          </CardContextMenu>
         )}
       />
       {quickviewIndex !== null && (
@@ -143,6 +199,7 @@ export function LibrarySheet({
           onIndexChange={setQuickviewIndex}
         />
       )}
+      <SnackbarViewport />
     </section>
   )
 }

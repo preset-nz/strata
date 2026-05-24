@@ -588,6 +588,52 @@ fn list_batches(state: State<'_, AppState>) -> Result<Vec<BatchSummary>, String>
     Ok(rows)
 }
 
+#[tauri::command]
+fn delete_image(state: State<'_, AppState>, ids: Vec<String>) -> Result<usize, String> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    let placeholders = vec!["?"; ids.len()].join(", ");
+    let sql = format!(
+        "UPDATE images SET deleted_at = now(), deleted_reason = COALESCE(deleted_reason, 'user') \
+         WHERE id IN ({placeholders}) AND deleted_at IS NULL"
+    );
+
+    let conn = state.db.0.lock().unwrap();
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let bound: Vec<duckdb::types::Value> = ids
+        .iter()
+        .map(|id| duckdb::types::Value::Text(id.clone()))
+        .collect();
+    let n = stmt
+        .execute(duckdb::params_from_iter(bound.iter()))
+        .map_err(|e| e.to_string())?;
+    Ok(n)
+}
+
+#[tauri::command]
+fn restore_image(state: State<'_, AppState>, ids: Vec<String>) -> Result<usize, String> {
+    if ids.is_empty() {
+        return Ok(0);
+    }
+    let placeholders = vec!["?"; ids.len()].join(", ");
+    let sql = format!(
+        "UPDATE images SET deleted_at = NULL, deleted_reason = NULL \
+         WHERE id IN ({placeholders}) AND deleted_at IS NOT NULL"
+    );
+
+    let conn = state.db.0.lock().unwrap();
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let bound: Vec<duckdb::types::Value> = ids
+        .iter()
+        .map(|id| duckdb::types::Value::Text(id.clone()))
+        .collect();
+    let n = stmt
+        .execute(duckdb::params_from_iter(bound.iter()))
+        .map_err(|e| e.to_string())?;
+    Ok(n)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -636,6 +682,8 @@ pub fn run() {
             library_count,
             get_image_details,
             get_batch,
+            delete_image,
+            restore_image,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

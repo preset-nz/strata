@@ -63,6 +63,14 @@ export type CountQuery = {
   onlyDeleted?: boolean
 }
 
+export function deleteImages(ids: string[]): Promise<number> {
+  return invoke<number>("delete_image", { ids })
+}
+
+export function restoreImages(ids: string[]): Promise<number> {
+  return invoke<number>("restore_image", { ids })
+}
+
 export function libraryCount(opts?: CountQuery): Promise<number> {
   return invoke<number>("library_count", {
     buckets: opts?.buckets,
