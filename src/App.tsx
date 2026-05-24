@@ -108,8 +108,16 @@ function AppShell() {
     [moveToTrash],
   )
 
+  // Rail navigation is the universal escape hatch from any in-progress
+  // ingest view. The backend job continues regardless — leaving the view
+  // doesn't cancel the import.
+  const leaveIngestView = useCallback(() => {
+    setView((v) => (v.kind === "idle" ? v : { kind: "idle" }))
+  }, [])
+
   const handleSelectBatch = useCallback(
     (id: string | null) => {
+      leaveIngestView()
       setSelectedBatchId(id)
       setPanel("library")
       if (id === null) {
@@ -118,20 +126,22 @@ function AppShell() {
       }
       selectBatch(id)
     },
-    [selection.kind, selectBatch, clear],
+    [leaveIngestView, selection.kind, selectBatch, clear],
   )
 
   const onSelectTrash = useCallback(() => {
+    leaveIngestView()
     setPanel("trash")
     setSelectedBatchId(null)
     if (selection.kind !== "none") clear()
-  }, [selection.kind, clear])
+  }, [leaveIngestView, selection.kind, clear])
 
   const onSelectLibrary = useCallback(() => {
+    leaveIngestView()
     setPanel("library")
     setSelectedBatchId(null)
     if (selection.kind === "batch") clear()
-  }, [selection.kind, clear])
+  }, [leaveIngestView, selection.kind, clear])
 
   const bucketsForQuery = useMemo(
     () => Array.from(selectedBuckets),
@@ -256,23 +266,33 @@ function AppShell() {
     }
   }, [handlePath])
 
-  const toggleBucket = useCallback((b: Vga16Bucket) => {
-    setSelectedBuckets((prev) => {
-      const next = new Set(prev)
-      if (next.has(b)) next.delete(b)
-      else next.add(b)
-      return next
-    })
-  }, [])
+  const toggleBucket = useCallback(
+    (b: Vga16Bucket) => {
+      leaveIngestView()
+      setPanel("library")
+      setSelectedBuckets((prev) => {
+        const next = new Set(prev)
+        if (next.has(b)) next.delete(b)
+        else next.add(b)
+        return next
+      })
+    },
+    [leaveIngestView],
+  )
 
-  const toggleLabel = useCallback((l: LabelSelector) => {
-    setSelectedLabels((prev) => {
-      const next = new Set(prev)
-      if (next.has(l)) next.delete(l)
-      else next.add(l)
-      return next
-    })
-  }, [])
+  const toggleLabel = useCallback(
+    (l: LabelSelector) => {
+      leaveIngestView()
+      setPanel("library")
+      setSelectedLabels((prev) => {
+        const next = new Set(prev)
+        if (next.has(l)) next.delete(l)
+        else next.add(l)
+        return next
+      })
+    },
+    [leaveIngestView],
+  )
 
   const activeFilterCount =
     selectedBuckets.size + selectedLabels.size + (selectedBatchId ? 1 : 0)
