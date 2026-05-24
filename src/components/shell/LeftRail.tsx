@@ -364,18 +364,16 @@ function TrashRow({
         aria-pressed={active}
         aria-label={`Trash — ${count.toLocaleString()} items`}
         onClick={onClick}
+        // WebKit (Tauri's macOS engine) hides dataTransfer.types during
+        // dragenter/dragover for security — we can't filter on MIME until the
+        // drop fires. Always preventDefault to enable the drop and paint the
+        // hover state; validate the payload at drop time and ignore non-ours.
         onDragOver={(e) => {
-          if (!e.dataTransfer.types.includes(
-            "application/x-strata-image",
-          )) return
           e.preventDefault()
           e.dataTransfer.dropEffect = "move"
           if (!over) setOver(true)
         }}
         onDragEnter={(e) => {
-          if (!e.dataTransfer.types.includes(
-            "application/x-strata-image",
-          )) return
           e.preventDefault()
           setOver(true)
         }}
@@ -384,10 +382,10 @@ function TrashRow({
           setOver(false)
         }}
         onDrop={(e) => {
-          const ids = readStrataImagePayload(e.dataTransfer)
-          setOver(false)
-          if (!ids || ids.length === 0) return
           e.preventDefault()
+          setOver(false)
+          const ids = readStrataImagePayload(e.dataTransfer)
+          if (!ids || ids.length === 0) return
           onDrop(ids)
         }}
         className={cn(
