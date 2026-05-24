@@ -391,24 +391,32 @@ function TrashRow({
           onDrop(ids)
         }}
         className={cn(
-          "flex w-full items-center gap-2 rounded-sm px-1 py-0.5 text-left transition-colors",
+          "flex w-full items-center gap-2 rounded-sm px-1 py-0.5 text-left",
+          "transition-[background-color,color,box-shadow,transform] duration-100",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           over
-            ? "bg-destructive/15 text-destructive ring-1 ring-destructive/50"
+            ? "scale-[1.03] bg-destructive/25 text-destructive ring-2 ring-destructive shadow-sm"
             : active
               ? "bg-muted text-foreground"
               : "text-foreground hover:bg-muted/60",
         )}
       >
         <Trash
-          weight="bold"
+          weight={over ? "fill" : "bold"}
           className={cn(
             "size-3 shrink-0",
             over ? "text-destructive" : "text-muted-foreground",
           )}
         />
-        <span className="flex-1 truncate">Trash</span>
-        <span className="tabular-nums text-[10px] text-muted-foreground">
+        <span className="flex-1 truncate">
+          {over ? "Drop to delete" : "Trash"}
+        </span>
+        <span
+          className={cn(
+            "tabular-nums text-[10px]",
+            over ? "text-destructive" : "text-muted-foreground",
+          )}
+        >
           {count.toLocaleString()}
         </span>
       </button>

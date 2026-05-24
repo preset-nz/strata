@@ -43,6 +43,15 @@ function daysRemaining(deletedAt: string | null): number {
   return Math.max(0, Math.ceil(RETENTION_DAYS - ms / 86_400_000))
 }
 
+/** Local-day key for grouping. Returns "" for null/invalid timestamps so they
+ * cluster together at the end of a list and don't churn the badge. */
+function dayKey(deletedAt: string | null): string {
+  if (!deletedAt) return ""
+  const d = new Date(deletedAt)
+  if (Number.isNaN(d.getTime())) return ""
+  return d.toDateString()
+}
+
 type Props = {
   direction: SortDirection
   cellSize?: number
@@ -174,7 +183,10 @@ export function TrashSheet({
         cellSize={cellSize}
         emptyLabel="Trash is empty."
         onEndReached={loadNext}
-        renderCell={(it) => {
+        renderCell={(it, idx) => {
+          const prev = idx > 0 ? items[idx - 1] : null
+          const showBadge =
+            !prev || dayKey(prev.deletedAt) !== dayKey(it.deletedAt)
           const days = daysRemaining(it.deletedAt)
           return (
             <CardContextMenu
@@ -189,7 +201,7 @@ export function TrashSheet({
                 status={it.status}
                 selected={selectedImageId === it.key}
                 onSelect={() => selectImage(it.row.id)}
-                badge={<DaysBadge days={days} />}
+                badge={showBadge ? <DaysBadge days={days} /> : undefined}
               />
             </CardContextMenu>
           )
