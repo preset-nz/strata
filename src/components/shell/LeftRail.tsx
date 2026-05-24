@@ -1,4 +1,5 @@
-import { Heart } from "@phosphor-icons/react"
+import { useState } from "react"
+import { CaretRight, Heart } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import {
   VGA16_BUCKETS,
@@ -31,6 +32,8 @@ const SORT_LABEL: Record<SortKey, string> = {
   colour: "Colour",
 }
 
+type SectionId = "sort" | "content_colour" | "label" | "imports"
+
 type LabelSelector = "favourite" | ColourLabel
 
 type Props = {
@@ -60,10 +63,24 @@ export function LeftRail({
   selectedBatchId,
   onSelectBatch,
 }: Props) {
+  const [collapsed, setCollapsed] = useState<Record<SectionId, boolean>>({
+    sort: false,
+    content_colour: false,
+    label: false,
+    imports: false,
+  })
+  const toggle = (id: SectionId) =>
+    setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }))
+
   return (
     <aside className="flex w-[220px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-card/40 p-3 text-xs">
-      <section className="flex flex-col gap-1.5">
-        <SectionHeading>Sort</SectionHeading>
+      <Section
+        id="sort"
+        title="Sort"
+        collapsed={collapsed.sort}
+        onToggle={() => toggle("sort")}
+        summary={SORT_LABEL[sort]}
+      >
         <select
           value={sort}
           onChange={(e) => onSortChange(e.target.value as SortKey)}
@@ -78,10 +95,15 @@ export function LeftRail({
             </option>
           ))}
         </select>
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-1">
-        <SectionHeading>Content colour</SectionHeading>
+      <Section
+        id="content_colour"
+        title="Content colour"
+        collapsed={collapsed.content_colour}
+        onToggle={() => toggle("content_colour")}
+        summary={selectedBuckets.size > 0 ? selectedBuckets.size : undefined}
+      >
         <ul className="flex flex-col">
           {VGA16_BUCKETS.map((b) => {
             const count = bucketCounts[b] ?? 0
@@ -129,10 +151,15 @@ export function LeftRail({
             )
           })}
         </ul>
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-1">
-        <SectionHeading>Label</SectionHeading>
+      <Section
+        id="label"
+        title="Label"
+        collapsed={collapsed.label}
+        onToggle={() => toggle("label")}
+        summary={selectedLabels.size > 0 ? selectedLabels.size : undefined}
+      >
         <ul className="flex flex-col">
           <LabelRow
             id="favourite"
@@ -166,10 +193,15 @@ export function LeftRail({
             />
           ))}
         </ul>
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-1">
-        <SectionHeading>Imports</SectionHeading>
+      <Section
+        id="imports"
+        title="Imports"
+        collapsed={collapsed.imports}
+        onToggle={() => toggle("imports")}
+        summary={selectedBatchId ? 1 : undefined}
+      >
         {batches.length === 0 ? (
           <p className="text-muted-foreground/70 px-1">(none yet)</p>
         ) : (
@@ -186,7 +218,7 @@ export function LeftRail({
             ))}
           </ul>
         )}
-      </section>
+      </Section>
     </aside>
   )
 }
@@ -241,11 +273,57 @@ function BatchRow({
   )
 }
 
-function SectionHeading({ children }: { children: React.ReactNode }) {
+function Section({
+  id,
+  title,
+  collapsed,
+  onToggle,
+  summary,
+  children,
+}: {
+  id: SectionId
+  title: string
+  collapsed: boolean
+  onToggle: () => void
+  summary?: React.ReactNode
+  children: React.ReactNode
+}) {
+  const bodyId = `rail-section-${id}-body`
   return (
-    <h2 className="font-heading text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
-      {children}
-    </h2>
+    <section className="flex flex-col gap-1.5">
+      <button
+        type="button"
+        aria-expanded={!collapsed}
+        aria-controls={bodyId}
+        onClick={onToggle}
+        className={cn(
+          "-mx-1 flex items-center gap-1 rounded-sm px-1 py-0.5 text-left",
+          "hover:bg-muted/60",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+        )}
+      >
+        <CaretRight
+          weight="bold"
+          className={cn(
+            "size-3 shrink-0 text-muted-foreground transition-transform",
+            !collapsed && "rotate-90",
+          )}
+        />
+        <h2 className="font-heading flex-1 truncate text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+          {title}
+        </h2>
+        {collapsed && summary !== undefined && summary !== null && (
+          <span className="text-[10px] text-muted-foreground/80">
+            · {summary}
+          </span>
+        )}
+      </button>
+      {!collapsed && (
+        <div id={bodyId} className="flex flex-col gap-1">
+          {children}
+        </div>
+      )}
+    </section>
   )
 }
 
