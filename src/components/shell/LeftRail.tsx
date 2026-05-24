@@ -1,6 +1,6 @@
-import { useState } from "react"
 import { CaretRight, Heart } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
+import { usePersistedState } from "@/lib/use-persisted-state"
 import {
   VGA16_BUCKETS,
   VGA16_HEX,
@@ -63,12 +63,15 @@ export function LeftRail({
   selectedBatchId,
   onSelectBatch,
 }: Props) {
-  const [collapsed, setCollapsed] = useState<Record<SectionId, boolean>>({
-    sort: false,
-    content_colour: false,
-    label: false,
-    imports: false,
-  })
+  const [collapsed, setCollapsed] = usePersistedState<Record<SectionId, boolean>>(
+    "strata.rail.collapsed",
+    {
+      sort: false,
+      content_colour: false,
+      label: false,
+      imports: false,
+    },
+  )
   const toggle = (id: SectionId) =>
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }))
 
