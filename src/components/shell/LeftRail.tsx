@@ -1,4 +1,4 @@
-import { CaretRight, Heart } from "@phosphor-icons/react"
+import { ArrowDown, ArrowUp, CaretRight, Heart } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { usePersistedState } from "@/lib/use-persisted-state"
 import {
@@ -32,6 +32,16 @@ const SORT_LABEL: Record<SortKey, string> = {
   colour: "Colour",
 }
 
+export type SortDirection = "asc" | "desc"
+
+export const DEFAULT_DIRECTION: Record<SortKey, SortDirection> = {
+  imported: "desc",
+  filename: "asc",
+  created: "desc",
+  updated: "desc",
+  colour: "asc",
+}
+
 type SectionId = "sort" | "content_colour" | "label" | "imports"
 
 type LabelSelector = "favourite" | ColourLabel
@@ -45,6 +55,8 @@ type Props = {
   onToggleLabel: (label: LabelSelector) => void
   sort: SortKey
   onSortChange: (next: SortKey) => void
+  direction: SortDirection
+  onDirectionToggle: () => void
   batches: BatchSummary[]
   selectedBatchId: string | null
   onSelectBatch: (id: string | null) => void
@@ -59,6 +71,8 @@ export function LeftRail({
   onToggleLabel,
   sort,
   onSortChange,
+  direction,
+  onDirectionToggle,
   batches,
   selectedBatchId,
   onSelectBatch,
@@ -82,22 +96,45 @@ export function LeftRail({
         title="Sort"
         collapsed={collapsed.sort}
         onToggle={() => toggle("sort")}
-        summary={SORT_LABEL[sort]}
+        summary={`${SORT_LABEL[sort]} ${direction === "asc" ? "↑" : "↓"}`}
       >
-        <select
-          value={sort}
-          onChange={(e) => onSortChange(e.target.value as SortKey)}
-          className={cn(
-            "h-7 rounded-sm border border-border bg-background px-2 text-xs",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          )}
-        >
-          {SORT_KEYS.map((k) => (
-            <option key={k} value={k}>
-              {SORT_LABEL[k]}
-            </option>
-          ))}
-        </select>
+        <div className="flex gap-1">
+          <select
+            value={sort}
+            onChange={(e) => onSortChange(e.target.value as SortKey)}
+            className={cn(
+              "h-7 flex-1 rounded-sm border border-border bg-background px-2 text-xs",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            )}
+          >
+            {SORT_KEYS.map((k) => (
+              <option key={k} value={k}>
+                {SORT_LABEL[k]}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={onDirectionToggle}
+            aria-label={
+              direction === "asc"
+                ? "Sort ascending — click to descend"
+                : "Sort descending — click to ascend"
+            }
+            title={direction === "asc" ? "Ascending" : "Descending"}
+            className={cn(
+              "inline-flex size-7 shrink-0 items-center justify-center rounded-sm border border-border bg-background text-muted-foreground",
+              "hover:text-foreground hover:bg-muted/60",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+            )}
+          >
+            {direction === "asc" ? (
+              <ArrowUp weight="bold" className="size-3.5" />
+            ) : (
+              <ArrowDown weight="bold" className="size-3.5" />
+            )}
+          </button>
+        </div>
       </Section>
 
       <Section

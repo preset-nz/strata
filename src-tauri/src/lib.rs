@@ -179,17 +179,30 @@ fn last_batch(state: State<'_, AppState>) -> Result<Option<LastBatch>, String> {
     Ok(row)
 }
 
-fn sort_clause(sort: &str) -> &'static str {
+fn default_direction(sort: &str) -> &'static str {
     match sort {
-        "filename" => "i.original_filename ASC",
-        "created" => "COALESCE(i.exif_created_at, i.fs_mtime, i.imported_at) DESC",
-        "updated" => "COALESCE(p.extracted_at, i.imported_at) DESC",
-        "colour" => {
-            "p.dominant_l IS NULL, \
-             CASE WHEN p.dominant_c < 10 THEN 0 ELSE 1 END, \
-             CASE WHEN p.dominant_c < 10 THEN p.dominant_l ELSE p.dominant_h END"
-        }
-        _ => "i.imported_at DESC",
+        "filename" => "ASC",
+        "colour" => "ASC",
+        _ => "DESC",
+    }
+}
+
+fn sort_clause(sort: &str, direction: Option<&str>) -> String {
+    let dir = match direction {
+        Some("asc") => "ASC",
+        Some("desc") => "DESC",
+        _ => default_direction(sort),
+    };
+    match sort {
+        "filename" => format!("i.original_filename {dir}"),
+        "created" => format!("COALESCE(i.exif_created_at, i.fs_mtime, i.imported_at) {dir}"),
+        "updated" => format!("COALESCE(p.extracted_at, i.imported_at) {dir}"),
+        "colour" => format!(
+            "p.dominant_l IS NULL {dir}, \
+             CASE WHEN p.dominant_c < 10 THEN 0 ELSE 1 END {dir}, \
+             CASE WHEN p.dominant_c < 10 THEN p.dominant_l ELSE p.dominant_h END {dir}"
+        ),
+        _ => format!("i.imported_at {dir}"),
     }
 }
 
@@ -256,6 +269,7 @@ fn list_images(
     offset: i64,
     limit: i64,
     sort: Option<String>,
+    direction: Option<String>,
     buckets: Option<Vec<String>>,
     batch_id: Option<String>,
 ) -> Result<Vec<ImportedRow>, String> {
@@ -270,7 +284,7 @@ fn list_images(
     let (where_sql, mut bound) = build_where(&filter_buckets, batch_id.as_deref());
     let sql = format!(
         "SELECT {ROW_COLUMNS} FROM images i LEFT JOIN image_palette p ON p.image_id = i.id{where_sql} ORDER BY {sort} LIMIT ? OFFSET ?",
-        sort = sort_clause(sort_key)
+        sort = sort_clause(sort_key, direction.as_deref())
     );
 
     let conn = state.db.0.lock().unwrap();

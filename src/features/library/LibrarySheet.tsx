@@ -4,7 +4,7 @@ import { ImageCard } from "@/components/image-card"
 import { Quickview } from "@/features/quickview/Quickview"
 import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import type { ImportedRow } from "../contact-sheet/api"
-import { listImages } from "./api"
+import { listImages, type SortDirection } from "./api"
 import type { Vga16Bucket } from "@/lib/vga16"
 import type { SortKey } from "@/components/shell/LeftRail"
 import { useSelection } from "@/stores/selection"
@@ -31,6 +31,7 @@ function toCell(row: ImportedRow): Cell {
 
 type Props = {
   sort: SortKey
+  direction: SortDirection
   buckets: Vga16Bucket[]
   batchId?: string | null
   cellSize?: number
@@ -39,6 +40,7 @@ type Props = {
 
 export function LibrarySheet({
   sort,
+  direction,
   buckets,
   batchId,
   cellSize,
@@ -50,8 +52,8 @@ export function LibrarySheet({
   const [quickviewIndex, setQuickviewIndex] = useState<number | null>(null)
   const loadingRef = useRef(false)
   const offsetRef = useRef(0)
-  const queryRef = useRef({ sort, buckets, batchId })
-  queryRef.current = { sort, buckets, batchId }
+  const queryRef = useRef({ sort, direction, buckets, batchId })
+  queryRef.current = { sort, direction, buckets, batchId }
   const { selection, selectImage } = useSelection()
   const selectedImageId =
     selection.kind === "image" ? selection.id : null
@@ -60,8 +62,8 @@ export function LibrarySheet({
     if (loadingRef.current || !hasMore) return
     loadingRef.current = true
     try {
-      const { sort, buckets, batchId } = queryRef.current
-      const opts = { sort, buckets, batchId }
+      const { sort, direction, buckets, batchId } = queryRef.current
+      const opts = { sort, direction, buckets, batchId }
       const rows = await listImages(offsetRef.current, PAGE_SIZE, opts)
       offsetRef.current += rows.length
       setItems((prev) => prev.concat(rows.map(toCell)))
@@ -81,8 +83,8 @@ export function LibrarySheet({
     setItems([])
     try {
       loadingRef.current = true
-      const { sort, buckets, batchId } = queryRef.current
-      const opts = { sort, buckets, batchId }
+      const { sort, direction, buckets, batchId } = queryRef.current
+      const opts = { sort, direction, buckets, batchId }
       const rows = await listImages(0, PAGE_SIZE, opts)
       offsetRef.current = rows.length
       setItems(rows.map(toCell))
@@ -97,7 +99,7 @@ export function LibrarySheet({
 
   useEffect(() => {
     void reset()
-  }, [reset, sort, buckets, batchId])
+  }, [reset, sort, direction, buckets, batchId])
 
   useEffect(() => {
     let off: UnlistenFn | undefined

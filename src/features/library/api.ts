@@ -16,8 +16,11 @@ export type BatchSummary = {
   image_count: number
 }
 
+export type SortDirection = "asc" | "desc"
+
 export type ImagesQuery = {
   sort?: SortKey
+  direction?: SortDirection
   buckets?: Vga16Bucket[]
   batchId?: string | null
 }
@@ -31,6 +34,7 @@ export function listImages(
     offset,
     limit,
     sort: opts?.sort,
+    direction: opts?.direction,
     buckets: opts?.buckets,
     batchId: opts?.batchId ?? undefined,
   })

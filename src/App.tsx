@@ -7,7 +7,13 @@ import { JobProgress } from "./features/ingest/JobProgress"
 import { ContactSheet } from "./features/contact-sheet/ContactSheet"
 import { LibrarySheet } from "./features/library/LibrarySheet"
 import { AppHeader } from "./components/shell/AppHeader"
-import { LeftRail, type SortKey } from "./components/shell/LeftRail"
+import {
+  DEFAULT_DIRECTION,
+  LeftRail,
+  type SortDirection,
+  type SortKey,
+} from "./components/shell/LeftRail"
+import { usePersistedState } from "./lib/use-persisted-state"
 import {
   CARD_SIZE_DEFAULT,
   StatusBar,
@@ -48,7 +54,19 @@ const EMPTY_LABEL_COUNTS: Record<LabelSelector, number> = {
 function AppShell() {
   const { selection, selectBatch, clear } = useSelection()
   const [view, setView] = useState<View>({ kind: "idle" })
-  const [sort, setSort] = useState<SortKey>("imported")
+  const [sortState, setSortState] = usePersistedState<{
+    key: SortKey
+    direction: SortDirection
+  }>("strata.library.sort", { key: "imported", direction: "desc" })
+  const onSortChange = useCallback((key: SortKey) => {
+    setSortState({ key, direction: DEFAULT_DIRECTION[key] })
+  }, [setSortState])
+  const onDirectionToggle = useCallback(() => {
+    setSortState((prev) => ({
+      ...prev,
+      direction: prev.direction === "asc" ? "desc" : "asc",
+    }))
+  }, [setSortState])
   const [cardSize, setCardSize] = useState<number>(CARD_SIZE_DEFAULT)
   const [runningBatchId, setRunningBatchId] = useState<string | null>(null)
   const [selectedBuckets, setSelectedBuckets] = useState<Set<Vga16Bucket>>(
@@ -241,7 +259,8 @@ function AppShell() {
     }
     return (
       <LibrarySheet
-        sort={sort}
+        sort={sortState.key}
+        direction={sortState.direction}
         buckets={bucketsForQuery}
         batchId={selectedBatchId}
         cellSize={cardSize}
@@ -251,7 +270,7 @@ function AppShell() {
   }, [
     view,
     handleConfirm,
-    sort,
+    sortState,
     bucketsForQuery,
     selectedBatchId,
     cardSize,
@@ -277,8 +296,10 @@ function AppShell() {
           labelCounts={EMPTY_LABEL_COUNTS}
           selectedLabels={selectedLabels}
           onToggleLabel={toggleLabel}
-          sort={sort}
-          onSortChange={setSort}
+          sort={sortState.key}
+          onSortChange={onSortChange}
+          direction={sortState.direction}
+          onDirectionToggle={onDirectionToggle}
           batches={batches}
           selectedBatchId={selectedBatchId}
           onSelectBatch={handleSelectBatch}
