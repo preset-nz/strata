@@ -15,6 +15,7 @@ type Props = {
   colourLabel?: ColourLabel | null
   selected?: boolean
   draggable?: boolean
+  badge?: React.ReactNode
   onFavouriteToggle?: () => void
   onColourLabelChange?: (next: ColourLabel | null) => void
   onActivate?: () => void
@@ -30,6 +31,7 @@ export function ImageCard({
   colourLabel = null,
   selected = false,
   draggable = false,
+  badge,
   onFavouriteToggle,
   onColourLabelChange,
   onActivate,
@@ -56,8 +58,13 @@ export function ImageCard({
           : "border-border/70 hover:bg-muted hover:shadow",
       )}
     >
-      <div className="aspect-square w-full overflow-hidden bg-muted/30">
+      <div className="relative aspect-square w-full overflow-hidden bg-muted/30">
         <Thumbnail hash={hash} filename={filename} status={status} />
+        {badge && (
+          <div className="pointer-events-none absolute top-1 right-1">
+            {badge}
+          </div>
+        )}
       </div>
       <div className="mt-1 flex h-4 items-center justify-between px-0.5">
         <ColourLabelSwatch

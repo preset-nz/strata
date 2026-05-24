@@ -71,6 +71,10 @@ export function restoreImages(ids: string[]): Promise<number> {
   return invoke<number>("restore_image", { ids })
 }
 
+export function purgeImages(ids: string[]): Promise<number> {
+  return invoke<number>("purge_image", { ids })
+}
+
 export function libraryCount(opts?: CountQuery): Promise<number> {
   return invoke<number>("library_count", {
     buckets: opts?.buckets,

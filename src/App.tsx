@@ -6,10 +6,13 @@ import { ImportConfirmation } from "./features/ingest/ImportConfirmation"
 import { JobProgress } from "./features/ingest/JobProgress"
 import { ContactSheet } from "./features/contact-sheet/ContactSheet"
 import { LibrarySheet } from "./features/library/LibrarySheet"
+import { TrashSheet } from "./features/trash/TrashSheet"
 import { AppHeader } from "./components/shell/AppHeader"
 import {
   DEFAULT_DIRECTION,
   LeftRail,
+  LIBRARY_SORT_KEYS,
+  TRASH_SORT_KEYS,
   type SortDirection,
   type SortKey,
 } from "./components/shell/LeftRail"
@@ -53,22 +56,35 @@ const EMPTY_LABEL_COUNTS: Record<LabelSelector, number> = {
   >),
 }
 
+type Panel = "library" | "trash"
+
 function AppShell() {
   const { selection, selectBatch, clear } = useSelection()
   const [view, setView] = useState<View>({ kind: "idle" })
+  const [panel, setPanel] = useState<Panel>("library")
   const [sortState, setSortState] = usePersistedState<{
     key: SortKey
     direction: SortDirection
   }>("strata.library.sort", { key: "imported", direction: "desc" })
-  const onSortChange = useCallback((key: SortKey) => {
-    setSortState({ key, direction: DEFAULT_DIRECTION[key] })
-  }, [setSortState])
+  const [trashDirection, setTrashDirection] =
+    usePersistedState<SortDirection>("strata.trash.sortDirection", "desc")
+  const onSortChange = useCallback(
+    (key: SortKey) => {
+      if (panel === "trash") return
+      setSortState({ key, direction: DEFAULT_DIRECTION[key] })
+    },
+    [panel, setSortState],
+  )
   const onDirectionToggle = useCallback(() => {
-    setSortState((prev) => ({
-      ...prev,
-      direction: prev.direction === "asc" ? "desc" : "asc",
-    }))
-  }, [setSortState])
+    if (panel === "trash") {
+      setTrashDirection((prev) => (prev === "asc" ? "desc" : "asc"))
+    } else {
+      setSortState((prev) => ({
+        ...prev,
+        direction: prev.direction === "asc" ? "desc" : "asc",
+      }))
+    }
+  }, [panel, setSortState, setTrashDirection])
   const [cardSize, setCardSize] = useState<number>(CARD_SIZE_DEFAULT)
   const [runningBatchId, setRunningBatchId] = useState<string | null>(null)
   const [selectedBuckets, setSelectedBuckets] = useState<Set<Vga16Bucket>>(
@@ -95,6 +111,7 @@ function AppShell() {
   const handleSelectBatch = useCallback(
     (id: string | null) => {
       setSelectedBatchId(id)
+      setPanel("library")
       if (id === null) {
         if (selection.kind === "batch") clear()
         return
@@ -103,6 +120,12 @@ function AppShell() {
     },
     [selection.kind, selectBatch, clear],
   )
+
+  const onSelectTrash = useCallback(() => {
+    setPanel("trash")
+    setSelectedBatchId(null)
+    if (selection.kind !== "none") clear()
+  }, [selection.kind, clear])
 
   const bucketsForQuery = useMemo(
     () => Array.from(selectedBuckets),
@@ -154,6 +177,11 @@ function AppShell() {
       )
       offs.push(
         await listen("library://images-restored", () => {
+          void refreshCounts()
+        }),
+      )
+      offs.push(
+        await listen("library://images-purged", () => {
           void refreshCounts()
         }),
       )
@@ -279,6 +307,16 @@ function AppShell() {
         </>
       )
     }
+    if (panel === "trash") {
+      return (
+        <TrashSheet
+          direction={trashDirection}
+          buckets={bucketsForQuery}
+          cellSize={cardSize}
+          onLibraryChanged={refreshCounts}
+        />
+      )
+    }
     return (
       <LibrarySheet
         sort={sortState.key}
@@ -291,8 +329,10 @@ function AppShell() {
     )
   }, [
     view,
+    panel,
     handleConfirm,
     sortState,
+    trashDirection,
     bucketsForQuery,
     selectedBatchId,
     cardSize,
@@ -318,15 +358,18 @@ function AppShell() {
           labelCounts={EMPTY_LABEL_COUNTS}
           selectedLabels={selectedLabels}
           onToggleLabel={toggleLabel}
-          sort={sortState.key}
+          sort={panel === "trash" ? "deleted" : sortState.key}
           onSortChange={onSortChange}
-          direction={sortState.direction}
+          direction={panel === "trash" ? trashDirection : sortState.direction}
           onDirectionToggle={onDirectionToggle}
+          sortOptions={panel === "trash" ? TRASH_SORT_KEYS : LIBRARY_SORT_KEYS}
           batches={batches}
           selectedBatchId={selectedBatchId}
           onSelectBatch={handleSelectBatch}
           trashCount={trashCount}
           onTrashDrop={onTrashDrop}
+          trashActive={panel === "trash"}
+          onSelectTrash={onSelectTrash}
         />
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">{content}</main>
         <PropertiesPane />

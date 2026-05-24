@@ -10,6 +10,7 @@ export type ImportedRow = {
   dominant_l: number | null
   dominant_c: number | null
   dominant_h: number | null
+  deleted_at: string | null
 }
 
 export type ImageDetails = {

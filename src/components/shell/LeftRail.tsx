@@ -22,9 +22,19 @@ export const SORT_KEYS = [
   "created",
   "updated",
   "colour",
+  "deleted",
 ] as const
 
 export type SortKey = (typeof SORT_KEYS)[number]
+
+export const LIBRARY_SORT_KEYS: SortKey[] = [
+  "imported",
+  "filename",
+  "created",
+  "updated",
+  "colour",
+]
+export const TRASH_SORT_KEYS: SortKey[] = ["deleted"]
 
 const SORT_LABEL: Record<SortKey, string> = {
   imported: "Imported",
@@ -32,6 +42,7 @@ const SORT_LABEL: Record<SortKey, string> = {
   created: "Created",
   updated: "Updated",
   colour: "Colour",
+  deleted: "Deleted",
 }
 
 export type SortDirection = "asc" | "desc"
@@ -42,6 +53,7 @@ export const DEFAULT_DIRECTION: Record<SortKey, SortDirection> = {
   created: "desc",
   updated: "desc",
   colour: "asc",
+  deleted: "desc",
 }
 
 type SectionId = "sort" | "content_colour" | "label" | "imports" | "system"
@@ -59,11 +71,14 @@ type Props = {
   onSortChange: (next: SortKey) => void
   direction: SortDirection
   onDirectionToggle: () => void
+  sortOptions: SortKey[]
   batches: BatchSummary[]
   selectedBatchId: string | null
   onSelectBatch: (id: string | null) => void
   trashCount: number
   onTrashDrop: (ids: string[]) => void
+  trashActive: boolean
+  onSelectTrash: () => void
 }
 
 export function LeftRail({
@@ -77,11 +92,14 @@ export function LeftRail({
   onSortChange,
   direction,
   onDirectionToggle,
+  sortOptions,
   batches,
   selectedBatchId,
   onSelectBatch,
   trashCount,
   onTrashDrop,
+  trashActive,
+  onSelectTrash,
 }: Props) {
   const [collapsed, setCollapsed] = usePersistedState<Record<SectionId, boolean>>(
     "strata.rail.collapsed",
@@ -109,12 +127,14 @@ export function LeftRail({
           <select
             value={sort}
             onChange={(e) => onSortChange(e.target.value as SortKey)}
+            disabled={sortOptions.length <= 1}
             className={cn(
               "h-7 flex-1 rounded-sm border border-border bg-background px-2 text-xs",
               "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              "disabled:cursor-default disabled:opacity-80",
             )}
           >
-            {SORT_KEYS.map((k) => (
+            {sortOptions.map((k) => (
               <option key={k} value={k}>
                 {SORT_LABEL[k]}
               </option>
@@ -275,7 +295,12 @@ export function LeftRail({
         summary={trashCount > 0 ? trashCount : undefined}
       >
         <ul className="flex flex-col">
-          <TrashRow count={trashCount} onDrop={onTrashDrop} />
+          <TrashRow
+            count={trashCount}
+            active={trashActive}
+            onClick={onSelectTrash}
+            onDrop={onTrashDrop}
+          />
         </ul>
       </Section>
     </aside>
@@ -284,16 +309,23 @@ export function LeftRail({
 
 function TrashRow({
   count,
+  active,
+  onClick,
   onDrop,
 }: {
   count: number
+  active: boolean
+  onClick: () => void
   onDrop: (ids: string[]) => void
 }) {
   const [over, setOver] = useState(false)
   return (
     <li>
-      <div
+      <button
+        type="button"
+        aria-pressed={active}
         aria-label={`Trash — ${count.toLocaleString()} items`}
+        onClick={onClick}
         onDragOver={(e) => {
           if (!e.dataTransfer.types.includes(
             "application/x-strata-image",
@@ -321,10 +353,13 @@ function TrashRow({
           onDrop(ids)
         }}
         className={cn(
-          "flex w-full items-center gap-2 rounded-sm px-1 py-0.5 transition-colors",
+          "flex w-full items-center gap-2 rounded-sm px-1 py-0.5 text-left transition-colors",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           over
             ? "bg-destructive/15 text-destructive ring-1 ring-destructive/50"
-            : "text-foreground",
+            : active
+              ? "bg-muted text-foreground"
+              : "text-foreground hover:bg-muted/60",
         )}
       >
         <Trash
@@ -338,7 +373,7 @@ function TrashRow({
         <span className="tabular-nums text-[10px] text-muted-foreground">
           {count.toLocaleString()}
         </span>
-      </div>
+      </button>
     </li>
   )
 }
