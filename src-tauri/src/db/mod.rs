@@ -198,6 +198,100 @@ const MIGRATIONS: &[(i64, &str)] = &[
         CREATE INDEX IF NOT EXISTS idx_images_deleted_at ON images(deleted_at);
         "#,
     ),
+    // v6 — drop foreign-key constraints from side tables.
+    // DuckDB refuses UPDATE on a parent row that has FK-referenced children,
+    // even when the referenced column (images.id) is unchanged. That breaks
+    // soft-delete, which only touches images.deleted_at. Strata is single-
+    // writer local-first and the hard-delete cascade is managed explicitly
+    // in Rust, so the FKs were never carrying enforcement weight.
+    // DuckDB's ALTER TABLE DROP CONSTRAINT support is patchy for unnamed FKs,
+    // so we recreate each side table by copy-rename.
+    (
+        6,
+        r#"
+        CREATE TABLE image_palette_new (
+            image_id UUID PRIMARY KEY,
+            swatches TEXT NOT NULL,
+            dominant_bucket TEXT NOT NULL,
+            dominant_l REAL NOT NULL,
+            dominant_c REAL NOT NULL,
+            dominant_h REAL NOT NULL,
+            extracted_at TIMESTAMP NOT NULL,
+            stage_version TEXT NOT NULL
+        );
+        INSERT INTO image_palette_new SELECT * FROM image_palette;
+        DROP TABLE image_palette;
+        ALTER TABLE image_palette_new RENAME TO image_palette;
+        CREATE INDEX IF NOT EXISTS idx_image_palette_dominant_bucket
+            ON image_palette(dominant_bucket);
+
+        CREATE TABLE image_palette_bucket_new (
+            image_id UUID NOT NULL,
+            bucket TEXT NOT NULL,
+            PRIMARY KEY (image_id, bucket)
+        );
+        INSERT INTO image_palette_bucket_new SELECT * FROM image_palette_bucket;
+        DROP TABLE image_palette_bucket;
+        ALTER TABLE image_palette_bucket_new RENAME TO image_palette_bucket;
+        CREATE INDEX IF NOT EXISTS idx_image_palette_bucket_bucket
+            ON image_palette_bucket(bucket);
+
+        CREATE TABLE image_metadata_new (
+            image_id UUID PRIMARY KEY,
+
+            camera_make TEXT,
+            camera_model TEXT,
+            lens_make TEXT,
+            lens_model TEXT,
+            focal_length_mm REAL,
+            focal_length_35mm REAL,
+
+            iso INTEGER,
+            f_number REAL,
+            exposure_time_sec REAL,
+            exposure_bias REAL,
+            exposure_program TEXT,
+            metering_mode TEXT,
+            flash_fired BOOLEAN,
+
+            pixel_width INTEGER,
+            pixel_height INTEGER,
+            orientation INTEGER,
+            color_space TEXT,
+
+            gps_latitude REAL,
+            gps_longitude REAL,
+            gps_altitude_m REAL,
+
+            iptc_title TEXT,
+            iptc_caption TEXT,
+            iptc_byline TEXT,
+            iptc_copyright TEXT,
+            iptc_city TEXT,
+            iptc_state TEXT,
+            iptc_country TEXT,
+            iptc_date_created TIMESTAMP,
+
+            software TEXT,
+            extracted_at TIMESTAMP NOT NULL,
+            stage_version TEXT NOT NULL
+        );
+        INSERT INTO image_metadata_new SELECT * FROM image_metadata;
+        DROP TABLE image_metadata;
+        ALTER TABLE image_metadata_new RENAME TO image_metadata;
+
+        CREATE TABLE image_keyword_new (
+            image_id UUID NOT NULL,
+            keyword TEXT NOT NULL,
+            PRIMARY KEY (image_id, keyword)
+        );
+        INSERT INTO image_keyword_new SELECT * FROM image_keyword;
+        DROP TABLE image_keyword;
+        ALTER TABLE image_keyword_new RENAME TO image_keyword;
+        CREATE INDEX IF NOT EXISTS idx_image_keyword_keyword
+            ON image_keyword(keyword);
+        "#,
+    ),
 ];
 
 fn apply_migrations(conn: &Connection) -> Result<()> {
