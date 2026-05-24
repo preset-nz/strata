@@ -127,6 +127,12 @@ function AppShell() {
     if (selection.kind !== "none") clear()
   }, [selection.kind, clear])
 
+  const onSelectLibrary = useCallback(() => {
+    setPanel("library")
+    setSelectedBatchId(null)
+    if (selection.kind === "batch") clear()
+  }, [selection.kind, clear])
+
   const bucketsForQuery = useMemo(
     () => Array.from(selectedBuckets),
     [selectedBuckets],
@@ -311,7 +317,6 @@ function AppShell() {
       return (
         <TrashSheet
           direction={trashDirection}
-          buckets={bucketsForQuery}
           cellSize={cardSize}
           onLibraryChanged={refreshCounts}
         />
@@ -370,6 +375,10 @@ function AppShell() {
           onTrashDrop={onTrashDrop}
           trashActive={panel === "trash"}
           onSelectTrash={onSelectTrash}
+          libraryTotal={totalCount}
+          libraryActive={panel === "library"}
+          onSelectLibrary={onSelectLibrary}
+          filtersDisabled={panel === "trash"}
         />
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">{content}</main>
         <PropertiesPane />

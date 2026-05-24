@@ -10,7 +10,6 @@ import {
   restoreImages,
   type SortDirection,
 } from "../library/api"
-import type { Vga16Bucket } from "@/lib/vga16"
 import { useSelection } from "@/stores/selection"
 import { SnackbarViewport } from "@/components/ui/snackbar"
 import { cn } from "@/lib/utils"
@@ -46,14 +45,12 @@ function daysRemaining(deletedAt: string | null): number {
 
 type Props = {
   direction: SortDirection
-  buckets: Vga16Bucket[]
   cellSize?: number
   onLibraryChanged?: () => void
 }
 
 export function TrashSheet({
   direction,
-  buckets,
   cellSize,
   onLibraryChanged,
 }: Props) {
@@ -62,8 +59,8 @@ export function TrashSheet({
   const [error, setError] = useState<string | null>(null)
   const loadingRef = useRef(false)
   const offsetRef = useRef(0)
-  const queryRef = useRef({ direction, buckets })
-  queryRef.current = { direction, buckets }
+  const queryRef = useRef({ direction })
+  queryRef.current = { direction }
   const { selection, selectImage } = useSelection()
   const selectedImageId =
     selection.kind === "image" ? selection.id : null
@@ -72,11 +69,10 @@ export function TrashSheet({
     if (loadingRef.current || !hasMore) return
     loadingRef.current = true
     try {
-      const { direction, buckets } = queryRef.current
+      const { direction } = queryRef.current
       const rows = await listImages(offsetRef.current, PAGE_SIZE, {
         sort: "deleted",
         direction,
-        buckets,
         onlyDeleted: true,
       })
       offsetRef.current += rows.length
@@ -97,11 +93,10 @@ export function TrashSheet({
     setItems([])
     try {
       loadingRef.current = true
-      const { direction, buckets } = queryRef.current
+      const { direction } = queryRef.current
       const rows = await listImages(0, PAGE_SIZE, {
         sort: "deleted",
         direction,
-        buckets,
         onlyDeleted: true,
       })
       offsetRef.current = rows.length
@@ -117,7 +112,7 @@ export function TrashSheet({
 
   useEffect(() => {
     void reset()
-  }, [reset, direction, buckets])
+  }, [reset, direction])
 
   useEffect(() => {
     const offs: UnlistenFn[] = []

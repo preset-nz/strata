@@ -1,5 +1,12 @@
 import { useState } from "react"
-import { ArrowDown, ArrowUp, CaretRight, Heart, Trash } from "@phosphor-icons/react"
+import {
+  ArrowDown,
+  ArrowUp,
+  CaretRight,
+  Heart,
+  Images,
+  Trash,
+} from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { readStrataImagePayload } from "@/components/image-card/use-draggable-card"
 import { usePersistedState } from "@/lib/use-persisted-state"
@@ -79,6 +86,14 @@ type Props = {
   onTrashDrop: (ids: string[]) => void
   trashActive: boolean
   onSelectTrash: () => void
+  libraryTotal: number
+  libraryActive: boolean
+  onSelectLibrary: () => void
+  /** When true, filter sections (Content colour / Label / Imports) are dimmed
+   * and read-only — they don't apply to the active panel (e.g. Trash). The
+   * underlying selection state is preserved so returning to Library restores
+   * any pending filters. */
+  filtersDisabled: boolean
 }
 
 export function LeftRail({
@@ -100,6 +115,10 @@ export function LeftRail({
   onTrashDrop,
   trashActive,
   onSelectTrash,
+  libraryTotal,
+  libraryActive,
+  onSelectLibrary,
+  filtersDisabled,
 }: Props) {
   const [collapsed, setCollapsed] = usePersistedState<Record<SectionId, boolean>>(
     "strata.rail.collapsed",
@@ -116,6 +135,21 @@ export function LeftRail({
 
   return (
     <aside className="flex w-[220px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-card/40 p-3 text-xs">
+      <NavRow
+        icon={
+          <Images
+            weight="bold"
+            className={cn(
+              "size-3 shrink-0",
+              libraryActive ? "text-foreground" : "text-muted-foreground",
+            )}
+          />
+        }
+        label="Library"
+        count={libraryTotal}
+        active={libraryActive}
+        onClick={onSelectLibrary}
+      />
       <Section
         id="sort"
         title="Sort"
@@ -181,7 +215,7 @@ export function LeftRail({
                 <button
                   type="button"
                   aria-pressed={selected}
-                  disabled={empty}
+                  disabled={empty || filtersDisabled}
                   onClick={() => onToggleBucket(b)}
                   className={cn(
                     "group flex w-full items-center gap-2 rounded-sm px-1 py-0.5 text-left transition-colors",
@@ -191,6 +225,7 @@ export function LeftRail({
                       : empty
                         ? "text-muted-foreground/40"
                         : "text-foreground hover:bg-muted/60",
+                    filtersDisabled && "opacity-60 cursor-default hover:bg-transparent",
                   )}
                 >
                   <span
@@ -233,6 +268,7 @@ export function LeftRail({
             label="Favourited"
             count={labelCounts.favourite ?? 0}
             selected={selectedLabels.has("favourite")}
+            disabled={filtersDisabled}
             onClick={() => onToggleLabel("favourite")}
             swatch={
               <Heart
@@ -248,6 +284,7 @@ export function LeftRail({
               label={c.charAt(0).toUpperCase() + c.slice(1)}
               count={labelCounts[c] ?? 0}
               selected={selectedLabels.has(c)}
+              disabled={filtersDisabled}
               onClick={() => onToggleLabel(c)}
               swatch={
                 <span
@@ -278,6 +315,7 @@ export function LeftRail({
                 key={b.id}
                 batch={b}
                 selected={selectedBatchId === b.id}
+                disabled={filtersDisabled}
                 onClick={() =>
                   onSelectBatch(selectedBatchId === b.id ? null : b.id)
                 }
@@ -381,10 +419,12 @@ function TrashRow({
 function BatchRow({
   batch,
   selected,
+  disabled,
   onClick,
 }: {
   batch: BatchSummary
   selected: boolean
+  disabled?: boolean
   onClick: () => void
 }) {
   const date = new Date(batch.started_at)
@@ -402,6 +442,7 @@ function BatchRow({
       <button
         type="button"
         aria-pressed={selected}
+        disabled={disabled}
         onClick={onClick}
         title={batch.source_folder}
         className={cn(
@@ -410,6 +451,7 @@ function BatchRow({
           selected
             ? "bg-muted text-foreground"
             : "text-foreground hover:bg-muted/60",
+          disabled && "opacity-60 cursor-default hover:bg-transparent",
         )}
       >
         <span className="flex items-center justify-between gap-2">
@@ -486,6 +528,7 @@ function LabelRow({
   label,
   count,
   selected,
+  disabled = false,
   onClick,
   swatch,
 }: {
@@ -493,6 +536,7 @@ function LabelRow({
   label: string
   count: number
   selected: boolean
+  disabled?: boolean
   onClick: () => void
   swatch: React.ReactNode
 }) {
@@ -502,7 +546,7 @@ function LabelRow({
       <button
         type="button"
         aria-pressed={selected}
-        disabled={empty}
+        disabled={empty || disabled}
         onClick={onClick}
         className={cn(
           "flex w-full items-center gap-2 rounded-sm px-1 py-0.5 text-left transition-colors",
@@ -512,6 +556,7 @@ function LabelRow({
             : empty
               ? "text-muted-foreground/40"
               : "text-foreground hover:bg-muted/60",
+          disabled && "opacity-60 cursor-default hover:bg-transparent",
         )}
       >
         {swatch}
@@ -521,5 +566,40 @@ function LabelRow({
         </span>
       </button>
     </li>
+  )
+}
+
+function NavRow({
+  icon,
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode
+  label: string
+  count: number
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "-mx-1 flex items-center gap-2 rounded-sm px-2 py-1 text-left transition-colors",
+        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+        active
+          ? "bg-muted text-foreground"
+          : "text-foreground hover:bg-muted/60",
+      )}
+    >
+      {icon}
+      <span className="flex-1 truncate font-medium">{label}</span>
+      <span className="tabular-nums text-[10px] text-muted-foreground">
+        {count.toLocaleString()}
+      </span>
+    </button>
   )
 }
