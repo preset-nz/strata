@@ -234,12 +234,36 @@ fn allowed_buckets(input: &[String]) -> Vec<String> {
         .collect()
 }
 
+#[derive(Clone, Copy)]
+enum DeletedFilter {
+    HideDeleted,
+    OnlyDeleted,
+    IncludeAll,
+}
+
+fn resolve_deleted(include_deleted: Option<bool>, only_deleted: Option<bool>) -> DeletedFilter {
+    if only_deleted.unwrap_or(false) {
+        DeletedFilter::OnlyDeleted
+    } else if include_deleted.unwrap_or(false) {
+        DeletedFilter::IncludeAll
+    } else {
+        DeletedFilter::HideDeleted
+    }
+}
+
 fn build_where(
     filter_buckets: &[String],
     batch_id: Option<&str>,
+    deleted: DeletedFilter,
 ) -> (String, Vec<duckdb::types::Value>) {
     let mut clauses: Vec<String> = Vec::new();
     let mut bound: Vec<duckdb::types::Value> = Vec::new();
+
+    match deleted {
+        DeletedFilter::HideDeleted => clauses.push("i.deleted_at IS NULL".to_string()),
+        DeletedFilter::OnlyDeleted => clauses.push("i.deleted_at IS NOT NULL".to_string()),
+        DeletedFilter::IncludeAll => {}
+    }
 
     if !filter_buckets.is_empty() {
         let placeholders = vec!["?"; filter_buckets.len()].join(", ");
@@ -272,6 +296,8 @@ fn list_images(
     direction: Option<String>,
     buckets: Option<Vec<String>>,
     batch_id: Option<String>,
+    include_deleted: Option<bool>,
+    only_deleted: Option<bool>,
 ) -> Result<Vec<ImportedRow>, String> {
     let limit = limit.clamp(1, 1000);
     let offset = offset.max(0);
@@ -280,8 +306,9 @@ fn list_images(
         .as_ref()
         .map(|b| allowed_buckets(b))
         .unwrap_or_default();
+    let deleted = resolve_deleted(include_deleted, only_deleted);
 
-    let (where_sql, mut bound) = build_where(&filter_buckets, batch_id.as_deref());
+    let (where_sql, mut bound) = build_where(&filter_buckets, batch_id.as_deref(), deleted);
     let sql = format!(
         "SELECT {ROW_COLUMNS} FROM images i LEFT JOIN image_palette p ON p.image_id = i.id{where_sql} ORDER BY {sort} LIMIT ? OFFSET ?",
         sort = sort_clause(sort_key, direction.as_deref())
@@ -306,7 +333,8 @@ fn batch_imported(state: State<'_, AppState>, batch_id: String) -> Result<Vec<Im
         .prepare(&format!(
             "SELECT {ROW_COLUMNS} \
              FROM images i LEFT JOIN image_palette p ON p.image_id = i.id \
-             WHERE i.ingest_batch_id = ? ORDER BY i.imported_at ASC"
+             WHERE i.ingest_batch_id = ? AND i.deleted_at IS NULL \
+             ORDER BY i.imported_at ASC"
         ))
         .map_err(|e| e.to_string())?;
     let rows = stmt
@@ -438,9 +466,11 @@ fn list_bucket_counts(state: State<'_, AppState>) -> Result<Vec<BucketCount>, St
     let conn = state.db.0.lock().unwrap();
     let mut stmt = conn
         .prepare(
-            "SELECT bucket, COUNT(*) AS n
-             FROM image_palette_bucket
-             GROUP BY bucket",
+            "SELECT b.bucket, COUNT(*) AS n
+             FROM image_palette_bucket b
+             JOIN images i ON i.id = b.image_id
+             WHERE i.deleted_at IS NULL
+             GROUP BY b.bucket",
         )
         .map_err(|e| e.to_string())?;
     let rows = stmt
@@ -461,12 +491,15 @@ fn library_count(
     state: State<'_, AppState>,
     buckets: Option<Vec<String>>,
     batch_id: Option<String>,
+    include_deleted: Option<bool>,
+    only_deleted: Option<bool>,
 ) -> Result<i64, String> {
     let filter_buckets = buckets
         .as_ref()
         .map(|b| allowed_buckets(b))
         .unwrap_or_default();
-    let (where_sql, bound) = build_where(&filter_buckets, batch_id.as_deref());
+    let deleted = resolve_deleted(include_deleted, only_deleted);
+    let (where_sql, bound) = build_where(&filter_buckets, batch_id.as_deref(), deleted);
 
     let sql = format!("SELECT COUNT(*) FROM images i{where_sql}");
     let conn = state.db.0.lock().unwrap();
@@ -498,7 +531,7 @@ fn get_batch(
         .query_row(
             "SELECT b.id, b.source_folder, b.started_at, b.finished_at,
                     b.imported_count, b.skipped_count, b.failed_count,
-                    (SELECT COUNT(*) FROM images i WHERE i.ingest_batch_id = b.id) AS image_count
+                    (SELECT COUNT(*) FROM images i WHERE i.ingest_batch_id = b.id AND i.deleted_at IS NULL) AS image_count
              FROM ingest_batches b WHERE b.id = ?",
             params![id],
             |row| {
@@ -529,7 +562,7 @@ fn list_batches(state: State<'_, AppState>) -> Result<Vec<BatchSummary>, String>
         .prepare(
             "SELECT b.id, b.source_folder, b.started_at, b.finished_at,
                     b.imported_count, b.skipped_count, b.failed_count,
-                    (SELECT COUNT(*) FROM images i WHERE i.ingest_batch_id = b.id) AS image_count
+                    (SELECT COUNT(*) FROM images i WHERE i.ingest_batch_id = b.id AND i.deleted_at IS NULL) AS image_count
              FROM ingest_batches b
              ORDER BY b.started_at DESC",
         )

@@ -149,7 +149,7 @@ function AppShell() {
       return
     }
     let cancelled = false
-    void libraryCount(bucketsForQuery, selectedBatchId)
+    void libraryCount({ buckets: bucketsForQuery, batchId: selectedBatchId })
       .then((n) => {
         if (!cancelled) setFilteredCount(n)
       })

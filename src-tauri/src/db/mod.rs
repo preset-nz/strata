@@ -189,6 +189,15 @@ const MIGRATIONS: &[(i64, &str)] = &[
             ON image_keyword(keyword);
         "#,
     ),
+    (
+        5,
+        r#"
+        ALTER TABLE images ADD COLUMN deleted_at TIMESTAMP;
+        ALTER TABLE images ADD COLUMN deleted_reason TEXT;
+
+        CREATE INDEX IF NOT EXISTS idx_images_deleted_at ON images(deleted_at);
+        "#,
+    ),
 ];
 
 fn apply_migrations(conn: &Connection) -> Result<()> {

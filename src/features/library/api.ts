@@ -23,6 +23,8 @@ export type ImagesQuery = {
   direction?: SortDirection
   buckets?: Vga16Bucket[]
   batchId?: string | null
+  includeDeleted?: boolean
+  onlyDeleted?: boolean
 }
 
 export function listImages(
@@ -37,6 +39,8 @@ export function listImages(
     direction: opts?.direction,
     buckets: opts?.buckets,
     batchId: opts?.batchId ?? undefined,
+    includeDeleted: opts?.includeDeleted,
+    onlyDeleted: opts?.onlyDeleted,
   })
 }
 
@@ -52,12 +56,18 @@ export function getBatch(id: string): Promise<BatchSummary | null> {
   return invoke<BatchSummary | null>("get_batch", { id })
 }
 
-export function libraryCount(
-  buckets?: Vga16Bucket[],
-  batchId?: string | null,
-): Promise<number> {
+export type CountQuery = {
+  buckets?: Vga16Bucket[]
+  batchId?: string | null
+  includeDeleted?: boolean
+  onlyDeleted?: boolean
+}
+
+export function libraryCount(opts?: CountQuery): Promise<number> {
   return invoke<number>("library_count", {
-    buckets,
-    batchId: batchId ?? undefined,
+    buckets: opts?.buckets,
+    batchId: opts?.batchId ?? undefined,
+    includeDeleted: opts?.includeDeleted,
+    onlyDeleted: opts?.onlyDeleted,
   })
 }

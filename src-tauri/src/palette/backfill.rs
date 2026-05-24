@@ -33,6 +33,7 @@ pub fn run(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
              FROM images i
              LEFT JOIN image_palette p ON p.image_id = i.id
              WHERE i.thumbnails_status = 'ready'
+               AND i.deleted_at IS NULL
                AND (p.image_id IS NULL OR p.stage_version <> ?)",
         )?;
         stmt.query_map(params![STAGE_VERSION], |row| {

@@ -32,7 +32,8 @@ pub fn run(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
             "SELECT i.id, i.store_path
              FROM images i
              LEFT JOIN image_metadata m ON m.image_id = i.id
-             WHERE m.image_id IS NULL OR m.stage_version <> ?",
+             WHERE i.deleted_at IS NULL
+               AND (m.image_id IS NULL OR m.stage_version <> ?)",
         )?;
         stmt.query_map(params![STAGE_VERSION], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
