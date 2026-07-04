@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components --
  * Renderers + the registration entry point are colocated by design. */
-import { registerFieldRenderer } from "@/properties"
-import type { FieldRenderer } from "@/properties"
+import { registerFieldRenderer } from "@preset.nz/property-editors"
+import type { FieldRenderer } from "@preset.nz/property-editors"
 import {
   VGA16_HEX,
   VGA16_LABEL,

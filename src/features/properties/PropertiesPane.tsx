@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { PropertyPanel, registerBuiltinRenderers } from "@/properties"
+import { PropertyPanel, registerBuiltinRenderers } from "@preset.nz/property-editors"
 import { useSelection } from "@/stores/selection"
 import { registerStrataRenderers } from "./renderers"
 import { registerStrataScopes } from "./scopes"

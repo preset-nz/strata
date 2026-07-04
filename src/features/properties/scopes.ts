@@ -1,4 +1,4 @@
-import { registerScope, type PropertySchema, type Scope, type ScopeContext } from "@/properties"
+import { registerScope, type PropertySchema, type Scope, type ScopeContext } from "@preset.nz/property-editors"
 import type { ImageDetails } from "@/features/contact-sheet/api"
 import type { BatchSummary } from "@/features/library/api"
 
