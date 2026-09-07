@@ -31,12 +31,15 @@ run target="desktop":
         *) echo "unknown target: {{target}} (expected: desktop, web)" >&2; exit 1 ;;
     esac
 
-# All quality gates: Rust check + tests, TypeScript type-check.
+# All quality gates: Rust check + tests, TypeScript type-check, lint.
+# eslint fails on errors only; the one standing warning is TanStack Virtual's
+# `incompatible-library`, which no local change can clear.
 [group('quality')]
 check:
     cd src-tauri && cargo check
     cd src-tauri && cargo test
     npx tsc -b --noEmit
+    npx eslint .
 
 # Production bundle (Tauri installer artifacts).
 [group('build')]
