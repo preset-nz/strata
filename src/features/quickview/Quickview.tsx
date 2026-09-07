@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { X, CaretLeft, CaretRight } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
+import { registerOverlay } from "@/lib/overlay"
 
 type Item = {
   hash: string
@@ -37,6 +38,9 @@ export function Quickview({ items, index, onClose, onIndexChange }: Props) {
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [index, items.length, onClose, onIndexChange])
+
+  // Quickview owns the screen while open; panel shortcuts stand down.
+  useEffect(() => registerOverlay(), [])
 
   if (!item) return null
 

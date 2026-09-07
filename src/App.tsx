@@ -17,6 +17,13 @@ import {
   type SortKey,
 } from "./components/shell/LeftRail"
 import { usePersistedState } from "./lib/use-persisted-state"
+import { SidePanel } from "./components/shell/SidePanel"
+import {
+  clampWidth,
+  type PanelState,
+} from "./components/shell/panel-geometry"
+import { isTypingTarget } from "./lib/keyboard"
+import { isOverlayOpen } from "./lib/overlay"
 import {
   CARD_SIZE_DEFAULT,
   StatusBar,
@@ -80,6 +87,11 @@ async function fetchLibraryCounts(): Promise<LibraryCounts> {
   return { total, buckets, batches, trashed }
 }
 
+// Left rail needs ~200px to render its longest section heading without
+// ellipsis; the properties pane needs room for a label/value row.
+const LEFT_PANEL = { default: 220, min: 180, max: 420 }
+const RIGHT_PANEL = { default: 320, min: 240, max: 520 }
+
 function AppShell() {
   const { selection, selectBatch, clear } = useSelection()
   const [view, setView] = useState<View>({ kind: "idle" })
@@ -107,6 +119,47 @@ function AppShell() {
       }))
     }
   }, [panel, setSortState, setTrashDirection])
+  const [leftPanel, setLeftPanel] = usePersistedState<PanelState>(
+    "strata.shell.panel.left",
+    { width: LEFT_PANEL.default, collapsed: false },
+  )
+  const [rightPanel, setRightPanel] = usePersistedState<PanelState>(
+    "strata.shell.panel.right",
+    { width: RIGHT_PANEL.default, collapsed: false },
+  )
+  // A width persisted on a wider display must not escape this display's
+  // bounds, so clamp on read rather than trusting what was stored.
+  const leftWidth = clampWidth(leftPanel.width, LEFT_PANEL.min, LEFT_PANEL.max)
+  const rightWidth = clampWidth(
+    rightPanel.width,
+    RIGHT_PANEL.min,
+    RIGHT_PANEL.max,
+  )
+  const setLeftWidth = useCallback(
+    (width: number) => setLeftPanel((p) => ({ ...p, width })),
+    [setLeftPanel],
+  )
+  const setRightWidth = useCallback(
+    (width: number) => setRightPanel((p) => ({ ...p, width })),
+    [setRightPanel],
+  )
+  const toggleLeftPanel = useCallback(
+    () => setLeftPanel((p) => ({ ...p, collapsed: !p.collapsed })),
+    [setLeftPanel],
+  )
+  const toggleRightPanel = useCallback(
+    () => setRightPanel((p) => ({ ...p, collapsed: !p.collapsed })),
+    [setRightPanel],
+  )
+  const expandLeftPanel = useCallback(
+    () => setLeftPanel((p) => ({ ...p, collapsed: false })),
+    [setLeftPanel],
+  )
+  const expandRightPanel = useCallback(
+    () => setRightPanel((p) => ({ ...p, collapsed: false })),
+    [setRightPanel],
+  )
+
   const [cardSize, setCardSize] = useState<number>(CARD_SIZE_DEFAULT)
   const [runningBatchId, setRunningBatchId] = useState<string | null>(null)
   const [selectedBuckets, setSelectedBuckets] = useState<Set<Vga16Bucket>>(
@@ -284,11 +337,20 @@ function AppShell() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setView((v) => (v.kind === "idle" ? v : { kind: "idle" }))
+        return
       }
+      if (e.key !== "[" && e.key !== "]") return
+      // Quickview owns the screen while open, and a typed "[" belongs to the
+      // field, not the shell.
+      if (isOverlayOpen() || isTypingTarget(e.target)) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      e.preventDefault()
+      if (e.key === "[") toggleLeftPanel()
+      else toggleRightPanel()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [])
+  }, [toggleLeftPanel, toggleRightPanel])
 
   const handleAdd = useCallback(async () => {
     const picked = await open({ directory: true, multiple: false })
@@ -405,34 +467,62 @@ function AppShell() {
         onAdd={handleAdd}
         addDisabled={addDisabled}
         onBack={view.kind !== "idle" ? handleBack : undefined}
+        leftCollapsed={leftPanel.collapsed}
+        onToggleLeft={toggleLeftPanel}
+        rightCollapsed={rightPanel.collapsed}
+        onToggleRight={toggleRightPanel}
       />
       <div className="flex min-h-0 flex-1">
-        <LeftRail
-          bucketCounts={bucketCounts}
-          selectedBuckets={selectedBuckets}
-          onToggleBucket={toggleBucket}
-          labelCounts={EMPTY_LABEL_COUNTS}
-          selectedLabels={selectedLabels}
-          onToggleLabel={toggleLabel}
-          sort={panel === "trash" ? "deleted" : sortState.key}
-          onSortChange={onSortChange}
-          direction={panel === "trash" ? trashDirection : sortState.direction}
-          onDirectionToggle={onDirectionToggle}
-          sortOptions={panel === "trash" ? TRASH_SORT_KEYS : LIBRARY_SORT_KEYS}
-          batches={batches}
-          selectedBatchId={selectedBatchId}
-          onSelectBatch={handleSelectBatch}
-          trashCount={trashCount}
-          onTrashDrop={onTrashDrop}
-          trashActive={panel === "trash"}
-          onSelectTrash={onSelectTrash}
-          libraryTotal={totalCount}
-          libraryActive={panel === "library"}
-          onSelectLibrary={onSelectLibrary}
-          filtersDisabled={panel === "trash"}
-        />
+        <SidePanel
+          side="left"
+          title="Filters"
+          width={leftWidth}
+          onWidthChange={setLeftWidth}
+          collapsed={leftPanel.collapsed}
+          onExpand={expandLeftPanel}
+          defaultWidth={LEFT_PANEL.default}
+          minWidth={LEFT_PANEL.min}
+          maxWidth={LEFT_PANEL.max}
+        >
+          <LeftRail
+            bucketCounts={bucketCounts}
+            selectedBuckets={selectedBuckets}
+            onToggleBucket={toggleBucket}
+            labelCounts={EMPTY_LABEL_COUNTS}
+            selectedLabels={selectedLabels}
+            onToggleLabel={toggleLabel}
+            sort={panel === "trash" ? "deleted" : sortState.key}
+            onSortChange={onSortChange}
+            direction={panel === "trash" ? trashDirection : sortState.direction}
+            onDirectionToggle={onDirectionToggle}
+            sortOptions={panel === "trash" ? TRASH_SORT_KEYS : LIBRARY_SORT_KEYS}
+            batches={batches}
+            selectedBatchId={selectedBatchId}
+            onSelectBatch={handleSelectBatch}
+            trashCount={trashCount}
+            onTrashDrop={onTrashDrop}
+            trashActive={panel === "trash"}
+            onSelectTrash={onSelectTrash}
+            libraryTotal={totalCount}
+            libraryActive={panel === "library"}
+            onSelectLibrary={onSelectLibrary}
+            filtersDisabled={panel === "trash"}
+          />
+        </SidePanel>
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">{content}</main>
-        <PropertiesPane />
+        <SidePanel
+          side="right"
+          title="Properties"
+          width={rightWidth}
+          onWidthChange={setRightWidth}
+          collapsed={rightPanel.collapsed}
+          onExpand={expandRightPanel}
+          defaultWidth={RIGHT_PANEL.default}
+          minWidth={RIGHT_PANEL.min}
+          maxWidth={RIGHT_PANEL.max}
+        >
+          <PropertiesPane />
+        </SidePanel>
       </div>
       <StatusBar cardSize={cardSize} onCardSizeChange={setCardSize} />
     </div>

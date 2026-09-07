@@ -1,4 +1,4 @@
-import { Plus, ArrowLeft } from "@phosphor-icons/react"
+import { Plus, ArrowLeft, SidebarSimple } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 
 type Props = {
@@ -8,6 +8,10 @@ type Props = {
   onAdd: () => void
   addDisabled?: boolean
   onBack?: () => void
+  leftCollapsed: boolean
+  onToggleLeft: () => void
+  rightCollapsed: boolean
+  onToggleRight: () => void
 }
 
 export function AppHeader({
@@ -17,6 +21,10 @@ export function AppHeader({
   onAdd,
   addDisabled,
   onBack,
+  leftCollapsed,
+  onToggleLeft,
+  rightCollapsed,
+  onToggleRight,
 }: Props) {
   const summary = (() => {
     if (total === 0) return "Library"
@@ -28,6 +36,16 @@ export function AppHeader({
 
   return (
     <header className="flex h-10 shrink-0 items-center gap-3 border-b border-border px-3">
+      <Button
+        size="icon-sm"
+        variant="ghost"
+        onClick={onToggleLeft}
+        aria-pressed={!leftCollapsed}
+        aria-label={leftCollapsed ? "Show filters panel" : "Hide filters panel"}
+        title={`${leftCollapsed ? "Show" : "Hide"} filters panel  [`}
+      >
+        <SidebarSimple weight="bold" />
+      </Button>
       {onBack && (
         <Button size="sm" variant="ghost" onClick={onBack} aria-label="Back to library">
           <ArrowLeft weight="bold" />
@@ -44,7 +62,7 @@ export function AppHeader({
           {activeFilterCount === 1 ? "filter" : "filters"}
         </span>
       )}
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-2">
         <Button
           size="sm"
           variant="outline"
@@ -53,6 +71,16 @@ export function AppHeader({
         >
           <Plus weight="bold" />
           Add
+        </Button>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={onToggleRight}
+          aria-pressed={!rightCollapsed}
+          aria-label={rightCollapsed ? "Show properties panel" : "Hide properties panel"}
+          title={`${rightCollapsed ? "Show" : "Hide"} properties panel  ]`}
+        >
+          <SidebarSimple weight="bold" className="scale-x-[-1]" />
         </Button>
       </div>
     </header>

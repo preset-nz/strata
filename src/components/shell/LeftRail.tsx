@@ -134,7 +134,7 @@ export function LeftRail({
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }))
 
   return (
-    <aside className="flex w-[220px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-card/40 p-3 text-xs">
+    <aside className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3 text-xs">
       <NavRow
         icon={
           <Images
