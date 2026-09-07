@@ -36,7 +36,7 @@ run target="desktop":
 check:
     cd src-tauri && cargo check
     cd src-tauri && cargo test
-    npx tsc --noEmit
+    npx tsc -b --noEmit
 
 # Production bundle (Tauri installer artifacts).
 [group('build')]
