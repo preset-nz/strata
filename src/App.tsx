@@ -58,6 +58,28 @@ const EMPTY_LABEL_COUNTS: Record<LabelSelector, number> = {
 
 type Panel = "library" | "trash"
 
+type LibraryCounts = {
+  total: number
+  buckets: Record<Vga16Bucket, number>
+  batches: BatchSummary[]
+  trashed: number
+}
+
+// Pure fetch — no state. Keeping it outside the component lets the mount
+// effect apply the result in a promise callback instead of calling a
+// setState-bearing function synchronously.
+async function fetchLibraryCounts(): Promise<LibraryCounts> {
+  const [total, counts, batches, trashed] = await Promise.all([
+    libraryCount(),
+    listBucketCounts(),
+    listBatches(),
+    libraryCount({ onlyDeleted: true }),
+  ])
+  const buckets = { ...EMPTY_BUCKET_COUNTS }
+  for (const { bucket, count } of counts) buckets[bucket] = count
+  return { total, buckets, batches, trashed }
+}
+
 function AppShell() {
   const { selection, selectBatch, clear } = useSelection()
   const [view, setView] = useState<View>({ kind: "idle" })
@@ -96,7 +118,7 @@ function AppShell() {
   const [bucketCounts, setBucketCounts] =
     useState<Record<Vga16Bucket, number>>(EMPTY_BUCKET_COUNTS)
   const [totalCount, setTotalCount] = useState(0)
-  const [filteredCount, setFilteredCount] = useState<number | null>(null)
+  const [queriedCount, setQueriedCount] = useState<number | null>(null)
   const [batches, setBatches] = useState<BatchSummary[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [trashCount, setTrashCount] = useState(0)
@@ -148,28 +170,33 @@ function AppShell() {
     [selectedBuckets],
   )
 
+  const applyCounts = useCallback((c: LibraryCounts) => {
+    setTotalCount(c.total)
+    setBucketCounts(c.buckets)
+    setBatches(c.batches)
+    setTrashCount(c.trashed)
+  }, [])
+
+  // Imperative refresh, for event listeners and child callbacks.
   const refreshCounts = useCallback(async () => {
     try {
-      const [total, counts, bs, trashed] = await Promise.all([
-        libraryCount(),
-        listBucketCounts(),
-        listBatches(),
-        libraryCount({ onlyDeleted: true }),
-      ])
-      setTotalCount(total)
-      const next = { ...EMPTY_BUCKET_COUNTS }
-      for (const { bucket, count } of counts) next[bucket] = count
-      setBucketCounts(next)
-      setBatches(bs)
-      setTrashCount(trashed)
+      applyCounts(await fetchLibraryCounts())
     } catch (e) {
       console.error("refreshCounts failed:", e)
     }
-  }, [])
+  }, [applyCounts])
 
   useEffect(() => {
-    void refreshCounts()
-  }, [refreshCounts])
+    let cancelled = false
+    fetchLibraryCounts()
+      .then((c) => {
+        if (!cancelled) applyCounts(c)
+      })
+      .catch((e) => console.error("initial counts failed:", e))
+    return () => {
+      cancelled = true
+    }
+  }, [applyCounts])
 
   useEffect(() => {
     const offs: UnlistenFn[] = []
@@ -209,21 +236,25 @@ function AppShell() {
     }
   }, [refreshCounts])
 
+  const hasActiveQuery =
+    bucketsForQuery.length > 0 || selectedBatchId !== null
+
   useEffect(() => {
-    if (bucketsForQuery.length === 0 && selectedBatchId === null) {
-      setFilteredCount(null)
-      return
-    }
+    if (!hasActiveQuery) return
     let cancelled = false
     void libraryCount({ buckets: bucketsForQuery, batchId: selectedBatchId })
       .then((n) => {
-        if (!cancelled) setFilteredCount(n)
+        if (!cancelled) setQueriedCount(n)
       })
       .catch((e) => console.error("filtered count failed:", e))
     return () => {
       cancelled = true
     }
-  }, [bucketsForQuery, selectedBatchId])
+  }, [hasActiveQuery, bucketsForQuery, selectedBatchId])
+
+  // Derived rather than stored: gating on hasActiveQuery keeps a count left
+  // over from a previous filter from showing once the filter is cleared.
+  const filteredCount = hasActiveQuery ? queriedCount : null
 
   const handlePath = useCallback(async (path: string) => {
     setView({ kind: "scanning", path })
