@@ -69,7 +69,6 @@ export function TrashSheet({
   const loadingRef = useRef(false)
   const offsetRef = useRef(0)
   const queryRef = useRef({ direction })
-  queryRef.current = { direction }
   const { selection, selectImage } = useSelection()
   const selectedImageId =
     selection.kind === "image" ? selection.id : null
@@ -120,6 +119,11 @@ export function TrashSheet({
   }, [])
 
   useEffect(() => {
+    queryRef.current = { direction }
+    // See LibrarySheet: the clears in `reset` also zero `offsetRef`/`loadingRef`
+    // and must commit alongside the fetch kickoff, or a scroll-driven `loadNext`
+    // races the offset.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void reset()
   }, [reset, direction])
 

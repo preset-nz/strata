@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import {
   useForceTouch,
   type ForceTouchPayload,
@@ -23,7 +23,9 @@ export function useHardPress<T extends HTMLElement>(
 ) {
   const ref = useRef<T | null>(null)
   const cbRef = useRef(onActivate)
-  cbRef.current = onActivate
+  useEffect(() => {
+    cbRef.current = onActivate
+  })
 
   const onForceTouch = useCallback((p: ForceTouchPayload) => {
     const el = ref.current

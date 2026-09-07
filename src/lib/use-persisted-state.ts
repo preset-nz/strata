@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 // Right home for UI ephemera (rail collapse, sort direction per view, etc.).
 // When epic 12 lands a settings store, swap the body of this hook; call sites
@@ -18,18 +18,12 @@ export function usePersistedState<T>(
     }
   })
 
-  const latest = useRef(value)
-  latest.current = value
-
   const setValue = useCallback(
     (next: T | ((prev: T) => T)) => {
       setValueRaw((prev) => {
-        const resolved =
-          typeof next === "function"
-            ? (next as (prev: T) => T)(prev)
-            : next
-        latest.current = resolved
-        return resolved
+        return typeof next === "function"
+          ? (next as (prev: T) => T)(prev)
+          : next
       })
     },
     [],
@@ -37,7 +31,7 @@ export function usePersistedState<T>(
 
   useEffect(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(latest.current))
+      localStorage.setItem(key, JSON.stringify(value))
     } catch {
       // Quota or serialisation failure — UI state is lossy by nature.
     }
