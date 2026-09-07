@@ -8,7 +8,7 @@ import type { ImportedRow } from "../contact-sheet/api"
 import { listImages, type SortDirection } from "./api"
 import { useMoveToTrash } from "./use-move-to-trash"
 import type { Vga16Bucket } from "@/lib/vga16"
-import type { SortKey } from "@/components/shell/LeftRail"
+import type { SortKey } from "@/components/shell/sort-keys"
 import { useSelection } from "@/stores/selection"
 import { SnackbarViewport } from "@/components/ui/snackbar"
 
@@ -56,7 +56,6 @@ export function LibrarySheet({
   const loadingRef = useRef(false)
   const offsetRef = useRef(0)
   const queryRef = useRef({ sort, direction, buckets, batchId })
-  queryRef.current = { sort, direction, buckets, batchId }
   const pendingUndoRef = useRef<Map<string, { cell: Cell; idx: number }>>(
     new Map(),
   )
@@ -106,6 +105,12 @@ export function LibrarySheet({
   }, [])
 
   useEffect(() => {
+    queryRef.current = { sort, direction, buckets, batchId }
+    // The clears inside `reset` must land in the same commit that kicks off the
+    // fetch: they also zero `offsetRef`/`loadingRef`, and deferring them past an
+    // await lets a scroll-driven `loadNext` page against the old offset and
+    // concat stale-order rows onto the new query.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void reset()
   }, [reset, sort, direction, buckets, batchId])
 

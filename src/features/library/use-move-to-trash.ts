@@ -1,5 +1,5 @@
 import { useCallback } from "react"
-import { useSnackbar } from "@/components/ui/snackbar"
+import { useSnackbar } from "@/components/ui/use-snackbar"
 import { deleteImages, restoreImages } from "./api"
 
 /**

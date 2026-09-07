@@ -22,46 +22,11 @@ import {
   type ColourLabel,
 } from "@/components/image-card/colour-label"
 import type { BatchSummary } from "@/features/library/api"
-
-export const SORT_KEYS = [
-  "imported",
-  "filename",
-  "created",
-  "updated",
-  "colour",
-  "deleted",
-] as const
-
-export type SortKey = (typeof SORT_KEYS)[number]
-
-export const LIBRARY_SORT_KEYS: SortKey[] = [
-  "imported",
-  "filename",
-  "created",
-  "updated",
-  "colour",
-]
-export const TRASH_SORT_KEYS: SortKey[] = ["deleted"]
-
-const SORT_LABEL: Record<SortKey, string> = {
-  imported: "Imported",
-  filename: "Filename",
-  created: "Created",
-  updated: "Updated",
-  colour: "Colour",
-  deleted: "Deleted",
-}
-
-export type SortDirection = "asc" | "desc"
-
-export const DEFAULT_DIRECTION: Record<SortKey, SortDirection> = {
-  imported: "desc",
-  filename: "asc",
-  created: "desc",
-  updated: "desc",
-  colour: "asc",
-  deleted: "desc",
-}
+import {
+  SORT_LABEL,
+  type SortDirection,
+  type SortKey,
+} from "./sort-keys"
 
 type SectionId = "sort" | "content_colour" | "label" | "imports" | "system"
 

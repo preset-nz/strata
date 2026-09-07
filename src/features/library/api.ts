@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core"
 import type { Vga16Bucket } from "@/lib/vga16"
 import type { ImportedRow } from "../contact-sheet/api"
-import type { SortKey } from "@/components/shell/LeftRail"
+import type { SortKey } from "@/components/shell/sort-keys"
 
 export type BucketCount = { bucket: Vga16Bucket; count: number }
 

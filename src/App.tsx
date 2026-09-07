@@ -8,14 +8,14 @@ import { ContactSheet } from "./features/contact-sheet/ContactSheet"
 import { LibrarySheet } from "./features/library/LibrarySheet"
 import { TrashSheet } from "./features/trash/TrashSheet"
 import { AppHeader } from "./components/shell/AppHeader"
+import { LeftRail } from "./components/shell/LeftRail"
 import {
   DEFAULT_DIRECTION,
-  LeftRail,
   LIBRARY_SORT_KEYS,
   TRASH_SORT_KEYS,
   type SortDirection,
   type SortKey,
-} from "./components/shell/LeftRail"
+} from "./components/shell/sort-keys"
 import { usePersistedState } from "./lib/use-persisted-state"
 import { SidePanel } from "./components/shell/SidePanel"
 import {
