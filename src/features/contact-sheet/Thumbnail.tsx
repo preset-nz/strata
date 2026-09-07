@@ -21,7 +21,7 @@ export function Thumbnail({ hash, filename, status }: Props) {
       alt={filename}
       title={filename}
       loading="lazy"
-      className="block h-full w-full object-cover"
+      className="block h-full w-full object-contain"
     />
   )
 }
