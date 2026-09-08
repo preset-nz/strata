@@ -571,6 +571,8 @@ fn list_batches(state: State<'_, AppState>) -> Result<Vec<BatchSummary>, String>
                     b.imported_count, b.skipped_count, b.failed_count,
                     (SELECT COUNT(*) FROM images i WHERE i.ingest_batch_id = b.id AND i.deleted_at IS NULL) AS image_count
              FROM ingest_batches b
+             WHERE EXISTS (SELECT 1 FROM images i
+                           WHERE i.ingest_batch_id = b.id AND i.deleted_at IS NULL)
              ORDER BY b.started_at DESC",
         )
         .map_err(|e| e.to_string())?;

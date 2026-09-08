@@ -228,6 +228,14 @@ function AppShell() {
     setBucketCounts(c.buckets)
     setBatches(c.batches)
     setTrashCount(c.trashed)
+    // list_batches hides batches that no longer have any live images, so a
+    // batch can vanish from the rail while it is still the active filter —
+    // trash its last image and the row backing the filter is gone. Drop the
+    // selection with it, or the catalog shows an empty grid and a filter badge
+    // with nothing in the rail to explain or clear them.
+    setSelectedBatchId((prev) =>
+      prev && c.batches.some((b) => b.id === prev) ? prev : null,
+    )
   }, [])
 
   // Imperative refresh, for event listeners and child callbacks.
