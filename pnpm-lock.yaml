@@ -32,9 +32,9 @@ importers:
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      '@preset.nz/property-editors':
-        specifier: file:../../packages/property-editors
-        version: file:../../packages/property-editors(react@19.2.7)
+      '@preset.nz/facets':
+        specifier: file:../../packages/facets
+        version: file:../../packages/facets(react@19.2.7)
       '@tailwindcss/vite':
         specifier: ^4.3.1
         version: 4.3.1(vite@7.3.5(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0))
@@ -624,8 +624,8 @@ packages:
       react: '>= 16.8'
       react-dom: '>= 16.8'
 
-  '@preset.nz/property-editors@file:../../packages/property-editors':
-    resolution: {directory: ../../packages/property-editors, type: directory}
+  '@preset.nz/facets@file:../../packages/facets':
+    resolution: {directory: ../../packages/facets, type: directory}
     peerDependencies:
       react: ^19
 
@@ -3175,7 +3175,7 @@ snapshots:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
 
-  '@preset.nz/property-editors@file:../../packages/property-editors(react@19.2.7)':
+  '@preset.nz/facets@file:../../packages/facets(react@19.2.7)':
     dependencies:
       react: 19.2.7
 
