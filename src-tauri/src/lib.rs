@@ -1,7 +1,9 @@
 mod db;
 mod gestures;
 mod ingest;
+mod menu;
 mod palette;
+mod preferences;
 mod server;
 mod store;
 
@@ -13,8 +15,10 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::sync::Mutex as AsyncMutex;
 
+use preset_preferences::Preferences;
+
 use crate::db::Db;
-use crate::ingest::job::{run_batch, StartBatchResult};
+use crate::ingest::job::{run_batch, IngestOptions, StartBatchResult};
 use crate::ingest::scan::{prescan, PrescanResult};
 use crate::store::StoreRoot;
 
@@ -22,6 +26,20 @@ pub struct AppState {
     pub db: Arc<Db>,
     pub store: StoreRoot,
     pub job_lock: Arc<AsyncMutex<()>>,
+    pub prefs: Preferences,
+}
+
+fn ingest_options(prefs: &Preferences) -> IngestOptions {
+    IngestOptions {
+        concurrency: prefs
+            .get_int(preferences::CONCURRENCY)
+            .map(|n| n.max(1) as usize)
+            .unwrap_or_else(|| (num_cpus::get() / 2).max(1)),
+        extension_allow_list: prefs
+            .get_list(preferences::EXTENSION_ALLOW_LIST)
+            .unwrap_or_else(|| vec!["jpg".into(), "jpeg".into(), "png".into()]),
+        keep_source_files: prefs.get_bool(preferences::KEEP_SOURCE_FILES).unwrap_or(true),
+    }
 }
 
 #[derive(Serialize)]
@@ -42,12 +60,13 @@ impl From<&PrescanResult> for PrescanSummary {
 }
 
 #[tauri::command]
-async fn ingest_prescan(path: String) -> Result<PrescanSummary, String> {
+async fn ingest_prescan(state: State<'_, AppState>, path: String) -> Result<PrescanSummary, String> {
     let root = PathBuf::from(&path);
     if !root.is_dir() {
         return Err(format!("not a directory: {path}"));
     }
-    let result = tokio::task::spawn_blocking(move || prescan(&root))
+    let allow = ingest_options(&state.prefs).extension_allow_list;
+    let result = tokio::task::spawn_blocking(move || prescan(&root, &allow))
         .await
         .map_err(|e| e.to_string())?;
     Ok(PrescanSummary::from(&result))
@@ -70,7 +89,8 @@ async fn ingest_start(
 
     let db = state.db.clone();
     let store = state.store.clone();
-    run_batch(app, db, store, root, owned)
+    let options = ingest_options(&state.prefs);
+    run_batch(app, db, store, root, options, owned)
         .await
         .map_err(|e| e.to_string())
 }
@@ -804,14 +824,13 @@ fn restore_image(
     Ok(n)
 }
 
-const RETENTION_DAYS: i64 = 30;
-
 /// One-shot at app start: hard-delete every image whose soft-delete window has
-/// elapsed. Runs on a background thread so the UI isn't blocked while the
+/// elapsed. The window is the `library.retention_days` preference, read once
+/// here. Runs on a background thread so the UI isn't blocked while the
 /// cascade walks the filesystem. Daily timer is deferred (epic 11 open Q).
-fn purge_expired_on_start(db: Arc<Db>, store: crate::store::StoreRoot) {
+fn purge_expired_on_start(db: Arc<Db>, store: crate::store::StoreRoot, retention_days: i64) {
     std::thread::spawn(move || {
-        let cutoff = chrono::Utc::now() - chrono::Duration::days(RETENTION_DAYS);
+        let cutoff = chrono::Utc::now() - chrono::Duration::days(retention_days);
         let ids: Vec<String> = {
             let conn = db.0.lock().unwrap();
             let mut stmt = match conn.prepare(
@@ -862,10 +881,17 @@ pub fn run() {
             let store = StoreRoot::new(&app_data_dir);
             store.ensure()?;
 
+            menu::install(app.handle())?;
+
             let db_path = app_data_dir.join("strata.duckdb");
             let db = Arc::new(Db::open(&db_path)?);
 
-            purge_expired_on_start(db.clone(), store.clone());
+            let prefs = Preferences::open(
+                preferences::schema(store.root(), &db_path),
+                preset_preferences::tauri::default_path(app.handle())?,
+            );
+            let retention_days = prefs.get_int(preferences::RETENTION_DAYS).unwrap_or(30);
+            purge_expired_on_start(db.clone(), store.clone(), retention_days);
 
             #[cfg(target_os = "macos")]
             crate::gestures::force_touch::install(app.handle().clone());
@@ -882,10 +908,12 @@ pub fn run() {
 
             ingest::orientation::schedule(app.handle().clone(), db.clone(), store.clone());
 
+            app.manage(prefs.clone());
             app.manage(AppState {
                 db,
                 store,
                 job_lock: Arc::new(AsyncMutex::new(())),
+                prefs,
             });
             Ok(())
         })
@@ -905,6 +933,9 @@ pub fn run() {
             delete_image,
             restore_image,
             purge_image,
+            preset_preferences::tauri::preferences_get,
+            preset_preferences::tauri::preferences_set,
+            preset_preferences::tauri::preferences_reset,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

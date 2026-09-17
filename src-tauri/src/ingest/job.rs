@@ -18,6 +18,15 @@ use crate::ingest::{
 };
 use crate::store::StoreRoot;
 
+/// Ingest knobs read from preferences once per batch, so a change mid-batch
+/// waits for the next one.
+#[derive(Debug, Clone)]
+pub struct IngestOptions {
+    pub concurrency: usize,
+    pub extension_allow_list: Vec<String>,
+    pub keep_source_files: bool,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct StartBatchResult {
     pub batch_id: String,
@@ -29,11 +38,13 @@ pub async fn run_batch(
     db: Arc<Db>,
     store: StoreRoot,
     source_root: PathBuf,
+    options: IngestOptions,
     job_guard: tokio::sync::OwnedMutexGuard<()>,
 ) -> Result<StartBatchResult> {
     let scan = tokio::task::spawn_blocking({
         let root = source_root.clone();
-        move || prescan(&root)
+        let allow = options.extension_allow_list.clone();
+        move || prescan(&root, &allow)
     })
     .await?;
 
@@ -79,7 +90,8 @@ pub async fn run_batch(
             );
         }
 
-        let concurrency = std::cmp::max(1, num_cpus::get() / 2);
+        let concurrency = options.concurrency.max(1);
+        let keep_source_files = options.keep_source_files;
         let mut imported = 0usize;
         let mut skipped = 0usize;
         let mut failed = 0usize;
@@ -94,7 +106,7 @@ pub async fn run_batch(
                 let path2 = path.clone();
                 let bid = batch_id_str.clone();
                 handles.push(tokio::task::spawn_blocking(move || {
-                    process_one(app2, db2, store2, bid, &path2)
+                    process_one(app2, db2, store2, bid, &path2, keep_source_files)
                 }));
             }
             for handle in handles {
@@ -156,6 +168,7 @@ fn process_one(
     store: StoreRoot,
     batch_id: String,
     source: &Path,
+    keep_source_files: bool,
 ) -> Result<Outcome> {
     let original_filename = filename(source);
     let source_path = source.to_string_lossy().to_string();
@@ -209,6 +222,7 @@ fn process_one(
             None,
         );
         send(FileState::Done, Some(hash_hex), None, None);
+        release_source(source, keep_source_files);
         return Ok(Outcome::Skipped);
     }
 
@@ -323,7 +337,20 @@ fn process_one(
     }
 
     send(FileState::Done, Some(hash_hex), Some(image_id), None);
+    release_source(source, keep_source_files);
     Ok(Outcome::Imported)
+}
+
+/// With "leave source files in place" off, a source that is now in the
+/// catalog (imported, or already there) goes to the system Trash. A failure
+/// here is logged, never fatal: the catalog copy is safe either way.
+fn release_source(source: &Path, keep_source_files: bool) {
+    if keep_source_files {
+        return;
+    }
+    if let Err(e) = crate::ingest::trash::move_to_trash(source) {
+        eprintln!("could not move {} to Trash: {e}", source.display());
+    }
 }
 
 fn relative_to(path: &Path, root: &Path) -> PathBuf {

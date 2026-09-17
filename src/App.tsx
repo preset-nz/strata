@@ -16,14 +16,22 @@ import {
   type SortDirection,
   type SortKey,
 } from "./components/shell/sort-keys"
-import { usePersistedState } from "./lib/use-persisted-state"
+import {
+  onSettingsMenu,
+  SettingsWindow,
+  usePersistedState,
+  usePreference,
+  usePreferences,
+  usePreferencesBootstrap,
+} from "@preset.nz/preferences"
 import { SidePanel } from "./components/shell/SidePanel"
 import {
   clampWidth,
   type PanelState,
 } from "./components/shell/panel-geometry"
 import { isTypingTarget } from "./lib/keyboard"
-import { isOverlayOpen } from "./lib/overlay"
+import { isOverlayOpen, registerOverlay } from "./lib/overlay"
+import { ThemeSync } from "./components/theme-sync"
 import {
   CARD_SIZE_DEFAULT,
   StatusBar,
@@ -106,7 +114,18 @@ async function fetchLibraryCounts(): Promise<LibraryCounts> {
 const LEFT_PANEL = { default: 220, min: 180, max: 420 }
 const RIGHT_PANEL = { default: 320, min: 240, max: 520 }
 
+// Whether a sort was remembered from a previous session, read before the
+// persisted hook writes one. Only a fresh install takes the preference.
+function hadStoredSort(): boolean {
+  try {
+    return localStorage.getItem("strata.library.sort") !== null
+  } catch {
+    return true
+  }
+}
+
 function AppShell() {
+  usePreferencesBootstrap()
   const { selection, selectBatch, clear } = useSelection()
   const [view, setView] = useState<View>({ kind: "idle" })
   const [panel, setPanel] = useState<Panel>("library")
@@ -114,6 +133,22 @@ function AppShell() {
     key: SortKey
     direction: SortDirection
   }>("strata.library.sort", { key: "imported", direction: "desc" })
+  const [freshSort] = useState(() => !hadStoredSort())
+  const defaultSort = usePreference<string>("library.default_sort", "imported")
+  const prefsLoaded = usePreferences() !== null
+  useEffect(() => {
+    if (!freshSort || !prefsLoaded) return
+    const key = defaultSort as SortKey
+    if (!(key in DEFAULT_DIRECTION)) return
+    setSortState((prev) =>
+      prev.key === key ? prev : { key, direction: DEFAULT_DIRECTION[key] },
+    )
+    // Runs once, when preferences first arrive on a fresh install.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefsLoaded])
+
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  useEffect(() => onSettingsMenu(() => setSettingsOpen(true)), [])
   const [trashDirection, setTrashDirection] =
     usePersistedState<SortDirection>("strata.trash.sortDirection", "desc")
   const onSortChange = useCallback(
@@ -523,6 +558,13 @@ function AppShell() {
   return (
     <div className="flex h-svh flex-col">
       <DropZone onDropped={handlePath} />
+      <ThemeSync />
+      <SettingsWindow
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        title="Settings"
+        onOverlay={registerOverlay}
+      />
       <AppHeader
         total={totalCount}
         filtered={filteredCount}

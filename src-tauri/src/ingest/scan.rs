@@ -14,7 +14,9 @@ pub struct PrescanResult {
     pub files: Vec<PathBuf>,
 }
 
-pub fn prescan(root: &Path) -> PrescanResult {
+/// `allow` is the lowercase extension allow-list from preferences. It narrows
+/// within what the decoders support; `extension_for` still has the last word.
+pub fn prescan(root: &Path, allow: &[String]) -> PrescanResult {
     let mut by_extension: HashMap<String, usize> = HashMap::new();
     let mut files: Vec<PathBuf> = Vec::new();
 
@@ -31,6 +33,14 @@ pub fn prescan(root: &Path) -> PrescanResult {
         let Some(canonical_ext) = extension_for(path) else {
             continue;
         };
+        let own_ext = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_ascii_lowercase())
+            .unwrap_or_default();
+        if !allow.iter().any(|a| a.eq_ignore_ascii_case(&own_ext)) {
+            continue;
+        }
 
         *by_extension.entry(canonical_ext.to_string()).or_insert(0) += 1;
         files.push(path.to_path_buf());

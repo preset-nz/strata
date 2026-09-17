@@ -14,7 +14,7 @@ import {
 } from "@/lib/orientation"
 import { cn } from "@/lib/utils"
 import { readStrataImagePayload } from "@/components/image-card/use-draggable-card"
-import { usePersistedState } from "@/lib/use-persisted-state"
+import { usePersistedState } from "@preset.nz/preferences"
 import {
   VGA16_BUCKETS,
   VGA16_HEX,
