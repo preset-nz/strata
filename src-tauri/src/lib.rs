@@ -185,6 +185,7 @@ fn default_direction(sort: &str) -> &'static str {
     match sort {
         "filename" => "ASC",
         "colour" => "ASC",
+        "orientation" => "ASC",
         _ => "DESC",
     }
 }
@@ -205,6 +206,14 @@ fn sort_clause(sort: &str, direction: Option<&str>) -> String {
              CASE WHEN p.dominant_c < 10 THEN p.dominant_l ELSE p.dominant_h END {dir}"
         ),
         "deleted" => format!("i.deleted_at {dir}"),
+        // Bucket order is wider -> equal -> taller; unbucketed rows trail.
+        // Ties fall back to newest-imported so each block reads like the
+        // default sheet.
+        "orientation" => format!(
+            "i.orientation IS NULL ASC, \
+             CASE i.orientation WHEN 'landscape' THEN 0 WHEN 'square' THEN 1 ELSE 2 END {dir}, \
+             i.imported_at DESC"
+        ),
         _ => format!("i.imported_at {dir}"),
     }
 }
@@ -241,6 +250,14 @@ fn allowed_buckets(input: &[String]) -> Vec<String> {
         .collect()
 }
 
+fn allowed_orientations(input: &[String]) -> Vec<String> {
+    input
+        .iter()
+        .filter(|o| crate::ingest::orientation::is_bucket(o))
+        .cloned()
+        .collect()
+}
+
 #[derive(Clone, Copy)]
 enum DeletedFilter {
     HideDeleted,
@@ -260,6 +277,7 @@ fn resolve_deleted(include_deleted: Option<bool>, only_deleted: Option<bool>) ->
 
 fn build_where(
     filter_buckets: &[String],
+    filter_orientations: &[String],
     batch_id: Option<&str>,
     deleted: DeletedFilter,
 ) -> (String, Vec<duckdb::types::Value>) {
@@ -279,6 +297,13 @@ fn build_where(
         ));
         for b in filter_buckets {
             bound.push(duckdb::types::Value::Text(b.clone()));
+        }
+    }
+    if !filter_orientations.is_empty() {
+        let placeholders = vec!["?"; filter_orientations.len()].join(", ");
+        clauses.push(format!("i.orientation IN ({placeholders})"));
+        for o in filter_orientations {
+            bound.push(duckdb::types::Value::Text(o.clone()));
         }
     }
     if let Some(b) = batch_id {
@@ -302,6 +327,7 @@ fn list_images(
     sort: Option<String>,
     direction: Option<String>,
     buckets: Option<Vec<String>>,
+    orientations: Option<Vec<String>>,
     batch_id: Option<String>,
     include_deleted: Option<bool>,
     only_deleted: Option<bool>,
@@ -313,9 +339,18 @@ fn list_images(
         .as_ref()
         .map(|b| allowed_buckets(b))
         .unwrap_or_default();
+    let filter_orientations = orientations
+        .as_ref()
+        .map(|o| allowed_orientations(o))
+        .unwrap_or_default();
     let deleted = resolve_deleted(include_deleted, only_deleted);
 
-    let (where_sql, mut bound) = build_where(&filter_buckets, batch_id.as_deref(), deleted);
+    let (where_sql, mut bound) = build_where(
+        &filter_buckets,
+        &filter_orientations,
+        batch_id.as_deref(),
+        deleted,
+    );
     let sql = format!(
         "SELECT {ROW_COLUMNS} FROM images i LEFT JOIN image_palette p ON p.image_id = i.id{where_sql} ORDER BY {sort} LIMIT ? OFFSET ?",
         sort = sort_clause(sort_key, direction.as_deref())
@@ -493,10 +528,41 @@ fn list_bucket_counts(state: State<'_, AppState>) -> Result<Vec<BucketCount>, St
     Ok(rows)
 }
 
+#[derive(Serialize)]
+struct OrientationCount {
+    orientation: String,
+    count: i64,
+}
+
+#[tauri::command]
+fn list_orientation_counts(state: State<'_, AppState>) -> Result<Vec<OrientationCount>, String> {
+    let conn = state.db.0.lock().unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT orientation, COUNT(*) AS n
+             FROM images
+             WHERE deleted_at IS NULL AND orientation IS NOT NULL
+             GROUP BY orientation",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(OrientationCount {
+                orientation: row.get::<_, String>(0)?,
+                count: row.get::<_, i64>(1)?,
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(Result::ok)
+        .collect();
+    Ok(rows)
+}
+
 #[tauri::command]
 fn library_count(
     state: State<'_, AppState>,
     buckets: Option<Vec<String>>,
+    orientations: Option<Vec<String>>,
     batch_id: Option<String>,
     include_deleted: Option<bool>,
     only_deleted: Option<bool>,
@@ -505,8 +571,17 @@ fn library_count(
         .as_ref()
         .map(|b| allowed_buckets(b))
         .unwrap_or_default();
+    let filter_orientations = orientations
+        .as_ref()
+        .map(|o| allowed_orientations(o))
+        .unwrap_or_default();
     let deleted = resolve_deleted(include_deleted, only_deleted);
-    let (where_sql, bound) = build_where(&filter_buckets, batch_id.as_deref(), deleted);
+    let (where_sql, bound) = build_where(
+        &filter_buckets,
+        &filter_orientations,
+        batch_id.as_deref(),
+        deleted,
+    );
 
     let sql = format!("SELECT COUNT(*) FROM images i{where_sql}");
     let conn = state.db.0.lock().unwrap();
@@ -805,6 +880,8 @@ pub fn run() {
             let metadata_store = store.clone();
             ingest::metadata::backfill::schedule(metadata_handle, metadata_db, metadata_store);
 
+            ingest::orientation::schedule(app.handle().clone(), db.clone(), store.clone());
+
             app.manage(AppState {
                 db,
                 store,
@@ -820,6 +897,7 @@ pub fn run() {
             batch_imported,
             list_images,
             list_bucket_counts,
+            list_orientation_counts,
             list_batches,
             library_count,
             get_image_details,

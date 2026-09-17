@@ -29,12 +29,14 @@ import {
   StatusBar,
 } from "./components/shell/StatusBar"
 import { VGA16_BUCKETS, type Vga16Bucket } from "./lib/vga16"
+import { ORIENTATIONS, type Orientation } from "./lib/orientation"
 import { COLOUR_LABELS, type ColourLabel } from "./components/image-card/colour-label"
 import { prescan, startIngest, type PrescanSummary } from "./features/ingest/api"
 import {
   libraryCount,
   listBatches,
   listBucketCounts,
+  listOrientationCounts,
   type BatchSummary,
 } from "./features/library/api"
 import { useSelection } from "./stores/selection"
@@ -55,6 +57,12 @@ const EMPTY_BUCKET_COUNTS: Record<Vga16Bucket, number> = Object.fromEntries(
   VGA16_BUCKETS.map((b) => [b, 0]),
 ) as Record<Vga16Bucket, number>
 
+const EMPTY_ORIENTATION_COUNTS: Record<Orientation, number> =
+  Object.fromEntries(ORIENTATIONS.map((o) => [o, 0])) as Record<
+    Orientation,
+    number
+  >
+
 const EMPTY_LABEL_COUNTS: Record<LabelSelector, number> = {
   favourite: 0,
   ...(Object.fromEntries(COLOUR_LABELS.map((c) => [c, 0])) as Record<
@@ -68,6 +76,7 @@ type Panel = "library" | "trash"
 type LibraryCounts = {
   total: number
   buckets: Record<Vga16Bucket, number>
+  orientations: Record<Orientation, number>
   batches: BatchSummary[]
   trashed: number
 }
@@ -76,15 +85,20 @@ type LibraryCounts = {
 // effect apply the result in a promise callback instead of calling a
 // setState-bearing function synchronously.
 async function fetchLibraryCounts(): Promise<LibraryCounts> {
-  const [total, counts, batches, trashed] = await Promise.all([
+  const [total, counts, orientationRows, batches, trashed] = await Promise.all([
     libraryCount(),
     listBucketCounts(),
+    listOrientationCounts(),
     listBatches(),
     libraryCount({ onlyDeleted: true }),
   ])
   const buckets = { ...EMPTY_BUCKET_COUNTS }
   for (const { bucket, count } of counts) buckets[bucket] = count
-  return { total, buckets, batches, trashed }
+  const orientations = { ...EMPTY_ORIENTATION_COUNTS }
+  for (const { orientation, count } of orientationRows) {
+    orientations[orientation] = count
+  }
+  return { total, buckets, orientations, batches, trashed }
 }
 
 // Left rail needs ~200px to render its longest section heading without
@@ -170,6 +184,12 @@ function AppShell() {
   )
   const [bucketCounts, setBucketCounts] =
     useState<Record<Vga16Bucket, number>>(EMPTY_BUCKET_COUNTS)
+  const [selectedOrientations, setSelectedOrientations] = useState<
+    Set<Orientation>
+  >(() => new Set())
+  const [orientationCounts, setOrientationCounts] = useState<
+    Record<Orientation, number>
+  >(EMPTY_ORIENTATION_COUNTS)
   const [totalCount, setTotalCount] = useState(0)
   const [queriedCount, setQueriedCount] = useState<number | null>(null)
   const [batches, setBatches] = useState<BatchSummary[]>([])
@@ -222,10 +242,15 @@ function AppShell() {
     () => Array.from(selectedBuckets),
     [selectedBuckets],
   )
+  const orientationsForQuery = useMemo(
+    () => Array.from(selectedOrientations),
+    [selectedOrientations],
+  )
 
   const applyCounts = useCallback((c: LibraryCounts) => {
     setTotalCount(c.total)
     setBucketCounts(c.buckets)
+    setOrientationCounts(c.orientations)
     setBatches(c.batches)
     setTrashCount(c.trashed)
     // list_batches hides batches that no longer have any live images, so a
@@ -275,6 +300,11 @@ function AppShell() {
         }),
       )
       offs.push(
+        await listen("orientation://backfill-done", () => {
+          void refreshCounts()
+        }),
+      )
+      offs.push(
         await listen("library://images-trashed", () => {
           void refreshCounts()
         }),
@@ -298,12 +328,18 @@ function AppShell() {
   }, [refreshCounts])
 
   const hasActiveQuery =
-    bucketsForQuery.length > 0 || selectedBatchId !== null
+    bucketsForQuery.length > 0 ||
+    orientationsForQuery.length > 0 ||
+    selectedBatchId !== null
 
   useEffect(() => {
     if (!hasActiveQuery) return
     let cancelled = false
-    void libraryCount({ buckets: bucketsForQuery, batchId: selectedBatchId })
+    void libraryCount({
+      buckets: bucketsForQuery,
+      orientations: orientationsForQuery,
+      batchId: selectedBatchId,
+    })
       .then((n) => {
         if (!cancelled) setQueriedCount(n)
       })
@@ -311,7 +347,7 @@ function AppShell() {
     return () => {
       cancelled = true
     }
-  }, [hasActiveQuery, bucketsForQuery, selectedBatchId])
+  }, [hasActiveQuery, bucketsForQuery, orientationsForQuery, selectedBatchId])
 
   // Derived rather than stored: gating on hasActiveQuery keeps a count left
   // over from a previous filter from showing once the filter is cleared.
@@ -381,6 +417,20 @@ function AppShell() {
     [leaveIngestView],
   )
 
+  const toggleOrientation = useCallback(
+    (o: Orientation) => {
+      leaveIngestView()
+      setPanel("library")
+      setSelectedOrientations((prev) => {
+        const next = new Set(prev)
+        if (next.has(o)) next.delete(o)
+        else next.add(o)
+        return next
+      })
+    },
+    [leaveIngestView],
+  )
+
   const toggleLabel = useCallback(
     (l: LabelSelector) => {
       leaveIngestView()
@@ -396,7 +446,10 @@ function AppShell() {
   )
 
   const activeFilterCount =
-    selectedBuckets.size + selectedLabels.size + (selectedBatchId ? 1 : 0)
+    selectedBuckets.size +
+    selectedOrientations.size +
+    selectedLabels.size +
+    (selectedBatchId ? 1 : 0)
   const addDisabled =
     view.kind === "scanning" ||
     view.kind === "scanned" ||
@@ -448,6 +501,7 @@ function AppShell() {
         sort={sortState.key}
         direction={sortState.direction}
         buckets={bucketsForQuery}
+        orientations={orientationsForQuery}
         batchId={selectedBatchId}
         cellSize={cardSize}
         onLibraryChanged={refreshCounts}
@@ -460,6 +514,7 @@ function AppShell() {
     sortState,
     trashDirection,
     bucketsForQuery,
+    orientationsForQuery,
     selectedBatchId,
     cardSize,
     refreshCounts,
@@ -493,6 +548,9 @@ function AppShell() {
           maxWidth={LEFT_PANEL.max}
         >
           <LeftRail
+            orientationCounts={orientationCounts}
+            selectedOrientations={selectedOrientations}
+            onToggleOrientation={toggleOrientation}
             bucketCounts={bucketCounts}
             selectedBuckets={selectedBuckets}
             onToggleBucket={toggleBucket}

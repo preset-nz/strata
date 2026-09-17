@@ -7,6 +7,11 @@ import {
   Images,
   Trash,
 } from "@phosphor-icons/react"
+import {
+  ORIENTATIONS,
+  ORIENTATION_LABEL,
+  type Orientation,
+} from "@/lib/orientation"
 import { cn } from "@/lib/utils"
 import { readStrataImagePayload } from "@/components/image-card/use-draggable-card"
 import { usePersistedState } from "@/lib/use-persisted-state"
@@ -28,11 +33,20 @@ import {
   type SortKey,
 } from "./sort-keys"
 
-type SectionId = "sort" | "content_colour" | "label" | "imports" | "system"
+type SectionId =
+  | "sort"
+  | "orientation"
+  | "content_colour"
+  | "label"
+  | "imports"
+  | "system"
 
 type LabelSelector = "favourite" | ColourLabel
 
 type Props = {
+  orientationCounts: Record<Orientation, number>
+  selectedOrientations: Set<Orientation>
+  onToggleOrientation: (orientation: Orientation) => void
   bucketCounts: Record<Vga16Bucket, number>
   selectedBuckets: Set<Vga16Bucket>
   onToggleBucket: (bucket: Vga16Bucket) => void
@@ -62,6 +76,9 @@ type Props = {
 }
 
 export function LeftRail({
+  orientationCounts,
+  selectedOrientations,
+  onToggleOrientation,
   bucketCounts,
   selectedBuckets,
   onToggleBucket,
@@ -89,6 +106,7 @@ export function LeftRail({
     "strata.rail.collapsed",
     {
       sort: false,
+      orientation: false,
       content_colour: false,
       label: false,
       imports: false,
@@ -161,6 +179,31 @@ export function LeftRail({
             )}
           </button>
         </div>
+      </Section>
+
+      <Section
+        id="orientation"
+        title="Orientation"
+        collapsed={collapsed.orientation}
+        onToggle={() => toggle("orientation")}
+        summary={
+          selectedOrientations.size > 0 ? selectedOrientations.size : undefined
+        }
+      >
+        <ul className="flex flex-col">
+          {ORIENTATIONS.map((o) => (
+            <LabelRow
+              key={o}
+              id={o}
+              label={ORIENTATION_LABEL[o]}
+              count={orientationCounts[o] ?? 0}
+              selected={selectedOrientations.has(o)}
+              disabled={filtersDisabled}
+              onClick={() => onToggleOrientation(o)}
+              swatch={<OrientationGlyph orientation={o} />}
+            />
+          ))}
+        </ul>
       </Section>
 
       <Section
@@ -495,6 +538,26 @@ function Section({
   )
 }
 
+// A 12px frame whose aspect matches the bucket: wide, equal, tall.
+function OrientationGlyph({ orientation }: { orientation: Orientation }) {
+  const size =
+    orientation === "landscape"
+      ? "h-2 w-3"
+      : orientation === "portrait"
+        ? "h-3 w-2"
+        : "size-2.5"
+  return (
+    <span className="inline-flex size-3 shrink-0 items-center justify-center">
+      <span
+        className={cn(
+          "rounded-[1px] border border-foreground/60",
+          size,
+        )}
+      />
+    </span>
+  )
+}
+
 function LabelRow({
   label,
   count,
@@ -503,7 +566,7 @@ function LabelRow({
   onClick,
   swatch,
 }: {
-  id: LabelSelector
+  id: LabelSelector | Orientation
   label: string
   count: number
   selected: boolean

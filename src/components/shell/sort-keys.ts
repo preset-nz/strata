@@ -8,6 +8,7 @@ export const SORT_KEYS = [
   "created",
   "updated",
   "colour",
+  "orientation",
   "deleted",
 ] as const
 
@@ -19,6 +20,7 @@ export const LIBRARY_SORT_KEYS: SortKey[] = [
   "created",
   "updated",
   "colour",
+  "orientation",
 ]
 export const TRASH_SORT_KEYS: SortKey[] = ["deleted"]
 
@@ -28,6 +30,7 @@ export const SORT_LABEL: Record<SortKey, string> = {
   created: "Created",
   updated: "Updated",
   colour: "Colour",
+  orientation: "Orientation",
   deleted: "Deleted",
 }
 
@@ -39,5 +42,6 @@ export const DEFAULT_DIRECTION: Record<SortKey, SortDirection> = {
   created: "desc",
   updated: "desc",
   colour: "asc",
+  orientation: "asc",
   deleted: "desc",
 }

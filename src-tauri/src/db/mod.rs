@@ -298,6 +298,19 @@ const MIGRATIONS: &[(i64, &str)] = &[
         CREATE INDEX idx_image_keyword_keyword ON image_keyword(keyword);
         "#,
     ),
+    // v7 — orientation bucket (epic 14). Displayed pixel dimensions and the
+    // landscape / square / portrait bucket live on `images` because every
+    // list and count query already reads that table. Existing rows are
+    // backfilled on the next app start by `ingest::orientation::schedule`.
+    (
+        7,
+        r#"
+        ALTER TABLE images ADD COLUMN width INTEGER;
+        ALTER TABLE images ADD COLUMN height INTEGER;
+        ALTER TABLE images ADD COLUMN orientation TEXT;
+        CREATE INDEX IF NOT EXISTS idx_images_orientation ON images(orientation);
+        "#,
+    ),
 ];
 
 fn apply_migrations(conn: &Connection) -> Result<()> {

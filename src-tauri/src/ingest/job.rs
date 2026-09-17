@@ -275,6 +275,16 @@ fn process_one(
         eprintln!("metadata::write failed for {image_id}: {e:?}");
     }
 
+    let exif_orientation = extracted.exif.as_ref().and_then(|e| e.orientation);
+    if let Err(e) = crate::ingest::orientation::run(
+        &db,
+        &image_id,
+        &stored.target_path,
+        exif_orientation,
+    ) {
+        eprintln!("orientation::run failed for {image_id}: {e:?}");
+    }
+
     send(
         FileState::Thumbnailing,
         Some(hash_hex.clone()),

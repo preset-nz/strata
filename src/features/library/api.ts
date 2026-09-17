@@ -1,9 +1,11 @@
 import { invoke } from "@tauri-apps/api/core"
 import type { Vga16Bucket } from "@/lib/vga16"
+import type { Orientation } from "@/lib/orientation"
 import type { ImportedRow } from "../contact-sheet/api"
 import type { SortKey } from "@/components/shell/sort-keys"
 
 export type BucketCount = { bucket: Vga16Bucket; count: number }
+export type OrientationCount = { orientation: Orientation; count: number }
 
 export type BatchSummary = {
   id: string
@@ -22,6 +24,7 @@ export type ImagesQuery = {
   sort?: SortKey
   direction?: SortDirection
   buckets?: Vga16Bucket[]
+  orientations?: Orientation[]
   batchId?: string | null
   includeDeleted?: boolean
   onlyDeleted?: boolean
@@ -38,6 +41,7 @@ export function listImages(
     sort: opts?.sort,
     direction: opts?.direction,
     buckets: opts?.buckets,
+    orientations: opts?.orientations,
     batchId: opts?.batchId ?? undefined,
     includeDeleted: opts?.includeDeleted,
     onlyDeleted: opts?.onlyDeleted,
@@ -46,6 +50,10 @@ export function listImages(
 
 export function listBucketCounts(): Promise<BucketCount[]> {
   return invoke<BucketCount[]>("list_bucket_counts")
+}
+
+export function listOrientationCounts(): Promise<OrientationCount[]> {
+  return invoke<OrientationCount[]>("list_orientation_counts")
 }
 
 export function listBatches(): Promise<BatchSummary[]> {
@@ -58,6 +66,7 @@ export function getBatch(id: string): Promise<BatchSummary | null> {
 
 export type CountQuery = {
   buckets?: Vga16Bucket[]
+  orientations?: Orientation[]
   batchId?: string | null
   includeDeleted?: boolean
   onlyDeleted?: boolean
@@ -78,6 +87,7 @@ export function purgeImages(ids: string[]): Promise<number> {
 export function libraryCount(opts?: CountQuery): Promise<number> {
   return invoke<number>("library_count", {
     buckets: opts?.buckets,
+    orientations: opts?.orientations,
     batchId: opts?.batchId ?? undefined,
     includeDeleted: opts?.includeDeleted,
     onlyDeleted: opts?.onlyDeleted,

@@ -2,6 +2,7 @@ pub mod events;
 pub mod hash;
 pub mod job;
 pub mod metadata;
+pub mod orientation;
 pub mod scan;
 pub mod stages;
 pub mod store;
