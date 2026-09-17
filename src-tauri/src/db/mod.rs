@@ -308,7 +308,18 @@ const MIGRATIONS: &[(i64, &str)] = &[
         ALTER TABLE images ADD COLUMN width INTEGER;
         ALTER TABLE images ADD COLUMN height INTEGER;
         ALTER TABLE images ADD COLUMN orientation TEXT;
-        CREATE INDEX IF NOT EXISTS idx_images_orientation ON images(orientation);
+        "#,
+    ),
+    // v8 — drop the index v7 originally created on images.orientation.
+    // On a persisted catalog, the first UPDATE that set the column failed
+    // with "Failed to delete all rows from index. Only deleted 0 out of 1
+    // rows" and invalidated the database: DuckDB's ART index could not
+    // reconcile rows that existed before ALTER TABLE ADD COLUMN. Same family
+    // as the v6 note. Three distinct values do not need an index anyway.
+    (
+        8,
+        r#"
+        DROP INDEX IF EXISTS idx_images_orientation;
         "#,
     ),
 ];
