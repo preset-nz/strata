@@ -37,7 +37,7 @@ tokio = { version = "1", features = ["sync", "rt-multi-thread", "macros", "fs"] 
 num_cpus = "1"
 hex = "0.4"
 kamadak-exif = "0.6"
-preset-preferences = { path = "../../../packages/preferences", features = ["tauri"] }
+preset-preferences = { version = "0.1", features = ["tauri"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.5"
