@@ -1,0 +1,41 @@
+# The family's default naming schema. Shape and rules:
+# guidance/projects/app-kit/design/naming-schema.md
+schema  = "strata"
+version = 1
+
+# Directory levels below the project folder, outermost first.
+[[level]]
+name    = "context"
+default = "base"
+
+[[level]]
+name = "app"
+
+[[level]]
+name = "kind"
+
+# Filename. {name} is a part; [ ... ] is optional.
+[file]
+template = "{element}[_{component}].v{version}[.{frame}].{ext}"
+
+[[part]]
+name = "element"
+
+[[part]]
+name     = "component"
+optional = true
+
+[[part]]
+name = "version"
+kind = "int"
+pad  = 3
+
+[[part]]
+name     = "frame"
+kind     = "int"
+pad      = 4
+optional = true
+
+[[part]]
+name = "ext"
+kind = "ext"

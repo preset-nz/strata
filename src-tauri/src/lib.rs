@@ -3,8 +3,10 @@ mod gestures;
 mod ingest;
 mod library;
 mod menu;
+pub mod naming;
 mod palette;
 mod preferences;
+pub mod resolver;
 mod server;
 mod store;
 
