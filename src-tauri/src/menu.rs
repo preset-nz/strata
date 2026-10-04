@@ -4,7 +4,8 @@
 //!
 //! Strata has few commands yet. The App menu carries Settings on Cmd+, and
 //! the Edit menu carries the OS text-editing items so fields behave, plus
-//! Find… on Cmd+F, which focuses the library search, and Save Search…. This
+//! Find… on Cmd+F, which focuses the library search, and Save Search…. View
+//! carries Palette Markers (Shift+Cmd+M) for Quickview. This
 //! file is the hand-built stand-in until the shared native-menu package
 //! exists; the event name is the one `@preset.nz/preferences` listens for.
 
@@ -14,6 +15,7 @@ use tauri::{AppHandle, Emitter, Runtime};
 const EVT_APP_SETTINGS: &str = "menu://app/settings";
 const EVT_EDIT_FIND: &str = "menu://edit/find";
 const EVT_EDIT_SAVE_SEARCH: &str = "menu://edit/save-search";
+const EVT_VIEW_PALETTE_MARKERS: &str = "menu://view/palette-markers";
 
 pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let name = "Strata".to_string();
@@ -62,6 +64,15 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         ],
     )?;
 
+    let palette_markers = MenuItem::with_id(
+        app,
+        "view-palette-markers",
+        "Palette Markers",
+        true,
+        Some("CmdOrCtrl+Shift+M"),
+    )?;
+    let view_menu = Submenu::with_items(app, "View", true, &[&palette_markers])?;
+
     let window_menu = Submenu::with_items(
         app,
         "Window",
@@ -74,7 +85,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         ],
     )?;
 
-    let menu = Menu::with_items(app, &[&app_menu, &edit_menu, &window_menu])?;
+    let menu = Menu::with_items(app, &[&app_menu, &edit_menu, &view_menu, &window_menu])?;
     app.set_menu(menu)?;
 
     app.on_menu_event(|handle, event| {
@@ -82,6 +93,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
             "app-settings" => EVT_APP_SETTINGS,
             "edit-find" => EVT_EDIT_FIND,
             "edit-save-search" => EVT_EDIT_SAVE_SEARCH,
+            "view-palette-markers" => EVT_VIEW_PALETTE_MARKERS,
             _ => return,
         };
         let _ = handle.emit(evt, ());

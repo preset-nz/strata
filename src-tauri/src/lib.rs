@@ -983,6 +983,29 @@ async fn extract_palette(
     id: String,
     k: usize,
 ) -> Result<Vec<palette::extract::ExtractedSwatch>, String> {
+    let source = display_source(&state, &id)?;
+    tokio::task::spawn_blocking(move || palette::extract::extract(&source, k))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
+}
+
+/// The palette inspector: n colours placed on the 1024 px display image.
+#[tauri::command]
+async fn palette_markers(
+    state: State<'_, AppState>,
+    id: String,
+    n: usize,
+) -> Result<Vec<palette::extract::Marker>, String> {
+    let source = display_source(&state, &id)?;
+    tokio::task::spawn_blocking(move || palette::extract::markers(&source, n))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
+}
+
+/// The 1024 px thumbnail Quickview shows, or the original if it's missing.
+fn display_source(state: &AppState, id: &str) -> Result<PathBuf, String> {
     let (hash, store_path): (String, String) = {
         let conn = state.db.0.lock().unwrap();
         conn.query_row(
@@ -993,11 +1016,7 @@ async fn extract_palette(
         .map_err(|e| e.to_string())?
     };
     let thumb = state.store.thumb_path(&hash, 1024);
-    let source = if thumb.exists() { thumb } else { state.store.root().join(store_path) };
-    tokio::task::spawn_blocking(move || palette::extract::extract(&source, k))
-        .await
-        .map_err(|e| e.to_string())?
-        .map_err(|e| e.to_string())
+    Ok(if thumb.exists() { thumb } else { state.store.root().join(store_path) })
 }
 
 #[tauri::command]
@@ -1112,6 +1131,7 @@ pub fn run() {
             restore_image,
             purge_image,
             extract_palette,
+            palette_markers,
             saved_search_list,
             saved_search_put,
             saved_search_delete,

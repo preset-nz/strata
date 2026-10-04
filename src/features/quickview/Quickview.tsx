@@ -1,9 +1,13 @@
 import { useEffect } from "react"
-import { X, CaretLeft, CaretRight } from "@phosphor-icons/react"
+import { X, CaretLeft, CaretRight, Crosshair } from "@phosphor-icons/react"
 import { cn } from "@/lib/utils"
 import { registerOverlay } from "@/lib/overlay"
+import { MarkerOverlay } from "./MarkerOverlay"
+import { MARKER_COUNTS, paletteMarkers, usePaletteMarkers } from "./palette-markers"
 
 type Item = {
+  /** The image id. */
+  key: string
   hash: string
   filename: string
   status: string
@@ -18,6 +22,7 @@ type Props = {
 
 export function Quickview({ items, index, onClose, onIndexChange }: Props) {
   const item = items[index]
+  const markers = usePaletteMarkers()
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -61,7 +66,36 @@ export function Quickview({ items, index, onClose, onIndexChange }: Props) {
         <span className="select-text truncate text-xs text-muted-foreground">
           {item.filename}
         </span>
-        <span className="ml-auto font-heading text-[10px] tracking-[0.08em] uppercase text-muted-foreground tabular-nums">
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            aria-pressed={markers.on}
+            onClick={paletteMarkers.toggle}
+            title="Palette markers  ⇧⌘M"
+            className={cn(
+              "inline-flex h-7 items-center gap-1 rounded-sm px-1.5 text-xs",
+              markers.on ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <Crosshair weight="bold" />
+          </button>
+          {markers.on &&
+            MARKER_COUNTS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                aria-pressed={markers.count === n}
+                onClick={() => paletteMarkers.setCount(n)}
+                className={cn(
+                  "h-7 rounded-sm px-1.5 text-xs tabular-nums",
+                  markers.count === n ? "bg-muted text-foreground" : "text-muted-foreground hover:bg-muted",
+                )}
+              >
+                {n}
+              </button>
+            ))}
+        </div>
+        <span className="font-heading text-[10px] tracking-[0.08em] uppercase text-muted-foreground tabular-nums">
           {index + 1} / {items.length}
         </span>
         <button
@@ -83,12 +117,16 @@ export function Quickview({ items, index, onClose, onIndexChange }: Props) {
         onClick={onClose}
       >
         {item.status === "ready" ? (
-          <img
-            src={`thumb://${item.hash}/1024.jpg`}
-            alt={item.filename}
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-full max-w-full object-contain shadow-2xl"
-          />
+          // The wrapper shrinks to the image, so markers placed in fractions
+          // of it land on the picture, not on letterbox space.
+          <div className="relative max-h-full max-w-full" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={`thumb://${item.hash}/1024.jpg`}
+              alt={item.filename}
+              className="block max-h-[calc(100svh-7rem)] max-w-full shadow-2xl"
+            />
+            {markers.on && <MarkerOverlay imageId={item.key} count={markers.count} />}
+          </div>
         ) : (
           <p className="text-sm text-muted-foreground">no thumb</p>
         )}
