@@ -145,6 +145,49 @@ const MIGRATIONS: &[(i64, &str)] = &[(
 
     CREATE INDEX idx_image_keyword_keyword ON image_keyword(keyword);
     "#,
+),
+// v2 — provenance (guidance `design/provenance-and-evals.md`). A prompt is
+// its own entity, deduplicated by a hash of text and negative; a generation
+// keeps the producer's settings as JSON; generation_output links it to the
+// image. provenance_checked records which images have been read, found or
+// not, so the backfill is idempotent.
+(
+    2,
+    r#"
+    CREATE TABLE prompt (
+        prompt_id TEXT PRIMARY KEY,
+        text TEXT NOT NULL,
+        negative TEXT,
+        first_seen TEXT NOT NULL
+    );
+
+    CREATE TABLE generation (
+        generation_id TEXT PRIMARY KEY,
+        prompt_id TEXT NOT NULL,
+        producer TEXT NOT NULL,
+        model TEXT,
+        seed INTEGER,
+        settings TEXT NOT NULL,
+        at TEXT
+    );
+
+    CREATE INDEX idx_generation_prompt ON generation(prompt_id);
+
+    CREATE TABLE generation_output (
+        generation_id TEXT NOT NULL,
+        image_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        PRIMARY KEY (generation_id, image_id)
+    );
+
+    CREATE INDEX idx_generation_output_image ON generation_output(image_id);
+
+    CREATE TABLE provenance_checked (
+        image_id TEXT PRIMARY KEY,
+        stage_version TEXT NOT NULL,
+        checked_at TEXT NOT NULL
+    );
+    "#,
 )];
 
 fn apply_migrations(conn: &Connection) -> Result<()> {

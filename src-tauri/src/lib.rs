@@ -13,7 +13,7 @@ mod store;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use rusqlite::params;
+use rusqlite::{params, OptionalExtension};
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::sync::Mutex as AsyncMutex;
@@ -173,6 +173,21 @@ struct ImageDetails {
 
     software: Option<String>,
     keywords: Vec<String>,
+
+    title: String,
+    generation: Option<GenerationDetails>,
+}
+
+/// How a generated image was made, from its provenance record.
+#[derive(Serialize)]
+struct GenerationDetails {
+    producer: String,
+    prompt: String,
+    negative: Option<String>,
+    model: Option<String>,
+    seed: Option<i64>,
+    /// The producer's own settings, as it wrote them.
+    settings: serde_json::Value,
 }
 
 #[derive(Serialize)]
@@ -180,6 +195,7 @@ struct ImportedRow {
     id: String,
     content_hash: String,
     original_filename: String,
+    title: String,
     thumbnails_status: String,
     dominant_bucket: Option<String>,
     dominant_l: Option<f32>,
@@ -257,6 +273,7 @@ fn row_from(row: &rusqlite::Row) -> rusqlite::Result<ImportedRow> {
         id: row.get::<_, String>(0)?,
         content_hash: row.get::<_, String>(1)?,
         original_filename: row.get::<_, String>(2)?,
+        title: display_title(row.get::<_, Option<String>>(9)?.as_deref(), &row.get::<_, String>(2)?),
         thumbnails_status: row.get::<_, String>(3)?,
         dominant_bucket: row.get::<_, Option<String>>(4)?,
         dominant_l: row.get::<_, Option<f32>>(5)?,
@@ -270,7 +287,22 @@ fn row_from(row: &rusqlite::Row) -> rusqlite::Result<ImportedRow> {
 
 const ROW_COLUMNS: &str = "i.id, i.content_hash, i.original_filename, i.thumbnails_status, \
                            p.dominant_bucket, p.dominant_l, p.dominant_c, p.dominant_h, \
-                           i.deleted_at";
+                           i.deleted_at, pr.text";
+
+/// The images a list reads, with the palette and the prompt behind each,
+/// when it has one, for the display title.
+const ROW_SOURCE: &str = "images i \
+                          LEFT JOIN image_palette p ON p.image_id = i.id \
+                          LEFT JOIN generation_output go ON go.image_id = i.id \
+                          LEFT JOIN generation g ON g.generation_id = go.generation_id \
+                          LEFT JOIN prompt pr ON pr.prompt_id = g.prompt_id";
+
+/// A generated image is titled from its prompt; anything else by its filename.
+fn display_title(prompt: Option<&str>, filename: &str) -> String {
+    prompt
+        .and_then(ingest::provenance::title_from_prompt)
+        .unwrap_or_else(|| filename.to_string())
+}
 
 fn allowed_buckets(input: &[String]) -> Vec<String> {
     input
@@ -386,7 +418,7 @@ fn list_images(
         deleted,
     );
     let sql = format!(
-        "SELECT {ROW_COLUMNS} FROM images i LEFT JOIN image_palette p ON p.image_id = i.id{where_sql} ORDER BY {sort} LIMIT ? OFFSET ?",
+        "SELECT {ROW_COLUMNS} FROM {ROW_SOURCE}{where_sql} ORDER BY {sort} LIMIT ? OFFSET ?",
         sort = sort_clause(sort_key, direction.as_deref())
     );
 
@@ -408,7 +440,7 @@ fn batch_imported(state: State<'_, AppState>, batch_id: String) -> Result<Vec<Im
     let mut stmt = conn
         .prepare(&format!(
             "SELECT {ROW_COLUMNS} \
-             FROM images i LEFT JOIN image_palette p ON p.image_id = i.id \
+             FROM {ROW_SOURCE} \
              WHERE i.ingest_batch_id = ? AND i.deleted_at IS NULL \
              ORDER BY i.imported_at ASC"
         ))
@@ -508,6 +540,8 @@ fn get_image_details(
 
                     software: row.get(43)?,
                     keywords: Vec::new(),
+                    title: String::new(),
+                    generation: None,
                 })
             },
         )
@@ -524,6 +558,32 @@ fn get_image_details(
                 .filter_map(Result::ok)
                 .collect();
             details.keywords = keywords;
+            details.generation = conn
+                .query_row(
+                    "SELECT g.producer, pr.text, pr.negative, g.model, g.seed, g.settings \
+                     FROM generation_output go \
+                     JOIN generation g ON g.generation_id = go.generation_id \
+                     JOIN prompt pr ON pr.prompt_id = g.prompt_id \
+                     WHERE go.image_id = ? LIMIT 1",
+                    params![id],
+                    |row| {
+                        Ok(GenerationDetails {
+                            producer: row.get(0)?,
+                            prompt: row.get(1)?,
+                            negative: row.get(2)?,
+                            model: row.get(3)?,
+                            seed: row.get(4)?,
+                            settings: serde_json::from_str(&row.get::<_, String>(5)?)
+                                .unwrap_or(serde_json::Value::Null),
+                        })
+                    },
+                )
+                .optional()
+                .map_err(|e| e.to_string())?;
+            details.title = display_title(
+                details.generation.as_ref().map(|g| g.prompt.as_str()),
+                &details.original_filename,
+            );
             Some(details)
         }
         None => None,
@@ -928,6 +988,7 @@ pub fn run() {
             ingest::metadata::backfill::schedule(metadata_handle, metadata_db, metadata_store);
 
             ingest::orientation::schedule(app.handle().clone(), db.clone(), store.clone());
+            ingest::provenance::backfill::schedule(app.handle().clone(), db.clone(), store.clone());
 
             app.manage(prefs.clone());
             app.manage(AppState {
@@ -1042,7 +1103,7 @@ mod catalog_round_trip {
 
     fn list(conn: &rusqlite::Connection, where_sql: &str, bound: &[rusqlite::types::Value], sort: &str) -> Vec<ImportedRow> {
         let sql = format!(
-            "SELECT {ROW_COLUMNS} FROM images i LEFT JOIN image_palette p ON p.image_id = i.id{where_sql} ORDER BY {sort} LIMIT 10 OFFSET 0",
+            "SELECT {ROW_COLUMNS} FROM {ROW_SOURCE}{where_sql} ORDER BY {sort} LIMIT 10 OFFSET 0",
         );
         let mut stmt = conn.prepare(&sql).unwrap();
         let rows = stmt
@@ -1100,6 +1161,37 @@ mod catalog_round_trip {
     }
 
     #[test]
+    fn provenance_titles_rows_and_rereads_replace() {
+        let (db, dir) = catalog();
+        ingest_one(&db, &dir);
+        let record = ingest::provenance::drawthings::parse_record(
+            r#"{"c":"Lichen colony, wet bark","uc":"blurry","model":"flux","seed":7,"steps":4}"#,
+        )
+        .unwrap();
+        for _ in 0..2 {
+            ingest::provenance::store(&db, IMAGE, "abcd", Some(&record)).unwrap();
+        }
+        let conn = db.0.lock().unwrap();
+        let counts: (i64, i64, i64) = conn
+            .query_row(
+                "SELECT (SELECT COUNT(*) FROM prompt), (SELECT COUNT(*) FROM generation), (SELECT COUNT(*) FROM generation_output)",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(counts, (1, 1, 1));
+
+        let (where_sql, bound) = build_where(&[], &[], None, DeletedFilter::HideDeleted);
+        let rows = list(&conn, &where_sql, &bound, &sort_clause("imported", None));
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].title, "lichen-colony");
+        assert_eq!(rows[0].original_filename, "mist.png");
+
+        drop(conn);
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
     fn trash_then_purge_sweep_compares_timestamps() {
         let (db, dir) = catalog();
         ingest_one(&db, &dir);
@@ -1126,3 +1218,4 @@ mod catalog_round_trip {
         std::fs::remove_dir_all(dir).ok();
     }
 }
+

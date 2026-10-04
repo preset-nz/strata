@@ -283,6 +283,10 @@ fn process_one(
         eprintln!("metadata::write failed for {image_id}: {e:?}");
     }
 
+    if let Err(e) = crate::ingest::provenance::run(&db, &image_id, &hash_hex, &stored.target_path) {
+        eprintln!("provenance::run failed for {image_id}: {e:?}");
+    }
+
     let exif_orientation = extracted.exif.as_ref().and_then(|e| e.orientation);
     if let Err(e) = crate::ingest::orientation::run(
         &db,

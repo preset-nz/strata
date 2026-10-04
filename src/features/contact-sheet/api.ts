@@ -5,6 +5,8 @@ export type ImportedRow = {
   id: string
   content_hash: string
   original_filename: string
+  /** The prompt head for a generated image, else the filename. */
+  title: string
   thumbnails_status: string
   dominant_bucket: Vga16Bucket | null
   dominant_l: number | null
@@ -13,10 +15,23 @@ export type ImportedRow = {
   deleted_at: string | null
 }
 
+/** How a generated image was made, from its provenance record. */
+export type GenerationDetails = {
+  producer: string
+  prompt: string
+  negative: string | null
+  model: string | null
+  seed: number | null
+  /** The producer's own settings, as it wrote them. */
+  settings: Record<string, unknown> | null
+}
+
 export type ImageDetails = {
   id: string
   content_hash: string
   original_filename: string
+  title: string
+  generation: GenerationDetails | null
   original_path: string
   byte_size: number
   mime: string

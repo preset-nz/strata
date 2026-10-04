@@ -12,7 +12,8 @@ const IMAGE_SCHEMA: PropertySchema = {
       id: "file",
       title: "File",
       rows: [
-        { kind: "text", id: "filename", label: "Filename", path: "filename" },
+        { kind: "text", id: "displayTitle", label: "Title", path: "displayTitle" },
+        { kind: "text", id: "filename", label: "Source filename", path: "filename" },
         { kind: "text", id: "originalPath", label: "Source path", path: "originalPath" },
         [
           { kind: "file-size", id: "byteSize", label: "Size", path: "byteSize" },
@@ -25,6 +26,41 @@ const IMAGE_SCHEMA: PropertySchema = {
           label: "Thumbnail",
           path: "status",
         },
+      ],
+    },
+    {
+      id: "generation",
+      title: "Generation",
+      description: "How the image was made, read from the file.",
+      rows: [
+        { kind: "textarea", id: "prompt", label: "Prompt", path: "prompt", rows: 5 },
+        { kind: "textarea", id: "negative", label: "Negative", path: "negative", rows: 2 },
+        { kind: "text", id: "model", label: "Model", path: "model" },
+        [
+          { kind: "text", id: "seed", label: "Seed", path: "seed" },
+          { kind: "text", id: "producer", label: "Made with", path: "producer" },
+        ],
+      ],
+    },
+    {
+      id: "generationSettings",
+      title: "Generation settings",
+      collapsible: true,
+      defaultCollapsed: true,
+      rows: [
+        [
+          { kind: "text", id: "sampler", label: "Sampler", path: "sampler" },
+          { kind: "text", id: "steps", label: "Steps", path: "steps" },
+        ],
+        [
+          { kind: "text", id: "guidance", label: "Guidance", path: "guidance" },
+          { kind: "text", id: "generatedSize", label: "Size", path: "generatedSize" },
+        ],
+        [
+          { kind: "text", id: "strength", label: "Strength", path: "strength" },
+          { kind: "text", id: "shift", label: "Shift", path: "shift" },
+        ],
+        { kind: "text", id: "seedMode", label: "Seed mode", path: "seedMode" },
       ],
     },
     {
@@ -163,7 +199,20 @@ const IMAGE_SCHEMA: PropertySchema = {
 }
 
 type ImageValues = {
+  displayTitle: string | null
   filename: string | null
+  prompt: string | null
+  negative: string | null
+  model: string | null
+  seed: string | null
+  producer: string | null
+  sampler: string | null
+  steps: string | null
+  guidance: string | null
+  generatedSize: string | null
+  strength: string | null
+  shift: string | null
+  seedMode: string | null
   originalPath: string | null
   byteSize: number | null
   mime: string | null
@@ -197,6 +246,16 @@ type ImageValues = {
   keywords: string[]
   dominantBucket: string | null
   dominantLCh: [number | null, number | null, number | null]
+}
+
+const PRODUCERS: Record<string, string> = { drawthings: "Draw Things" }
+
+/** A scalar from the producer's settings, as display text. */
+function setting(settings: Record<string, unknown> | null | undefined, key: string): string | null {
+  const v = settings?.[key]
+  if (v == null || typeof v === "object") return null
+  if (typeof v === "number") return Number.isInteger(v) ? String(v) : String(Number(v.toFixed(3)))
+  return String(v)
 }
 
 function formatShutter(sec: number | null | undefined): string | null {
@@ -243,8 +302,22 @@ const imageScope: Scope<ImageSelection, ImageValues> = {
   schema: IMAGE_SCHEMA,
   read: (_selection, ctx: ScopeContext) => {
     const d = ctx.details as ImageDetails | undefined
+    const g = d?.generation ?? null
     return {
+      displayTitle: d?.title ?? null,
       filename: d?.original_filename ?? null,
+      prompt: g?.prompt ?? null,
+      negative: g?.negative ?? null,
+      model: g?.model ?? null,
+      seed: g?.seed != null ? String(g.seed) : null,
+      producer: g ? (PRODUCERS[g.producer] ?? g.producer) : null,
+      sampler: setting(g?.settings, "sampler"),
+      steps: setting(g?.settings, "steps"),
+      guidance: setting(g?.settings, "scale"),
+      generatedSize: setting(g?.settings, "size"),
+      strength: setting(g?.settings, "strength"),
+      shift: setting(g?.settings, "shift"),
+      seedMode: setting(g?.settings, "seed_mode"),
       originalPath: d?.original_path ?? null,
       byteSize: d?.byte_size ?? null,
       mime: d?.mime ?? null,

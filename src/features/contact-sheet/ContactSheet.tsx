@@ -249,7 +249,7 @@ function mergeRows(prev: Map<string, ImportedCell>, rows: ImportedRow[]) {
       key: row.id,
       id: row.id,
       hash: row.content_hash,
-      filename: row.original_filename,
+      filename: row.title,
       status: row.thumbnails_status,
     })
   }

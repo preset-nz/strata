@@ -27,7 +27,7 @@ function toCell(row: ImportedRow): Cell {
   return {
     key: row.id,
     hash: row.content_hash,
-    filename: row.original_filename,
+    filename: row.title,
     status: row.thumbnails_status,
     row,
   }
