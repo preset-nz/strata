@@ -3,7 +3,8 @@
 //! the webview as one event that maps to one handler.
 //!
 //! Strata has few commands yet. The App menu carries Settings on Cmd+, and
-//! the Edit menu carries the OS text-editing items so fields behave. This
+//! the Edit menu carries the OS text-editing items so fields behave, plus
+//! Find… on Cmd+F, which focuses the library search. This
 //! file is the hand-built stand-in until the shared native-menu package
 //! exists; the event name is the one `@preset.nz/preferences` listens for.
 
@@ -11,6 +12,7 @@ use tauri::menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{AppHandle, Emitter, Runtime};
 
 const EVT_APP_SETTINGS: &str = "menu://app/settings";
+const EVT_EDIT_FIND: &str = "menu://edit/find";
 
 pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let name = "Strata".to_string();
@@ -23,6 +25,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     };
 
     let settings = MenuItem::with_id(app, "app-settings", "Settings…", true, Some("CmdOrCtrl+,"))?;
+    let find = MenuItem::with_id(app, "edit-find", "Find…", true, Some("CmdOrCtrl+F"))?;
 
     let app_menu = Submenu::with_items(
         app,
@@ -51,6 +54,8 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
             &PredefinedMenuItem::copy(app, None)?,
             &PredefinedMenuItem::paste(app, None)?,
             &PredefinedMenuItem::select_all(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &find,
         ],
     )?;
 
@@ -72,6 +77,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     app.on_menu_event(|handle, event| {
         let evt = match event.id().0.as_str() {
             "app-settings" => EVT_APP_SETTINGS,
+            "edit-find" => EVT_EDIT_FIND,
             _ => return,
         };
         let _ = handle.emit(evt, ());

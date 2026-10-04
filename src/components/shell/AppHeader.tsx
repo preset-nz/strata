@@ -1,5 +1,7 @@
-import { Plus, ArrowLeft, SidebarSimple } from "@phosphor-icons/react"
+import type { RefObject } from "react"
+import { Plus, ArrowLeft, SidebarSimple, MagnifyingGlass } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 type Props = {
   total: number
@@ -12,6 +14,9 @@ type Props = {
   onToggleLeft: () => void
   rightCollapsed: boolean
   onToggleRight: () => void
+  search: string
+  onSearchChange: (next: string) => void
+  searchRef: RefObject<HTMLInputElement | null>
 }
 
 export function AppHeader({
@@ -25,6 +30,9 @@ export function AppHeader({
   onToggleLeft,
   rightCollapsed,
   onToggleRight,
+  search,
+  onSearchChange,
+  searchRef,
 }: Props) {
   const summary = (() => {
     if (total === 0) return "Library"
@@ -63,6 +71,29 @@ export function AppHeader({
         </span>
       )}
       <div className="ml-auto flex items-center gap-2">
+        <div className="relative w-56">
+          <MagnifyingGlass
+            weight="bold"
+            className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground"
+          />
+          <Input
+            ref={searchRef}
+            type="search"
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.stopPropagation()
+                onSearchChange("")
+                e.currentTarget.blur()
+              }
+            }}
+            placeholder="Search prompts, keywords, names"
+            aria-label="Search the library"
+            title="Search the library  ⌘F"
+            className="pl-7"
+          />
+        </div>
         <Button
           size="sm"
           variant="outline"

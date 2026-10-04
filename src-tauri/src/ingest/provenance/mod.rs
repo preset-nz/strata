@@ -42,6 +42,9 @@ pub fn store(
         "INSERT OR REPLACE INTO provenance_checked (image_id, stage_version, checked_at) VALUES (?, ?, ?)",
         params![image_id, STAGE_VERSION, Utc::now()],
     )?;
+    if record.is_some() {
+        crate::search::reindex(&tx, image_id)?;
+    }
     tx.commit()?;
     Ok(())
 }

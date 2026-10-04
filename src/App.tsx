@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { open } from "@tauri-apps/plugin-dialog"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 import { DropZone } from "./features/ingest/DropZone"
@@ -227,6 +227,11 @@ function AppShell() {
   >(EMPTY_ORIENTATION_COUNTS)
   const [totalCount, setTotalCount] = useState(0)
   const [queriedCount, setQueriedCount] = useState<number | null>(null)
+  // What is typed, and what the library is queried with: the second trails
+  // the first so each keystroke doesn't refetch.
+  const [searchText, setSearchText] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
+  const searchRef = useRef<HTMLInputElement | null>(null)
   const [batches, setBatches] = useState<BatchSummary[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [trashCount, setTrashCount] = useState(0)
@@ -362,7 +367,30 @@ function AppShell() {
     }
   }, [refreshCounts])
 
+  useEffect(() => {
+    const t = setTimeout(() => setSearchQuery(searchText.trim()), 150)
+    return () => clearTimeout(t)
+  }, [searchText])
+
+  // Edit > Find… (Cmd+F) focuses the search field.
+  useEffect(() => {
+    let off: UnlistenFn | undefined
+    let cancelled = false
+    void listen("menu://edit/find", () => {
+      searchRef.current?.focus()
+      searchRef.current?.select()
+    }).then((u) => {
+      if (cancelled) u()
+      else off = u
+    })
+    return () => {
+      cancelled = true
+      off?.()
+    }
+  }, [])
+
   const hasActiveQuery =
+    searchQuery !== "" ||
     bucketsForQuery.length > 0 ||
     orientationsForQuery.length > 0 ||
     selectedBatchId !== null
@@ -374,6 +402,7 @@ function AppShell() {
       buckets: bucketsForQuery,
       orientations: orientationsForQuery,
       batchId: selectedBatchId,
+      query: searchQuery,
     })
       .then((n) => {
         if (!cancelled) setQueriedCount(n)
@@ -382,7 +411,7 @@ function AppShell() {
     return () => {
       cancelled = true
     }
-  }, [hasActiveQuery, bucketsForQuery, orientationsForQuery, selectedBatchId])
+  }, [hasActiveQuery, bucketsForQuery, orientationsForQuery, selectedBatchId, searchQuery])
 
   // Derived rather than stored: gating on hasActiveQuery keeps a count left
   // over from a previous filter from showing once the filter is cleared.
@@ -538,11 +567,13 @@ function AppShell() {
         buckets={bucketsForQuery}
         orientations={orientationsForQuery}
         batchId={selectedBatchId}
+        query={searchQuery}
         cellSize={cardSize}
         onLibraryChanged={refreshCounts}
       />
     )
   }, [
+    searchQuery,
     view,
     panel,
     handleConfirm,
@@ -576,6 +607,9 @@ function AppShell() {
         onToggleLeft={toggleLeftPanel}
         rightCollapsed={rightPanel.collapsed}
         onToggleRight={toggleRightPanel}
+        search={searchText}
+        onSearchChange={setSearchText}
+        searchRef={searchRef}
       />
       <div className="flex min-h-0 flex-1">
         <SidePanel

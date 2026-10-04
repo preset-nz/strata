@@ -80,5 +80,6 @@ pub fn write(db: &Db, image_id: &str, extracted: &Extracted) -> Result<()> {
             params![image_id, trimmed],
         )?;
     }
+    crate::search::reindex(&conn, image_id)?;
     Ok(())
 }

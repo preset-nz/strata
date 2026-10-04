@@ -28,6 +28,8 @@ export type ImagesQuery = {
   batchId?: string | null
   includeDeleted?: boolean
   onlyDeleted?: boolean
+  /** Typed keywords. While set, results are ranked by relevance. */
+  query?: string
 }
 
 export function listImages(
@@ -45,6 +47,7 @@ export function listImages(
     batchId: opts?.batchId ?? undefined,
     includeDeleted: opts?.includeDeleted,
     onlyDeleted: opts?.onlyDeleted,
+    query: opts?.query || undefined,
   })
 }
 
@@ -70,6 +73,7 @@ export type CountQuery = {
   batchId?: string | null
   includeDeleted?: boolean
   onlyDeleted?: boolean
+  query?: string
 }
 
 export function deleteImages(ids: string[]): Promise<number> {
@@ -91,5 +95,6 @@ export function libraryCount(opts?: CountQuery): Promise<number> {
     batchId: opts?.batchId ?? undefined,
     includeDeleted: opts?.includeDeleted,
     onlyDeleted: opts?.onlyDeleted,
+    query: opts?.query || undefined,
   })
 }

@@ -188,6 +188,23 @@ const MIGRATIONS: &[(i64, &str)] = &[(
         checked_at TEXT NOT NULL
     );
     "#,
+),
+// v3 — keyword search (`search.rs`). One row per image over its prompt,
+// keywords, caption and filename; rebuilt from those tables on change.
+// unicode61 splits on everything that isn't a letter or digit, which covers
+// prompt-style commas, underscores and colons, and folds accents.
+(
+    3,
+    r#"
+    CREATE VIRTUAL TABLE image_search USING fts5(
+        image_id UNINDEXED,
+        prompt,
+        keywords,
+        caption,
+        filename,
+        tokenize = 'unicode61 remove_diacritics 2'
+    );
+    "#,
 )];
 
 fn apply_migrations(conn: &Connection) -> Result<()> {

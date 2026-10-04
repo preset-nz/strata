@@ -7,6 +7,7 @@ pub mod naming;
 mod palette;
 mod preferences;
 pub mod resolver;
+mod search;
 mod server;
 mod store;
 
@@ -297,6 +298,23 @@ const ROW_SOURCE: &str = "images i \
                           LEFT JOIN generation g ON g.generation_id = go.generation_id \
                           LEFT JOIN prompt pr ON pr.prompt_id = g.prompt_id";
 
+/// With a typed query, joins the keyword index so only matches remain and
+/// each row carries its BM25 score (lower is better). The join's parameter
+/// comes before the WHERE clause's, so its binding goes first.
+fn search_join(query: Option<&str>) -> (String, Vec<rusqlite::types::Value>) {
+    match query.and_then(search::match_query) {
+        Some(q) => (
+            format!(
+                " JOIN (SELECT image_id AS hit_id, bm25(image_search, {w}) AS score \
+                 FROM image_search WHERE image_search MATCH ?) hit ON hit.hit_id = i.id",
+                w = search::BM25_WEIGHTS
+            ),
+            vec![rusqlite::types::Value::Text(q)],
+        ),
+        None => (String::new(), Vec::new()),
+    }
+}
+
 /// A generated image is titled from its prompt; anything else by its filename.
 fn display_title(prompt: Option<&str>, filename: &str) -> String {
     prompt
@@ -397,6 +415,7 @@ fn list_images(
     batch_id: Option<String>,
     include_deleted: Option<bool>,
     only_deleted: Option<bool>,
+    query: Option<String>,
 ) -> Result<Vec<ImportedRow>, String> {
     let limit = limit.clamp(1, 1000);
     let offset = offset.max(0);
@@ -411,15 +430,22 @@ fn list_images(
         .unwrap_or_default();
     let deleted = resolve_deleted(include_deleted, only_deleted);
 
-    let (where_sql, mut bound) = build_where(
+    let (join_sql, mut bound) = search_join(query.as_deref());
+    let (where_sql, where_bound) = build_where(
         &filter_buckets,
         &filter_orientations,
         batch_id.as_deref(),
         deleted,
     );
+    bound.extend(where_bound);
+    // A search ranks by relevance; the sort control applies to browsing.
+    let order = if join_sql.is_empty() {
+        sort_clause(sort_key, direction.as_deref())
+    } else {
+        "hit.score ASC, i.imported_at DESC".to_string()
+    };
     let sql = format!(
-        "SELECT {ROW_COLUMNS} FROM {ROW_SOURCE}{where_sql} ORDER BY {sort} LIMIT ? OFFSET ?",
-        sort = sort_clause(sort_key, direction.as_deref())
+        "SELECT {ROW_COLUMNS} FROM {ROW_SOURCE}{join_sql}{where_sql} ORDER BY {order} LIMIT ? OFFSET ?"
     );
 
     let conn = state.db.0.lock().unwrap();
@@ -660,6 +686,7 @@ fn library_count(
     batch_id: Option<String>,
     include_deleted: Option<bool>,
     only_deleted: Option<bool>,
+    query: Option<String>,
 ) -> Result<i64, String> {
     let filter_buckets = buckets
         .as_ref()
@@ -670,14 +697,16 @@ fn library_count(
         .map(|o| allowed_orientations(o))
         .unwrap_or_default();
     let deleted = resolve_deleted(include_deleted, only_deleted);
-    let (where_sql, bound) = build_where(
+    let (join_sql, mut bound) = search_join(query.as_deref());
+    let (where_sql, where_bound) = build_where(
         &filter_buckets,
         &filter_orientations,
         batch_id.as_deref(),
         deleted,
     );
+    bound.extend(where_bound);
 
-    let sql = format!("SELECT COUNT(*) FROM images i{where_sql}");
+    let sql = format!("SELECT COUNT(*) FROM images i{join_sql}{where_sql}");
     let conn = state.db.0.lock().unwrap();
     conn.query_row(&sql, rusqlite::params_from_iter(bound.iter()), |row| {
         row.get::<_, i64>(0)
@@ -823,6 +852,10 @@ fn purge_one(
         "DELETE FROM image_palette WHERE image_id = ?",
         "DELETE FROM image_metadata WHERE image_id = ?",
         "DELETE FROM image_keyword WHERE image_id = ?",
+        "DELETE FROM image_search WHERE image_id = ?",
+        // The prompt and generation stay: the record outlives the output.
+        "DELETE FROM generation_output WHERE image_id = ?",
+        "DELETE FROM provenance_checked WHERE image_id = ?",
         "DELETE FROM images WHERE id = ?",
     ] {
         conn.execute(sql, params![id]).map_err(|e| e.to_string())?;
@@ -989,6 +1022,15 @@ pub fn run() {
 
             ingest::orientation::schedule(app.handle().clone(), db.clone(), store.clone());
             ingest::provenance::backfill::schedule(app.handle().clone(), db.clone(), store.clone());
+            {
+                let db = db.clone();
+                std::thread::spawn(move || {
+                    let conn = db.0.lock().unwrap();
+                    if let Err(e) = search::backfill(&conn) {
+                        eprintln!("search backfill failed: {e}");
+                    }
+                });
+            }
 
             app.manage(prefs.clone());
             app.manage(AppState {
@@ -1187,6 +1229,36 @@ mod catalog_round_trip {
         assert_eq!(rows[0].title, "lichen-colony");
         assert_eq!(rows[0].original_filename, "mist.png");
 
+        drop(conn);
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn keyword_search_finds_prompt_keyword_and_filename_words() {
+        let (db, dir) = catalog();
+        ingest_one(&db, &dir);
+        let record = ingest::provenance::drawthings::parse_record(
+            r#"{"c":"Lichen colony, (mist:1.3) over wet bark","seed":7}"#,
+        )
+        .unwrap();
+        ingest::provenance::store(&db, IMAGE, "abcd", Some(&record)).unwrap();
+        let conn = db.0.lock().unwrap();
+
+        let search = |typed: &str| -> Vec<ImportedRow> {
+            let (join_sql, mut bound) = search_join(Some(typed));
+            let (where_sql, where_bound) = build_where(&[], &[], None, DeletedFilter::HideDeleted);
+            bound.extend(where_bound);
+            list(&conn, &format!("{join_sql}{where_sql}"), &bound, "hit.score ASC")
+        };
+        assert_eq!(search("lich").len(), 1, "prefix of a prompt word");
+        assert_eq!(search("mist bark").len(), 1, "weights stripped, every word");
+        assert_eq!(search("mould").len(), 1, "IPTC keyword");
+        assert_eq!(search("mist.png").len(), 1, "filename words");
+        assert!(search("1.3").is_empty(), "weight numbers not indexed");
+        assert!(search("fungal").is_empty());
+        assert!(search("lichen fungal").is_empty(), "all words must match");
+
+        assert_eq!(search::backfill(&conn).unwrap(), 0, "already indexed");
         drop(conn);
         std::fs::remove_dir_all(dir).ok();
     }

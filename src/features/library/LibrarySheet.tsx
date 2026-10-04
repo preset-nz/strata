@@ -39,6 +39,7 @@ type Props = {
   buckets: Vga16Bucket[]
   orientations: Orientation[]
   batchId?: string | null
+  query?: string
   cellSize?: number
   onLibraryChanged?: () => void
 }
@@ -49,6 +50,7 @@ export function LibrarySheet({
   buckets,
   orientations,
   batchId,
+  query,
   cellSize,
   onLibraryChanged,
 }: Props) {
@@ -58,7 +60,7 @@ export function LibrarySheet({
   const [quickviewIndex, setQuickviewIndex] = useState<number | null>(null)
   const loadingRef = useRef(false)
   const offsetRef = useRef(0)
-  const queryRef = useRef({ sort, direction, buckets, orientations, batchId })
+  const queryRef = useRef({ sort, direction, buckets, orientations, batchId, query })
   const pendingUndoRef = useRef<Map<string, { cell: Cell; idx: number }>>(
     new Map(),
   )
@@ -71,8 +73,7 @@ export function LibrarySheet({
     if (loadingRef.current || !hasMore) return
     loadingRef.current = true
     try {
-      const { sort, direction, buckets, orientations, batchId } = queryRef.current
-      const opts = { sort, direction, buckets, orientations, batchId }
+      const opts = queryRef.current
       const rows = await listImages(offsetRef.current, PAGE_SIZE, opts)
       offsetRef.current += rows.length
       setItems((prev) => prev.concat(rows.map(toCell)))
@@ -93,8 +94,7 @@ export function LibrarySheet({
     pendingUndoRef.current.clear()
     try {
       loadingRef.current = true
-      const { sort, direction, buckets, orientations, batchId } = queryRef.current
-      const opts = { sort, direction, buckets, orientations, batchId }
+      const opts = queryRef.current
       const rows = await listImages(0, PAGE_SIZE, opts)
       offsetRef.current = rows.length
       setItems(rows.map(toCell))
@@ -108,14 +108,14 @@ export function LibrarySheet({
   }, [])
 
   useEffect(() => {
-    queryRef.current = { sort, direction, buckets, orientations, batchId }
+    queryRef.current = { sort, direction, buckets, orientations, batchId, query }
     // The clears inside `reset` must land in the same commit that kicks off the
     // fetch: they also zero `offsetRef`/`loadingRef`, and deferring them past an
     // await lets a scroll-driven `loadNext` page against the old offset and
     // concat stale-order rows onto the new query.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void reset()
-  }, [reset, sort, direction, buckets, orientations, batchId])
+  }, [reset, sort, direction, buckets, orientations, batchId, query])
 
   useEffect(() => {
     let off: UnlistenFn | undefined
