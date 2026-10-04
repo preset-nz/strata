@@ -380,14 +380,9 @@ mod tests {
     // for deleting — we use a deterministic name based on PID + nanos so
     // parallel test runs don't collide.
     fn write_temp(data: &[u8]) -> std::path::PathBuf {
-        let name = format!(
-            "strata_iptc_{}_{}.jpg",
-            std::process::id(),
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .subsec_nanos()
-        );
+        // A clock-based name collides when parallel tests start in the same
+        // tick (macOS counts microseconds), and one test reads another's file.
+        let name = format!("strata_iptc_{}.jpg", uuid::Uuid::new_v4());
         let path = std::env::temp_dir().join(name);
         let mut f = std::fs::File::create(&path).expect("temp file create");
         f.write_all(data).expect("temp file write");
