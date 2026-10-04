@@ -6,7 +6,7 @@
 
 use std::path::Path;
 
-use preset_preferences::{options, pref, section, Kind, Schema};
+use preset_preferences::{options, pref, section, Kind, Preferences, Schema};
 
 pub const RETENTION_DAYS: &str = "library.retention_days";
 pub const DEFAULT_SORT: &str = "library.default_sort";
@@ -99,9 +99,41 @@ pub fn schema(store_root: &Path, db_path: &Path) -> Schema {
     }
 }
 
+/// The read-only catalog paths always show where the library is, even when
+/// the preferences file still names an older location.
+pub fn restate_catalog_paths(prefs: &Preferences, store_root: &Path, db_path: &Path) {
+    for (id, path) in [(STORE_ROOT, store_root), (DB_PATH, db_path)] {
+        let current = path.to_string_lossy().into_owned();
+        if prefs.get_text(id).as_deref() != Some(current.as_str()) {
+            if let Err(e) = prefs.set(id, current) {
+                eprintln!("preferences: could not restate {id}: {e}");
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn stale_catalog_paths_are_restated() {
+        let dir = std::env::temp_dir().join(format!("strata-prefs-{}", uuid::Uuid::new_v4()));
+        let file = dir.join("preferences.toml");
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(
+            &file,
+            "version = 1\n[catalog]\ndb_path = \"/old/strata.duckdb\"\nstore_root = \"/old/store\"\n",
+        )
+        .unwrap();
+        let (store, db) = (Path::new("/new/store"), Path::new("/new/catalog.sqlite"));
+        let prefs = Preferences::open(schema(store, db), &file);
+        assert_eq!(prefs.get_text(DB_PATH).as_deref(), Some("/old/strata.duckdb"));
+        restate_catalog_paths(&prefs, store, db);
+        assert_eq!(prefs.get_text(DB_PATH).as_deref(), Some("/new/catalog.sqlite"));
+        assert_eq!(prefs.get_text(STORE_ROOT).as_deref(), Some("/new/store"));
+        std::fs::remove_dir_all(dir).ok();
+    }
 
     #[test]
     fn declaration_is_well_formed() {

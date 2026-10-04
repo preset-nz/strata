@@ -907,6 +907,10 @@ pub fn run() {
                 preferences::schema(store.root(), &db_path),
                 preset_preferences::tauri::default_path(app.handle())?,
             );
+            // The file keeps whatever paths were current when it was last
+            // saved, and loading prefers the file over the schema default,
+            // read-only or not. Restate where the library is now.
+            preferences::restate_catalog_paths(&prefs, store.root(), &db_path);
             let retention_days = prefs.get_int(preferences::RETENTION_DAYS).unwrap_or(30);
             purge_expired_on_start(db.clone(), store.clone(), retention_days);
 
