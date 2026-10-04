@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use duckdb::params;
+use rusqlite::params;
 use serde::Serialize;
 use tauri::AppHandle;
 use uuid::Uuid;

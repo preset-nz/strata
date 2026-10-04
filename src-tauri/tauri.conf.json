@@ -31,6 +31,24 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "fileAssociations": [
+      {
+        "ext": [
+          "strata"
+        ],
+        "name": "Strata Library",
+        "description": "Strata image library",
+        "role": "Viewer",
+        "rank": "Owner",
+        "exportedType": {
+          "identifier": "nz.preset.strata.library",
+          "conformsTo": [
+            "com.apple.package",
+            "public.composite-content"
+          ]
+        }
+      }
     ]
   }
 }

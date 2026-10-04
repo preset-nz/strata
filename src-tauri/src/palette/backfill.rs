@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Result;
-use duckdb::params;
+use rusqlite::params;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
@@ -36,7 +36,7 @@ pub fn run(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
                AND i.deleted_at IS NULL
                AND (p.image_id IS NULL OR p.stage_version <> ?)",
         )?;
-        stmt.query_map(params![STAGE_VERSION], |row| {
+        let rows = stmt.query_map(params![STAGE_VERSION], |row| {
             Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, String>(1)?,
@@ -44,7 +44,8 @@ pub fn run(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
             ))
         })?
         .filter_map(Result::ok)
-        .collect()
+        .collect();
+        rows
     };
 
     let total = pending.len();

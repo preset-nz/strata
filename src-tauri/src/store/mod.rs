@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 pub struct StoreRoot(pub PathBuf);
 
 impl StoreRoot {
-    pub fn new(app_data_dir: &Path) -> Self {
-        Self(app_data_dir.join("store"))
+    pub fn new(root: PathBuf) -> Self {
+        Self(root)
     }
 
     pub fn ensure(&self) -> std::io::Result<()> {

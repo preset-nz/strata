@@ -6,7 +6,7 @@ use std::path::Path;
 
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use duckdb::params;
+use rusqlite::params;
 
 use crate::db::Db;
 

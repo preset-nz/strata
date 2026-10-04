@@ -15,7 +15,7 @@ use std::path::Path;
 use std::sync::Arc;
 
 use anyhow::Result;
-use duckdb::params;
+use rusqlite::params;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 
@@ -103,7 +103,7 @@ fn backfill(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
              LEFT JOIN image_metadata m ON m.image_id = i.id
              WHERE i.orientation IS NULL AND i.deleted_at IS NULL",
         )?;
-        stmt.query_map([], |row| {
+        let rows = stmt.query_map([], |row| {
             Ok((
                 row.get::<_, String>(0)?,
                 row.get::<_, String>(1)?,
@@ -111,7 +111,8 @@ fn backfill(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
             ))
         })?
         .filter_map(Result::ok)
-        .collect()
+        .collect();
+        rows
     };
 
     let total = pending.len();

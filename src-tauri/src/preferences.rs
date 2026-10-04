@@ -77,13 +77,13 @@ pub fn schema(store_root: &Path, db_path: &Path) -> Schema {
             .help("Off: a source file moves to the system Trash once it is imported or found to be a duplicate."),
             pref(
                 STORE_ROOT,
-                "Store",
+                "Library store",
                 Kind::ReadonlyPath,
                 store_root.to_string_lossy().as_ref(),
             ),
             pref(
                 DB_PATH,
-                "Catalog database",
+                "Library catalog",
                 Kind::ReadonlyPath,
                 db_path.to_string_lossy().as_ref(),
             ),
@@ -105,6 +105,6 @@ mod tests {
 
     #[test]
     fn declaration_is_well_formed() {
-        schema(Path::new("/tmp/store"), Path::new("/tmp/strata.duckdb")).assert_valid();
+        schema(Path::new("/tmp/store"), Path::new("/tmp/catalog.sqlite")).assert_valid();
     }
 }

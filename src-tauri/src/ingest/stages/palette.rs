@@ -2,7 +2,7 @@ use std::path::Path;
 
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use duckdb::params;
+use rusqlite::params;
 use image::imageops::FilterType;
 use serde::Serialize;
 

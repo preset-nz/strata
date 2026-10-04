@@ -1,6 +1,7 @@
 mod db;
 mod gestures;
 mod ingest;
+mod library;
 mod menu;
 mod palette;
 mod preferences;
@@ -10,7 +11,7 @@ mod store;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use duckdb::params;
+use rusqlite::params;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::sync::Mutex as AsyncMutex;
@@ -20,6 +21,7 @@ use preset_preferences::Preferences;
 use crate::db::Db;
 use crate::ingest::job::{run_batch, IngestOptions, StartBatchResult};
 use crate::ingest::scan::{prescan, PrescanResult};
+use crate::library::Library;
 use crate::store::StoreRoot;
 
 pub struct AppState {
@@ -238,7 +240,7 @@ fn sort_clause(sort: &str, direction: Option<&str>) -> String {
     }
 }
 
-fn row_from(row: &duckdb::Row) -> duckdb::Result<ImportedRow> {
+fn row_from(row: &rusqlite::Row) -> rusqlite::Result<ImportedRow> {
     Ok(ImportedRow {
         id: row.get::<_, String>(0)?,
         content_hash: row.get::<_, String>(1)?,
@@ -300,9 +302,9 @@ fn build_where(
     filter_orientations: &[String],
     batch_id: Option<&str>,
     deleted: DeletedFilter,
-) -> (String, Vec<duckdb::types::Value>) {
+) -> (String, Vec<rusqlite::types::Value>) {
     let mut clauses: Vec<String> = Vec::new();
-    let mut bound: Vec<duckdb::types::Value> = Vec::new();
+    let mut bound: Vec<rusqlite::types::Value> = Vec::new();
 
     match deleted {
         DeletedFilter::HideDeleted => clauses.push("i.deleted_at IS NULL".to_string()),
@@ -316,19 +318,19 @@ fn build_where(
             "i.id IN (SELECT image_id FROM image_palette_bucket WHERE bucket IN ({placeholders}))"
         ));
         for b in filter_buckets {
-            bound.push(duckdb::types::Value::Text(b.clone()));
+            bound.push(rusqlite::types::Value::Text(b.clone()));
         }
     }
     if !filter_orientations.is_empty() {
         let placeholders = vec!["?"; filter_orientations.len()].join(", ");
         clauses.push(format!("i.orientation IN ({placeholders})"));
         for o in filter_orientations {
-            bound.push(duckdb::types::Value::Text(o.clone()));
+            bound.push(rusqlite::types::Value::Text(o.clone()));
         }
     }
     if let Some(b) = batch_id {
         clauses.push("i.ingest_batch_id = ?".to_string());
-        bound.push(duckdb::types::Value::Text(b.to_string()));
+        bound.push(rusqlite::types::Value::Text(b.to_string()));
     }
 
     let where_sql = if clauses.is_empty() {
@@ -378,10 +380,10 @@ fn list_images(
 
     let conn = state.db.0.lock().unwrap();
     let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-    bound.push(duckdb::types::Value::BigInt(limit));
-    bound.push(duckdb::types::Value::BigInt(offset));
+    bound.push(rusqlite::types::Value::Integer(limit));
+    bound.push(rusqlite::types::Value::Integer(offset));
     let rows = stmt
-        .query_map(duckdb::params_from_iter(bound.iter()), |row| row_from(row))
+        .query_map(rusqlite::params_from_iter(bound.iter()), |row| row_from(row))
         .map_err(|e| e.to_string())?
         .filter_map(Result::ok)
         .collect();
@@ -605,7 +607,7 @@ fn library_count(
 
     let sql = format!("SELECT COUNT(*) FROM images i{where_sql}");
     let conn = state.db.0.lock().unwrap();
-    conn.query_row(&sql, duckdb::params_from_iter(bound.iter()), |row| {
+    conn.query_row(&sql, rusqlite::params_from_iter(bound.iter()), |row| {
         row.get::<_, i64>(0)
     })
     .map_err(|e| e.to_string())
@@ -701,26 +703,29 @@ fn delete_image(
     if ids.is_empty() {
         return Ok(0);
     }
-    let placeholders = vec!["?"; ids.len()].join(", ");
-    let sql = format!(
-        "UPDATE images SET deleted_at = now(), deleted_reason = COALESCE(deleted_reason, 'user') \
-         WHERE id IN ({placeholders}) AND deleted_at IS NULL"
-    );
-
     let n = {
         let conn = state.db.0.lock().unwrap();
-        let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-        let bound: Vec<duckdb::types::Value> = ids
-            .iter()
-            .map(|id| duckdb::types::Value::Text(id.clone()))
-            .collect();
-        stmt.execute(duckdb::params_from_iter(bound.iter()))
-            .map_err(|e| e.to_string())?
+        soft_delete(&conn, &ids).map_err(|e| e.to_string())?
     };
     if n > 0 {
         let _ = app.emit("library://images-trashed", &ids);
     }
     Ok(n)
+}
+
+fn soft_delete(conn: &rusqlite::Connection, ids: &[String]) -> rusqlite::Result<usize> {
+    let placeholders = vec!["?"; ids.len()].join(", ");
+    let sql = format!(
+        "UPDATE images SET deleted_at = ?, deleted_reason = COALESCE(deleted_reason, 'user') \
+         WHERE id IN ({placeholders}) AND deleted_at IS NULL"
+    );
+    // The timestamp comes from chrono, like every other, so the purge
+    // sweep's `deleted_at < ?` compares like with like.
+    let deleted_at = chrono::Utc::now();
+    let bound: Vec<&dyn rusqlite::ToSql> = std::iter::once(&deleted_at as &dyn rusqlite::ToSql)
+        .chain(ids.iter().map(|id| id as &dyn rusqlite::ToSql))
+        .collect();
+    conn.prepare(&sql)?.execute(bound.as_slice())
 }
 
 /// Hard-delete the catalog rows and filesystem artefacts for a single image.
@@ -729,7 +734,7 @@ fn delete_image(
 /// retry. Filesystem misses are logged but don't fail the operation — orphan
 /// binaries on disk are cheaper than orphan catalog rows.
 fn purge_one(
-    conn: &duckdb::Connection,
+    conn: &rusqlite::Connection,
     store: &crate::store::StoreRoot,
     id: &str,
 ) -> Result<(), String> {
@@ -811,11 +816,11 @@ fn restore_image(
     let n = {
         let conn = state.db.0.lock().unwrap();
         let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
-        let bound: Vec<duckdb::types::Value> = ids
+        let bound: Vec<rusqlite::types::Value> = ids
             .iter()
-            .map(|id| duckdb::types::Value::Text(id.clone()))
+            .map(|id| rusqlite::types::Value::Text(id.clone()))
             .collect();
-        stmt.execute(duckdb::params_from_iter(bound.iter()))
+        stmt.execute(rusqlite::params_from_iter(bound.iter()))
             .map_err(|e| e.to_string())?
     };
     if n > 0 {
@@ -872,18 +877,18 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
-            let app_data_dir = app
+            let pictures_dir = app
                 .path()
-                .app_data_dir()
-                .expect("failed to resolve app data dir");
-            std::fs::create_dir_all(&app_data_dir)?;
+                .picture_dir()
+                .expect("failed to resolve the Pictures folder");
+            let library = Library::in_pictures(&pictures_dir);
 
-            let store = StoreRoot::new(&app_data_dir);
+            let store = library.store();
             store.ensure()?;
 
             menu::install(app.handle())?;
 
-            let db_path = app_data_dir.join("strata.duckdb");
+            let db_path = library.catalog_path();
             let db = Arc::new(Db::open(&db_path)?);
 
             let prefs = Preferences::open(
@@ -939,4 +944,168 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// The library's SQL against a real SQLite catalog: what ingest writes,
+/// the list queries read back through `row_from` for every sort and filter.
+/// A row that fails to decode is dropped by `filter_map(Result::ok)` and
+/// would look like an empty library, so each query asserts the row.
+#[cfg(test)]
+mod catalog_round_trip {
+    use super::*;
+    use chrono::Utc;
+    use rusqlite::params;
+
+    const IMAGE: &str = "00000000-0000-4000-8000-000000000001";
+    const BATCH: &str = "00000000-0000-4000-8000-0000000000b1";
+
+    fn catalog() -> (Db, std::path::PathBuf) {
+        let dir = std::env::temp_dir().join(format!("strata-catalog-{}", uuid::Uuid::new_v4()));
+        let db = Db::open(&dir.join("catalog.sqlite")).unwrap();
+        (db, dir)
+    }
+
+    /// The writes ingest makes, in the order `job.rs` makes them.
+    fn ingest_one(db: &Db, dir: &std::path::Path) {
+        {
+            let conn = db.0.lock().unwrap();
+            conn.execute(
+                "INSERT INTO ingest_batches (id, source_folder, started_at, imported_count, skipped_count, failed_count) VALUES (?, ?, ?, 0, 0, 0)",
+                params![BATCH, "/inbox", Utc::now()],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO images (id, content_hash, store_path, original_filename, original_path, byte_size, mime, imported_at, ingest_batch_id, thumbnails_status, exif_created_at, fs_mtime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                params![
+                    IMAGE, "abcd", "ab/cd/abcd.png", "mist.png", "/inbox/mist.png", 42i64,
+                    "image/png", Utc::now(), BATCH, "ready", Some(Utc::now()), Some(Utc::now()),
+                ],
+            )
+            .unwrap();
+            conn.execute(
+                "UPDATE ingest_batches SET finished_at = ?, imported_count = ?, skipped_count = ?, failed_count = ? WHERE id = ?",
+                params![Utc::now(), 1i64, 0i64, 0i64, BATCH],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT OR REPLACE INTO image_palette \
+                 (image_id, swatches, dominant_bucket, dominant_l, dominant_c, dominant_h, extracted_at, stage_version) \
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                params![IMAGE, "[]", "green", 40.5f32, 22.0f32, 130.0f32, Utc::now(), "palette@1"],
+            )
+            .unwrap();
+            conn.execute(
+                "INSERT INTO image_palette_bucket (image_id, bucket) VALUES (?, ?)",
+                params![IMAGE, "green"],
+            )
+            .unwrap();
+        }
+
+        let extracted = ingest::metadata::Extracted {
+            exif: Some(ingest::metadata::exif::ExifData {
+                camera_make: Some("Fujifilm".into()),
+                iso: Some(400),
+                f_number: Some(2.8),
+                flash_fired: Some(false),
+                gps_latitude: Some(-41.29),
+                ..Default::default()
+            }),
+            iptc: Some(ingest::metadata::iptc::Iptc {
+                date_created: Some(Utc::now()),
+                keywords: vec!["mould".into(), "bark".into()],
+                ..Default::default()
+            }),
+        };
+        ingest::metadata::write(db, IMAGE, &extracted).unwrap();
+
+        let png = dir.join("mist.png");
+        image::RgbImage::new(4, 2).save(&png).unwrap();
+        ingest::orientation::run(db, IMAGE, &png, None).unwrap();
+    }
+
+    fn list(conn: &rusqlite::Connection, where_sql: &str, bound: &[rusqlite::types::Value], sort: &str) -> Vec<ImportedRow> {
+        let sql = format!(
+            "SELECT {ROW_COLUMNS} FROM images i LEFT JOIN image_palette p ON p.image_id = i.id{where_sql} ORDER BY {sort} LIMIT 10 OFFSET 0",
+        );
+        let mut stmt = conn.prepare(&sql).unwrap();
+        let rows = stmt
+            .query_map(rusqlite::params_from_iter(bound.iter()), |row| row_from(row))
+            .unwrap()
+            .collect::<rusqlite::Result<Vec<_>>>()
+            .unwrap();
+        rows
+    }
+
+    #[test]
+    fn ingest_writes_read_back_through_every_sort_and_filter() {
+        let (db, dir) = catalog();
+        ingest_one(&db, &dir);
+        let conn = db.0.lock().unwrap();
+
+        for sort in ["imported", "filename", "created", "updated", "colour", "deleted", "orientation"] {
+            for direction in [Some("asc"), Some("desc"), None] {
+                let (where_sql, bound) = build_where(&[], &[], None, DeletedFilter::HideDeleted);
+                let rows = list(&conn, &where_sql, &bound, &sort_clause(sort, direction));
+                assert_eq!(rows.len(), 1, "sort {sort} {direction:?}");
+                assert_eq!(rows[0].dominant_bucket.as_deref(), Some("green"));
+            }
+        }
+
+        let filtered = build_where(&["green".into()], &["landscape".into()], Some(BATCH), DeletedFilter::HideDeleted);
+        assert_eq!(list(&conn, &filtered.0, &filtered.1, "i.imported_at").len(), 1);
+        let miss = build_where(&["red".into()], &[], None, DeletedFilter::HideDeleted);
+        assert!(list(&conn, &miss.0, &miss.1, "i.imported_at").is_empty());
+
+        let (w, h, bucket): (i32, i32, String) = conn
+            .query_row("SELECT width, height, orientation FROM images WHERE id = ?", params![IMAGE], |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+            })
+            .unwrap();
+        assert_eq!((w, h, bucket.as_str()), (4, 2, "landscape"));
+
+        let (iso, f_number, flash, lat, created): (Option<i32>, Option<f32>, Option<bool>, Option<f32>, Option<chrono::DateTime<Utc>>) = conn
+            .query_row(
+                "SELECT iso, f_number, flash_fired, gps_latitude, iptc_date_created FROM image_metadata WHERE image_id = ?",
+                params![IMAGE],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?)),
+            )
+            .unwrap();
+        assert_eq!((iso, f_number, flash), (Some(400), Some(2.8), Some(false)));
+        assert!(lat.is_some() && created.is_some());
+
+        let finished: Option<chrono::DateTime<Utc>> = conn
+            .query_row("SELECT finished_at FROM ingest_batches WHERE id = ?", params![BATCH], |r| r.get(0))
+            .unwrap();
+        assert!(finished.is_some());
+
+        drop(conn);
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn trash_then_purge_sweep_compares_timestamps() {
+        let (db, dir) = catalog();
+        ingest_one(&db, &dir);
+        let conn = db.0.lock().unwrap();
+
+        assert_eq!(soft_delete(&conn, &[IMAGE.to_string()]).unwrap(), 1);
+        let (where_sql, bound) = build_where(&[], &[], None, DeletedFilter::OnlyDeleted);
+        let trashed = list(&conn, &where_sql, &bound, &sort_clause("deleted", None));
+        assert_eq!(trashed.len(), 1);
+        assert!(trashed[0].deleted_at.is_some());
+
+        let expired = |cutoff: chrono::DateTime<Utc>| -> i64 {
+            conn.query_row(
+                "SELECT COUNT(*) FROM images WHERE deleted_at IS NOT NULL AND deleted_at < ?",
+                params![cutoff],
+                |r| r.get(0),
+            )
+            .unwrap()
+        };
+        assert_eq!(expired(Utc::now() + chrono::Duration::days(1)), 1);
+        assert_eq!(expired(Utc::now() - chrono::Duration::days(1)), 0);
+
+        drop(conn);
+        std::fs::remove_dir_all(dir).ok();
+    }
 }
