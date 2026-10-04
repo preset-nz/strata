@@ -12,7 +12,6 @@ use crate::db::Db;
 use crate::ingest::events::{
     emit_batch_done, emit_file, BatchDoneEvent, FileEvent, FileState,
 };
-use crate::ingest::scan::prescan;
 use crate::ingest::{
     extension_for, hash::hash_file, metadata, mime_for_ext, store::copy_and_verify,
 };
@@ -33,21 +32,17 @@ pub struct StartBatchResult {
     pub total: usize,
 }
 
+/// Imports exactly `files`, the selection the person confirmed from the
+/// pre-scan. Nothing is walked again here, so what was shown is what moves.
 pub async fn run_batch(
     app: AppHandle,
     db: Arc<Db>,
     store: StoreRoot,
     source_root: PathBuf,
+    files: Vec<PathBuf>,
     options: IngestOptions,
     job_guard: tokio::sync::OwnedMutexGuard<()>,
 ) -> Result<StartBatchResult> {
-    let scan = tokio::task::spawn_blocking({
-        let root = source_root.clone();
-        let allow = options.extension_allow_list.clone();
-        move || prescan(&root, &allow)
-    })
-    .await?;
-
     let batch_id = Uuid::new_v4();
     let started_at = Utc::now();
     {
@@ -64,10 +59,9 @@ pub async fn run_batch(
 
     let result = StartBatchResult {
         batch_id: batch_id.to_string(),
-        total: scan.total,
+        total: files.len(),
     };
 
-    let files = scan.files;
     let app_clone = app.clone();
     let db_clone = db.clone();
     let store_clone = store.clone();

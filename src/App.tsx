@@ -398,9 +398,9 @@ function AppShell() {
     }
   }, [])
 
-  const handleConfirm = useCallback(async (scan: PrescanSummary) => {
+  const handleConfirm = useCallback(async (scan: PrescanSummary, folders: string[]) => {
     try {
-      const result = await startIngest(scan.root)
+      const result = await startIngest(scan.root, folders)
       setRunningBatchId(result.batch_id)
       setView({ kind: "running", batchId: result.batch_id })
     } catch (e) {
@@ -509,7 +509,7 @@ function AppShell() {
       return (
         <ImportConfirmation
           scan={view.scan}
-          onConfirm={() => handleConfirm(view.scan)}
+          onConfirm={(folders) => handleConfirm(view.scan, folders)}
           onCancel={() => setView({ kind: "idle" })}
         />
       )

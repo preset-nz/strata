@@ -10,7 +10,7 @@ pub mod resolver;
 mod server;
 mod store;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use rusqlite::params;
@@ -22,7 +22,7 @@ use preset_preferences::Preferences;
 
 use crate::db::Db;
 use crate::ingest::job::{run_batch, IngestOptions, StartBatchResult};
-use crate::ingest::scan::{prescan, PrescanResult};
+use crate::ingest::scan::{prescan, FolderRow, PrescanResult};
 use crate::library::Library;
 use crate::store::StoreRoot;
 
@@ -31,6 +31,9 @@ pub struct AppState {
     pub store: StoreRoot,
     pub job_lock: Arc<AsyncMutex<()>>,
     pub prefs: Preferences,
+    /// The last pre-scan, kept so the import takes exactly the files the
+    /// confirmation showed.
+    pub last_scan: Arc<std::sync::Mutex<Option<PrescanResult>>>,
 }
 
 fn ingest_options(prefs: &Preferences) -> IngestOptions {
@@ -51,16 +54,9 @@ struct PrescanSummary {
     root: String,
     total: usize,
     by_extension: std::collections::HashMap<String, usize>,
-}
-
-impl From<&PrescanResult> for PrescanSummary {
-    fn from(r: &PrescanResult) -> Self {
-        Self {
-            root: r.root.clone(),
-            total: r.total,
-            by_extension: r.by_extension.clone(),
-        }
-    }
+    folders: Vec<FolderRow>,
+    /// Whether source files stay put, so the confirmation's wording is true.
+    keep_source_files: bool,
 }
 
 #[tauri::command]
@@ -69,11 +65,20 @@ async fn ingest_prescan(state: State<'_, AppState>, path: String) -> Result<Pres
     if !root.is_dir() {
         return Err(format!("not a directory: {path}"));
     }
-    let allow = ingest_options(&state.prefs).extension_allow_list;
+    let options = ingest_options(&state.prefs);
+    let allow = options.extension_allow_list;
     let result = tokio::task::spawn_blocking(move || prescan(&root, &allow))
         .await
         .map_err(|e| e.to_string())?;
-    Ok(PrescanSummary::from(&result))
+    let summary = PrescanSummary {
+        root: result.root.clone(),
+        total: result.total,
+        by_extension: result.by_extension.clone(),
+        folders: result.folders(),
+        keep_source_files: options.keep_source_files,
+    };
+    *state.last_scan.lock().unwrap() = Some(result);
+    Ok(summary)
 }
 
 #[tauri::command]
@@ -81,11 +86,16 @@ async fn ingest_start(
     app: AppHandle,
     state: State<'_, AppState>,
     path: String,
+    folders: Vec<String>,
 ) -> Result<StartBatchResult, String> {
     let root = PathBuf::from(&path);
-    if !root.is_dir() {
-        return Err(format!("not a directory: {path}"));
-    }
+    let files = {
+        let last = state.last_scan.lock().unwrap();
+        match last.as_ref() {
+            Some(scan) if Path::new(&scan.root) == root => scan.select(&folders),
+            _ => return Err("the folder changed since it was scanned; add it again".into()),
+        }
+    };
     let lock = state.job_lock.clone();
     let owned = lock
         .try_lock_owned()
@@ -94,7 +104,7 @@ async fn ingest_start(
     let db = state.db.clone();
     let store = state.store.clone();
     let options = ingest_options(&state.prefs);
-    run_batch(app, db, store, root, options, owned)
+    run_batch(app, db, store, root, files, options, owned)
         .await
         .map_err(|e| e.to_string())
 }
@@ -921,6 +931,7 @@ pub fn run() {
                 store,
                 job_lock: Arc::new(AsyncMutex::new(())),
                 prefs,
+                last_scan: Arc::new(std::sync::Mutex::new(None)),
             });
             Ok(())
         })
