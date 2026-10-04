@@ -2746,6 +2746,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
 
 [[package]]
+name = "preset-app-kit"
+version = "0.0.1"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin-dialog",
+ "toml 0.9.12+spec-1.1.0",
+]
+
+[[package]]
 name = "preset-preferences"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3452,6 +3463,7 @@ dependencies = [
  "num_cpus",
  "objc2 0.5.2",
  "objc2-app-kit 0.2.2",
+ "preset-app-kit",
  "preset-preferences",
  "rusqlite",
  "serde",

@@ -1,5 +1,6 @@
 mod db;
 mod gestures;
+mod history;
 mod ingest;
 mod library;
 mod menu;
@@ -1063,6 +1064,7 @@ pub fn run() {
             let store = library.store();
             store.ensure()?;
 
+            app.manage(history::Curation::default());
             menu::install(app.handle())?;
 
             let db_path = library.catalog_path();
@@ -1135,6 +1137,12 @@ pub fn run() {
             saved_search_list,
             saved_search_put,
             saved_search_delete,
+            preset_app_kit::app_kit_commands,
+            preset_app_kit::app_kit_menu_state,
+            preset_app_kit::app_kit_history,
+            preset_app_kit::app_kit_undo,
+            preset_app_kit::app_kit_redo,
+            preset_app_kit::app_kit_text_menu,
             preset_preferences::tauri::preferences_get,
             preset_preferences::tauri::preferences_set,
             preset_preferences::tauri::preferences_reset,

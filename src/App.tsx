@@ -54,6 +54,8 @@ import { useMoveToTrash } from "./features/library/use-move-to-trash"
 import { SavedSearchList } from "./features/saved-searches/SavedSearchList"
 import { makeQuery, type SavedQuery } from "./features/saved-searches/query"
 import { useSavedSearches } from "./features/saved-searches/use-saved-searches"
+import { useCommands, type Binding } from "@preset.nz/app-kit/core"
+import { paletteMarkers, usePaletteMarkers } from "./features/quickview/palette-markers"
 
 type View =
   | { kind: "idle" }
@@ -375,23 +377,6 @@ function AppShell() {
     return () => clearTimeout(t)
   }, [searchText])
 
-  // Edit > Find… (Cmd+F) focuses the search field.
-  useEffect(() => {
-    let off: UnlistenFn | undefined
-    let cancelled = false
-    void listen("menu://edit/find", () => {
-      searchRef.current?.focus()
-      searchRef.current?.select()
-    }).then((u) => {
-      if (cancelled) u()
-      else off = u
-    })
-    return () => {
-      cancelled = true
-      off?.()
-    }
-  }, [])
-
   const currentQuery = useMemo(
     () =>
       makeQuery({
@@ -418,6 +403,26 @@ function AppShell() {
     [leaveIngestView, setSortState],
   )
   const saved = useSavedSearches(currentQuery, applyQuery)
+
+  // The menu's commands, by the ids `src-tauri/src/menu.rs` declares. app-kit
+  // owns Undo and Redo, keeps enabled and checked state in step with the
+  // menu, and sends Cmd+Z to a focused text field.
+  const markers = usePaletteMarkers()
+  const { startNaming } = saved
+  const bindings = useMemo<Record<string, Binding>>(
+    () => ({
+      "edit.find": {
+        run: () => {
+          searchRef.current?.focus()
+          searchRef.current?.select()
+        },
+      },
+      "edit.save_search": { run: startNaming },
+      "view.palette_markers": { pressed: markers.on, run: paletteMarkers.toggle },
+    }),
+    [startNaming, markers.on],
+  )
+  useCommands(bindings)
 
   const hasActiveQuery =
     searchQuery !== "" ||

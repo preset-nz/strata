@@ -22,6 +22,7 @@
     "@fontsource-variable/saira": "^5.2.11",
     "@fontsource/barlow": "^5.2.8",
     "@phosphor-icons/react": "^2.1.10",
+    "@preset.nz/app-kit": "file:../../packages/app-kit",
     "@preset.nz/facets": "^0.1.3",
     "@preset.nz/preferences": "^0.1.0",
     "@tailwindcss/vite": "^4.3.1",

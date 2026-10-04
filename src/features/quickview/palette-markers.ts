@@ -1,5 +1,4 @@
 import { useSyncExternalStore } from "react"
-import { listen } from "@tauri-apps/api/event"
 
 export const MARKER_COUNTS = [3, 5, 7] as const
 export type MarkerCount = (typeof MARKER_COUNTS)[number]
@@ -20,11 +19,8 @@ export const paletteMarkers = {
   setCount: (count: MarkerCount) => set({ on: true, count }),
 }
 
-// View > Palette Markers (Shift+Cmd+M) is the one command; the Quickview
-// header button calls the same toggle.
-listen("menu://view/palette-markers", () => paletteMarkers.toggle()).catch(() => {
-  // No native menu outside the Tauri shell (`just run web`); the button still works.
-})
+// View > Palette Markers (Shift+Cmd+M, bound in App.tsx) and the Quickview
+// header button both call `toggle`.
 
 export function usePaletteMarkers(): State {
   return useSyncExternalStore(

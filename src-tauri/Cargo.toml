@@ -40,6 +40,7 @@ num_cpus = "1"
 hex = "0.4"
 kamadak-exif = "0.6"
 preset-preferences = { version = "0.1", features = ["tauri"] }
+preset-app-kit = { path = "../../../packages/app-kit" }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.5"

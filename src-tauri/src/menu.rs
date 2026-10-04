@@ -1,102 +1,57 @@
-//! The native menu bar. Rule 1 of `guidance/design/native-apps.md`: every
-//! command lives here with its accelerator, and each item is forwarded to
-//! the webview as one event that maps to one handler.
-//!
-//! Strata has few commands yet. The App menu carries Settings on Cmd+, and
-//! the Edit menu carries the OS text-editing items so fields behave, plus
-//! Find… on Cmd+F, which focuses the library search, and Save Search…. View
-//! carries Palette Markers (Shift+Cmd+M) for Quickview. This
-//! file is the hand-built stand-in until the shared native-menu package
-//! exists; the event name is the one `@preset.nz/preferences` listens for.
+//! Strata's commands for the native menu. app-kit builds the menu bar from
+//! these and the built-in items `menu.toml` switches on (guidance
+//! `design/native-apps.md`, rule 1); each item reaches the webview as one
+//! `command` event, bound by id in `App.tsx`.
 
-use tauri::menu::{AboutMetadata, Menu, MenuItem, PredefinedMenuItem, Submenu};
+use preset_app_kit::{AppKit, Command, MenuName};
 use tauri::{AppHandle, Emitter, Runtime};
 
-const EVT_APP_SETTINGS: &str = "menu://app/settings";
-const EVT_EDIT_FIND: &str = "menu://edit/find";
-const EVT_EDIT_SAVE_SEARCH: &str = "menu://edit/save-search";
-const EVT_VIEW_PALETTE_MARKERS: &str = "menu://view/palette-markers";
+use crate::history::Curation;
+
+pub const MENU_CONFIG: &str = include_str!("../menu.toml");
+
+/// `@preset.nz/preferences` opens its window on this event.
+const SETTINGS_EVENT: &str = "menu://app/settings";
+
+fn commands() -> Vec<Command> {
+    vec![
+        Command::item("edit.find", "Find…")
+            .accelerator("CmdOrCtrl+F")
+            .menu(MenuName::Edit)
+            .section(2),
+        Command::item("edit.save_search", "Save Search…")
+            .menu(MenuName::Edit)
+            .section(2),
+        Command::toggle("view.palette_markers", "Palette Markers")
+            .accelerator("CmdOrCtrl+Shift+M")
+            .menu(MenuName::View)
+            .section(0),
+    ]
+}
 
 pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
-    let name = "Strata".to_string();
-    let version = app.package_info().version.to_string();
+    AppKit::<R>::new("Strata")
+        .menu_config(MENU_CONFIG)
+        .commands(commands())
+        .on_command(|app, id| match id {
+            "app.settings" => {
+                let _ = app.emit(SETTINGS_EVENT, ());
+                true
+            }
+            _ => false,
+        })
+        .install_history::<Curation>(app)
+}
 
-    let about = AboutMetadata {
-        name: Some(name.clone()),
-        version: Some(version),
-        ..Default::default()
-    };
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    let settings = MenuItem::with_id(app, "app-settings", "Settings…", true, Some("CmdOrCtrl+,"))?;
-    let find = MenuItem::with_id(app, "edit-find", "Find…", true, Some("CmdOrCtrl+F"))?;
-    let save_search = MenuItem::with_id(app, "edit-save-search", "Save Search…", true, None::<&str>)?;
-
-    let app_menu = Submenu::with_items(
-        app,
-        &name,
-        true,
-        &[
-            &PredefinedMenuItem::about(app, None, Some(about))?,
-            &PredefinedMenuItem::separator(app)?,
-            &settings,
-            &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::services(app, None)?,
-            &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::hide(app, None)?,
-            &PredefinedMenuItem::hide_others(app, None)?,
-            &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::quit(app, None)?,
-        ],
-    )?;
-
-    let edit_menu = Submenu::with_items(
-        app,
-        "Edit",
-        true,
-        &[
-            &PredefinedMenuItem::cut(app, None)?,
-            &PredefinedMenuItem::copy(app, None)?,
-            &PredefinedMenuItem::paste(app, None)?,
-            &PredefinedMenuItem::select_all(app, None)?,
-            &PredefinedMenuItem::separator(app)?,
-            &find,
-            &save_search,
-        ],
-    )?;
-
-    let palette_markers = MenuItem::with_id(
-        app,
-        "view-palette-markers",
-        "Palette Markers",
-        true,
-        Some("CmdOrCtrl+Shift+M"),
-    )?;
-    let view_menu = Submenu::with_items(app, "View", true, &[&palette_markers])?;
-
-    let window_menu = Submenu::with_items(
-        app,
-        "Window",
-        true,
-        &[
-            &PredefinedMenuItem::minimize(app, None)?,
-            &PredefinedMenuItem::maximize(app, None)?,
-            &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::close_window(app, None)?,
-        ],
-    )?;
-
-    let menu = Menu::with_items(app, &[&app_menu, &edit_menu, &view_menu, &window_menu])?;
-    app.set_menu(menu)?;
-
-    app.on_menu_event(|handle, event| {
-        let evt = match event.id().0.as_str() {
-            "app-settings" => EVT_APP_SETTINGS,
-            "edit-find" => EVT_EDIT_FIND,
-            "edit-save-search" => EVT_EDIT_SAVE_SEARCH,
-            "view-palette-markers" => EVT_VIEW_PALETTE_MARKERS,
-            _ => return,
-        };
-        let _ = handle.emit(evt, ());
-    });
-    Ok(())
+    #[test]
+    fn menu_config_parses_and_has_no_document_slots() {
+        let config = preset_app_kit::MenuConfig::parse(MENU_CONFIG).unwrap();
+        assert!(config.file.document_slots_on().is_empty());
+        assert!(!config.file.close);
+        assert!(config.app.settings);
+    }
 }

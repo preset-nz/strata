@@ -1,0 +1,15 @@
+# Which of app-kit's built-in menu items Strata shows (guidance
+# projects/app-kit/design/menu-config.md). Strata is a library, not a document
+# app: no New, Open, Save or Revert. With Close off, Window > Close Window
+# takes Cmd+W.
+[file]
+new = false
+open = false
+open_recent = false
+close = false
+save = false
+save_as = false
+revert = false
+
+[app]
+settings = true

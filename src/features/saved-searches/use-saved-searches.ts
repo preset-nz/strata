@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { listen } from "@tauri-apps/api/event"
 
 import { useSnackbar } from "@/components/ui/use-snackbar"
 import { deleteSearch, listSavedSearches, restoreSearch, saveSearch, type SavedSearch } from "./api"
@@ -7,8 +6,8 @@ import { isSavable, parseQuery, sameQuery, suggestName, type SavedQuery } from "
 
 /**
  * The saved searches, which one the library currently shows, and the save /
- * apply / delete commands. Save is Edit › Save Search…; the rail asks for a
- * name. Delete offers Undo the way Move to Trash does.
+ * apply / delete commands. Save is Edit › Save Search… (bound in App.tsx to
+ * `startNaming`); the rail asks for a name. Delete offers Undo the way Move to Trash does.
  */
 export function useSavedSearches(current: SavedQuery, apply: (q: SavedQuery) => void) {
   const [searches, setSearches] = useState<SavedSearch[]>([])
@@ -35,19 +34,6 @@ export function useSavedSearches(current: SavedQuery, apply: (q: SavedQuery) => 
     }
     setNaming(suggestName(current))
   }, [current, show])
-
-  useEffect(() => {
-    let off: (() => void) | undefined
-    let cancelled = false
-    void listen("menu://edit/save-search", startNaming).then((u) => {
-      if (cancelled) u()
-      else off = u
-    })
-    return () => {
-      cancelled = true
-      off?.()
-    }
-  }, [startNaming])
 
   const save = useCallback(
     async (name: string) => {
