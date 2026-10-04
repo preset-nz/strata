@@ -195,10 +195,19 @@ const IMAGE_SCHEMA: PropertySchema = {
         },
       ],
     },
+    {
+      id: "paletteExtract",
+      title: "Palette",
+      description: "Extracted on request, at 4, 8 or 16 colours. Not stored.",
+      collapsible: true,
+      defaultCollapsed: true,
+      rows: [{ kind: "palette-extract", id: "paletteExtract", path: "imageId" }],
+    },
   ],
 }
 
 type ImageValues = {
+  imageId: string | null
   displayTitle: string | null
   filename: string | null
   prompt: string | null
@@ -304,6 +313,7 @@ const imageScope: Scope<ImageSelection, ImageValues> = {
     const d = ctx.details as ImageDetails | undefined
     const g = d?.generation ?? null
     return {
+      imageId: d?.id ?? null,
       displayTitle: d?.title ?? null,
       filename: d?.original_filename ?? null,
       prompt: g?.prompt ?? null,

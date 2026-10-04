@@ -9,6 +9,7 @@ import {
 } from "@/lib/vga16"
 import { COLOUR_SWATCH, type ColourLabel } from "@/components/image-card/colour-label"
 import { Label } from "@/components/ui/label"
+import { PaletteExtract } from "./PaletteExtract"
 
 function FieldShell({
   label,
@@ -151,6 +152,12 @@ const KeywordsRenderer: FieldRenderer = ({ field, value }) => {
   )
 }
 
+const PaletteExtractRenderer: FieldRenderer = ({ value }) => {
+  const id = value as string | null | undefined
+  if (!id) return null
+  return <PaletteExtract key={id} imageId={id} />
+}
+
 export function registerStrataRenderers(): void {
   registerFieldRenderer("vga16-bucket", Vga16BucketRenderer)
   registerFieldRenderer("colour-label", ColourLabelRenderer)
@@ -158,4 +165,5 @@ export function registerStrataRenderers(): void {
   registerFieldRenderer("date", DateRenderer)
   registerFieldRenderer("file-size", FileSizeRenderer)
   registerFieldRenderer("keyword-chips", KeywordsRenderer)
+  registerFieldRenderer("palette-extract", PaletteExtractRenderer)
 }

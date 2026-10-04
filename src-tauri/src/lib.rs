@@ -976,6 +976,30 @@ fn purge_expired_on_start(db: Arc<Db>, store: crate::store::StoreRoot, retention
     });
 }
 
+/// The palette tool: k swatches from one image, computed now, not stored.
+#[tauri::command]
+async fn extract_palette(
+    state: State<'_, AppState>,
+    id: String,
+    k: usize,
+) -> Result<Vec<palette::extract::ExtractedSwatch>, String> {
+    let (hash, store_path): (String, String) = {
+        let conn = state.db.0.lock().unwrap();
+        conn.query_row(
+            "SELECT content_hash, store_path FROM images WHERE id = ?",
+            params![id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .map_err(|e| e.to_string())?
+    };
+    let thumb = state.store.thumb_path(&hash, 1024);
+    let source = if thumb.exists() { thumb } else { state.store.root().join(store_path) };
+    tokio::task::spawn_blocking(move || palette::extract::extract(&source, k))
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 fn saved_search_list(state: State<'_, AppState>) -> Result<Vec<saved_search::SavedSearch>, String> {
     let conn = state.db.0.lock().unwrap();
@@ -1087,6 +1111,7 @@ pub fn run() {
             delete_image,
             restore_image,
             purge_image,
+            extract_palette,
             saved_search_list,
             saved_search_put,
             saved_search_delete,
