@@ -34,6 +34,7 @@ import {
 } from "./sort-keys"
 
 type SectionId =
+  | "searches"
   | "sort"
   | "orientation"
   | "content_colour"
@@ -73,6 +74,11 @@ type Props = {
    * underlying selection state is preserved so returning to Library restores
    * any pending filters. */
   filtersDisabled: boolean
+  /** The Searches section's body, and how many saved searches there are. */
+  savedSearches: React.ReactNode
+  savedSearchCount: number
+  /** Holds Searches open while a name is being typed into it. */
+  savedSearchesOpen?: boolean
 }
 
 export function LeftRail({
@@ -101,10 +107,14 @@ export function LeftRail({
   libraryActive,
   onSelectLibrary,
   filtersDisabled,
+  savedSearches,
+  savedSearchCount,
+  savedSearchesOpen,
 }: Props) {
   const [collapsed, setCollapsed] = usePersistedState<Record<SectionId, boolean>>(
     "strata.rail.collapsed",
     {
+      searches: false,
       sort: false,
       orientation: false,
       content_colour: false,
@@ -133,6 +143,15 @@ export function LeftRail({
         active={libraryActive}
         onClick={onSelectLibrary}
       />
+      <Section
+        id="searches"
+        title="Searches"
+        collapsed={collapsed.searches && !savedSearchesOpen}
+        onToggle={() => toggle("searches")}
+        summary={savedSearchCount > 0 ? savedSearchCount : undefined}
+      >
+        {savedSearches}
+      </Section>
       <Section
         id="sort"
         title="Sort"

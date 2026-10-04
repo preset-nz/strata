@@ -4,7 +4,7 @@
 //!
 //! Strata has few commands yet. The App menu carries Settings on Cmd+, and
 //! the Edit menu carries the OS text-editing items so fields behave, plus
-//! Find… on Cmd+F, which focuses the library search. This
+//! Find… on Cmd+F, which focuses the library search, and Save Search…. This
 //! file is the hand-built stand-in until the shared native-menu package
 //! exists; the event name is the one `@preset.nz/preferences` listens for.
 
@@ -13,6 +13,7 @@ use tauri::{AppHandle, Emitter, Runtime};
 
 const EVT_APP_SETTINGS: &str = "menu://app/settings";
 const EVT_EDIT_FIND: &str = "menu://edit/find";
+const EVT_EDIT_SAVE_SEARCH: &str = "menu://edit/save-search";
 
 pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let name = "Strata".to_string();
@@ -26,6 +27,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
 
     let settings = MenuItem::with_id(app, "app-settings", "Settings…", true, Some("CmdOrCtrl+,"))?;
     let find = MenuItem::with_id(app, "edit-find", "Find…", true, Some("CmdOrCtrl+F"))?;
+    let save_search = MenuItem::with_id(app, "edit-save-search", "Save Search…", true, None::<&str>)?;
 
     let app_menu = Submenu::with_items(
         app,
@@ -56,6 +58,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
             &PredefinedMenuItem::select_all(app, None)?,
             &PredefinedMenuItem::separator(app)?,
             &find,
+            &save_search,
         ],
     )?;
 
@@ -78,6 +81,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         let evt = match event.id().0.as_str() {
             "app-settings" => EVT_APP_SETTINGS,
             "edit-find" => EVT_EDIT_FIND,
+            "edit-save-search" => EVT_EDIT_SAVE_SEARCH,
             _ => return,
         };
         let _ = handle.emit(evt, ());

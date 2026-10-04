@@ -7,6 +7,7 @@ pub mod naming;
 mod palette;
 mod preferences;
 pub mod resolver;
+mod saved_search;
 mod search;
 mod server;
 mod store;
@@ -975,6 +976,34 @@ fn purge_expired_on_start(db: Arc<Db>, store: crate::store::StoreRoot, retention
     });
 }
 
+#[tauri::command]
+fn saved_search_list(state: State<'_, AppState>) -> Result<Vec<saved_search::SavedSearch>, String> {
+    let conn = state.db.0.lock().unwrap();
+    saved_search::list(&conn).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn saved_search_put(
+    state: State<'_, AppState>,
+    id: Option<String>,
+    name: String,
+    query: serde_json::Value,
+    created_at: Option<String>,
+) -> Result<saved_search::SavedSearch, String> {
+    let conn = state.db.0.lock().unwrap();
+    saved_search::put(&conn, id.as_deref(), &name, &query, created_at.as_deref())
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn saved_search_delete(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Option<saved_search::SavedSearch>, String> {
+    let conn = state.db.0.lock().unwrap();
+    saved_search::delete(&conn, &id).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1058,6 +1087,9 @@ pub fn run() {
             delete_image,
             restore_image,
             purge_image,
+            saved_search_list,
+            saved_search_put,
+            saved_search_delete,
             preset_preferences::tauri::preferences_get,
             preset_preferences::tauri::preferences_set,
             preset_preferences::tauri::preferences_reset,

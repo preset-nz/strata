@@ -51,6 +51,9 @@ import { useSelection } from "./stores/selection"
 import { PropertiesPane } from "./features/properties/PropertiesPane"
 import { SnackbarProvider } from "./components/ui/snackbar"
 import { useMoveToTrash } from "./features/library/use-move-to-trash"
+import { SavedSearchList } from "./features/saved-searches/SavedSearchList"
+import { makeQuery, type SavedQuery } from "./features/saved-searches/query"
+import { useSavedSearches } from "./features/saved-searches/use-saved-searches"
 
 type View =
   | { kind: "idle" }
@@ -389,6 +392,33 @@ function AppShell() {
     }
   }, [])
 
+  const currentQuery = useMemo(
+    () =>
+      makeQuery({
+        text: searchQuery,
+        buckets: bucketsForQuery,
+        orientations: orientationsForQuery,
+        batchId: selectedBatchId,
+        sort: sortState.key,
+        direction: sortState.direction,
+      }),
+    [searchQuery, bucketsForQuery, orientationsForQuery, selectedBatchId, sortState],
+  )
+  const applyQuery = useCallback(
+    (q: SavedQuery) => {
+      leaveIngestView()
+      setPanel("library")
+      setSearchText(q.text)
+      setSearchQuery(q.text)
+      setSelectedBuckets(new Set(q.buckets))
+      setSelectedOrientations(new Set(q.orientations))
+      setSelectedBatchId(q.batchId)
+      setSortState({ key: q.sort, direction: q.direction })
+    },
+    [leaveIngestView, setSortState],
+  )
+  const saved = useSavedSearches(currentQuery, applyQuery)
+
   const hasActiveQuery =
     searchQuery !== "" ||
     bucketsForQuery.length > 0 ||
@@ -649,6 +679,19 @@ function AppShell() {
             libraryActive={panel === "library"}
             onSelectLibrary={onSelectLibrary}
             filtersDisabled={panel === "trash"}
+            savedSearchCount={saved.searches.length}
+            savedSearchesOpen={saved.naming !== null}
+            savedSearches={
+              <SavedSearchList
+                searches={saved.searches}
+                activeId={panel === "library" ? saved.activeId : null}
+                onApply={saved.applySearch}
+                onDelete={(s) => void saved.remove(s)}
+                naming={saved.naming}
+                onName={(name) => void saved.save(name)}
+                onCancelNaming={saved.cancelNaming}
+              />
+            }
           />
         </SidePanel>
         <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">{content}</main>

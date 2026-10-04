@@ -205,6 +205,20 @@ const MIGRATIONS: &[(i64, &str)] = &[(
         tokenize = 'unicode61 remove_diacritics 2'
     );
     "#,
+),
+// v4 — saved searches (`saved_search.rs`). The query is the frontend's
+// versioned JSON, stored as text and never interpreted here.
+(
+    4,
+    r#"
+    CREATE TABLE saved_search (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        query TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+    "#,
 )];
 
 fn apply_migrations(conn: &Connection) -> Result<()> {
