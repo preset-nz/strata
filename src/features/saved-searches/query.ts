@@ -22,6 +22,8 @@ export type SavedQuery = {
   batchId: string | null
   /** Added 2026-10-05 with collections; older saves read as none. */
   collectionId: string | null
+  /** Added 2026-10-05 with projects. */
+  projectKey: string | null
   sort: SortKey
   direction: SortDirection
 }
@@ -35,6 +37,7 @@ export function makeQuery(q: Omit<SavedQuery, "v">): SavedQuery {
     labels: [...q.labels].sort(),
     batchId: q.batchId,
     collectionId: q.collectionId,
+    projectKey: q.projectKey,
     sort: q.sort,
     direction: q.direction,
   }
@@ -48,7 +51,8 @@ export function isSavable(q: SavedQuery): boolean {
     q.orientations.length > 0 ||
     q.labels.length > 0 ||
     q.batchId !== null ||
-    q.collectionId !== null
+    q.collectionId !== null ||
+    q.projectKey !== null
   )
 }
 
@@ -73,6 +77,7 @@ export function parseQuery(raw: unknown): SavedQuery | null {
     labels: strings(r.labels).filter((l): l is LabelFilter => LABEL_SELECTORS.includes(l)),
     batchId: typeof r.batchId === "string" ? r.batchId : null,
     collectionId: typeof r.collectionId === "string" ? r.collectionId : null,
+    projectKey: typeof r.projectKey === "string" ? r.projectKey : null,
     sort,
     direction: r.direction === "asc" ? "asc" : "desc",
   })

@@ -16,6 +16,13 @@ const SETTINGS_EVENT: &str = "menu://app/settings";
 
 fn commands() -> Vec<Command> {
     vec![
+        // The one File command: Strata has no documents (menu.toml), but it
+        // makes the work projects the family shares (work-projects.md).
+        // No shortcut: none is conventional, and Option+Cmd+N is a global
+        // hotkey in some browsers (Arc's Little Arc), which takes it first.
+        Command::item("file.new_project", "New Project…")
+            .menu(MenuName::File)
+            .section(0),
         Command::item("edit.find", "Find…")
             .accelerator("CmdOrCtrl+F")
             .menu(MenuName::Edit)

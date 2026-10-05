@@ -1,12 +1,14 @@
 import { ContextMenu } from "@base-ui/react/context-menu"
 import { cn } from "@/lib/utils"
 
-/** What the menu offers for collections; absent, it offers nothing. */
-export type CollectionMenu = {
-  collections: { id: string; name: string }[]
-  onAdd: (collectionId: string) => void
+/** One "Add to <title> ›" submenu: collections, projects. */
+export type GroupMenu = {
+  /** Singular: "Collection", "Project". */
+  title: string
+  items: { id: string; name: string }[]
+  onAdd: (id: string) => void
   onNew: () => void
-  /** Set while the library shows one collection. */
+  /** Set while the library shows one of them. */
   onRemove?: () => void
 }
 
@@ -17,7 +19,7 @@ type Props = {
   onMoveToTrash?: () => void
   onRestore?: () => void
   onDeletePermanently?: () => void
-  collections?: CollectionMenu
+  groups?: GroupMenu[]
   children: React.ReactNode
   className?: string
 }
@@ -27,7 +29,7 @@ export function CardContextMenu({
   onMoveToTrash,
   onRestore,
   onDeletePermanently,
-  collections,
+  groups,
   children,
   className,
 }: Props) {
@@ -39,36 +41,37 @@ export function CardContextMenu({
       <ContextMenu.Portal>
         <ContextMenu.Positioner className="outline-none">
           <ContextMenu.Popup className={popup}>
-            {mode === "library" && collections && (
-              <>
-                <ContextMenu.SubmenuRoot>
-                  <ContextMenu.SubmenuTrigger className={cn(menuItem, "justify-between")}>
-                    Add to Collection <span aria-hidden>›</span>
-                  </ContextMenu.SubmenuTrigger>
-                  <ContextMenu.Portal>
-                    <ContextMenu.Positioner className="outline-none" sideOffset={4}>
-                      <ContextMenu.Popup className={popup}>
-                        {collections.collections.map((c) => (
-                          <ContextMenu.Item key={c.id} onClick={() => collections.onAdd(c.id)} className={menuItem}>
-                            {c.name}
+            {mode === "library" &&
+              groups?.map((g) => (
+                <div key={g.title}>
+                  <ContextMenu.SubmenuRoot>
+                    <ContextMenu.SubmenuTrigger className={cn(menuItem, "justify-between")}>
+                      Add to {g.title} <span aria-hidden>›</span>
+                    </ContextMenu.SubmenuTrigger>
+                    <ContextMenu.Portal>
+                      <ContextMenu.Positioner className="outline-none" sideOffset={4}>
+                        <ContextMenu.Popup className={popup}>
+                          {g.items.map((c) => (
+                            <ContextMenu.Item key={c.id} onClick={() => g.onAdd(c.id)} className={menuItem}>
+                              {c.name}
+                            </ContextMenu.Item>
+                          ))}
+                          {g.items.length > 0 && <ContextMenu.Separator className={separator} />}
+                          <ContextMenu.Item onClick={g.onNew} className={menuItem}>
+                            New {g.title}…
                           </ContextMenu.Item>
-                        ))}
-                        {collections.collections.length > 0 && <ContextMenu.Separator className={separator} />}
-                        <ContextMenu.Item onClick={collections.onNew} className={menuItem}>
-                          New Collection…
-                        </ContextMenu.Item>
-                      </ContextMenu.Popup>
-                    </ContextMenu.Positioner>
-                  </ContextMenu.Portal>
-                </ContextMenu.SubmenuRoot>
-                {collections.onRemove && (
-                  <ContextMenu.Item onClick={collections.onRemove} className={menuItem}>
-                    Remove from Collection
-                  </ContextMenu.Item>
-                )}
-                <ContextMenu.Separator className={separator} />
-              </>
-            )}
+                        </ContextMenu.Popup>
+                      </ContextMenu.Positioner>
+                    </ContextMenu.Portal>
+                  </ContextMenu.SubmenuRoot>
+                  {g.onRemove && (
+                    <ContextMenu.Item onClick={g.onRemove} className={menuItem}>
+                      Remove from {g.title}
+                    </ContextMenu.Item>
+                  )}
+                </div>
+              ))}
+            {mode === "library" && groups && groups.length > 0 && <ContextMenu.Separator className={separator} />}
             {mode === "library" && (
               <ContextMenu.Item
                 onClick={() => onMoveToTrash?.()}

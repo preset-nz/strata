@@ -64,6 +64,10 @@ import {
 import { useCommands, useTextFocus, type Binding } from "@preset.nz/app-kit/core"
 import { CollectionList } from "./features/collections/CollectionList"
 import { useCollections } from "./features/collections/use-collections"
+import { NewProjectDialog } from "./features/projects/NewProjectDialog"
+import { ProjectList } from "./features/projects/ProjectList"
+import { useProjects } from "./features/projects/use-projects"
+import type { GroupMenu } from "./components/image-card/CardContextMenu"
 import { paletteMarkers, usePaletteMarkers } from "./features/quickview/palette-markers"
 
 type View =
@@ -256,6 +260,7 @@ function AppShell() {
   const [batches, setBatches] = useState<BatchSummary[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null)
+  const [selectedProjectKey, setSelectedProjectKey] = useState<string | null>(null)
   // Bumped when membership changed under the library's feet (added to or
   // removed from the collection it shows).
   const [reloadToken, setReloadToken] = useState(0)
@@ -416,10 +421,11 @@ function AppShell() {
         labels: labelsForQuery,
         batchId: selectedBatchId,
         collectionId: selectedCollectionId,
+        projectKey: selectedProjectKey,
         sort: sortState.key,
         direction: sortState.direction,
       }),
-    [searchQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, selectedCollectionId, sortState],
+    [searchQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, selectedCollectionId, selectedProjectKey, sortState],
   )
   const applyQuery = useCallback(
     (q: SavedQuery) => {
@@ -432,6 +438,7 @@ function AppShell() {
       setSelectedLabels(new Set(q.labels))
       setSelectedBatchId(q.batchId)
       setSelectedCollectionId(q.collectionId)
+      setSelectedProjectKey(q.projectKey)
       setSortState({ key: q.sort, direction: q.direction })
     },
     [leaveIngestView, setSortState],
@@ -450,16 +457,32 @@ function AppShell() {
       setSelectedCollectionId(null)
     }
   }, [coll.collections, selectedCollectionId])
-  const collectionMenu = useCallback(
-    (imageId: string) => ({
-      collections: coll.collections,
-      onAdd: (id: string) => void coll.add(id, [imageId]),
-      onNew: () => coll.startNaming([imageId]),
-      onRemove: selectedCollectionId
-        ? () => void coll.removeImages(selectedCollectionId, [imageId])
-        : undefined,
-    }),
-    [coll, selectedCollectionId],
+  const proj = useProjects(collectionChanged)
+  // A project archived elsewhere stays selectable; one whose folder is gone can't stay the filter.
+  useEffect(() => {
+    if (selectedProjectKey && proj.projects.length > 0 && !proj.projects.some((p) => p.key === selectedProjectKey)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- follows the list
+      setSelectedProjectKey(null)
+    }
+  }, [proj.projects, selectedProjectKey])
+  const groupMenus = useCallback(
+    (imageId: string): GroupMenu[] => [
+      {
+        title: "Collection",
+        items: coll.collections,
+        onAdd: (id) => void coll.add(id, [imageId]),
+        onNew: () => coll.startNaming([imageId]),
+        onRemove: selectedCollectionId ? () => void coll.removeImages(selectedCollectionId, [imageId]) : undefined,
+      },
+      {
+        title: "Project",
+        items: proj.projects.filter((p) => !p.archived).map((p) => ({ id: p.key, name: p.name })),
+        onAdd: (key) => void proj.add(key, [imageId]),
+        onNew: proj.startCreating,
+        onRemove: selectedProjectKey ? () => void proj.removeImages(selectedProjectKey, [imageId]) : undefined,
+      },
+    ],
+    [coll, proj, selectedCollectionId, selectedProjectKey],
   )
 
   // The menu's commands, by the ids `src-tauri/src/menu.rs` declares. app-kit
@@ -482,6 +505,7 @@ function AppShell() {
           if (selectedImage) void setFavourite([selectedImage], !selectedMark.favourite).then(refreshCounts)
         },
       },
+      "file.new_project": { run: proj.startCreating },
       "image.new_collection": {
         enabled: !textFocus,
         run: () => coll.startNaming(selectedImage ? [selectedImage] : []),
@@ -518,7 +542,7 @@ function AppShell() {
       "edit.save_search": { run: startNaming },
       "view.palette_markers": { pressed: markers.on, run: paletteMarkers.toggle },
     }),
-    [startNaming, markers.on, canMark, selectedImage, selectedMark, refreshCounts, textFocus, coll, selectedCollectionId],
+    [startNaming, markers.on, canMark, selectedImage, selectedMark, refreshCounts, textFocus, coll, selectedCollectionId, proj.startCreating],
   )
   useCommands(bindings)
 
@@ -528,7 +552,8 @@ function AppShell() {
     orientationsForQuery.length > 0 ||
     labelsForQuery.length > 0 ||
     selectedBatchId !== null ||
-    selectedCollectionId !== null
+    selectedCollectionId !== null ||
+    selectedProjectKey !== null
 
   useEffect(() => {
     if (!hasActiveQuery) return
@@ -539,6 +564,7 @@ function AppShell() {
       labels: labelsForQuery,
       batchId: selectedBatchId,
       collectionId: selectedCollectionId,
+      projectKey: selectedProjectKey,
       query: searchQuery,
     })
       .then((n) => {
@@ -549,7 +575,7 @@ function AppShell() {
       cancelled = true
     }
     // reloadToken: membership changed under the same filter, so the count did too.
-  }, [hasActiveQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, selectedCollectionId, searchQuery, reloadToken])
+  }, [hasActiveQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, selectedCollectionId, selectedProjectKey, searchQuery, reloadToken])
 
   // Derived rather than stored: gating on hasActiveQuery keeps a count left
   // over from a previous filter from showing once the filter is cleared.
@@ -652,7 +678,8 @@ function AppShell() {
     selectedOrientations.size +
     selectedLabels.size +
     (selectedBatchId ? 1 : 0) +
-    (selectedCollectionId ? 1 : 0)
+    (selectedCollectionId ? 1 : 0) +
+    (selectedProjectKey ? 1 : 0)
   const addDisabled =
     view.kind === "scanning" ||
     view.kind === "scanned" ||
@@ -708,8 +735,9 @@ function AppShell() {
         labels={labelsForQuery}
         batchId={selectedBatchId}
         collectionId={selectedCollectionId}
+        projectKey={selectedProjectKey}
         reloadToken={reloadToken}
-        collectionMenu={collectionMenu}
+        groupMenus={groupMenus}
         query={searchQuery}
         cellSize={cardSize}
         onLibraryChanged={refreshCounts}
@@ -719,8 +747,9 @@ function AppShell() {
     searchQuery,
     labelsForQuery,
     selectedCollectionId,
+    selectedProjectKey,
     reloadToken,
-    collectionMenu,
+    groupMenus,
     view,
     panel,
     handleConfirm,
@@ -736,6 +765,21 @@ function AppShell() {
   return (
     <div className="flex h-svh flex-col">
       <DropZone onDropped={handlePath} />
+      {proj.creating && (
+        <NewProjectDialog
+          root="~/preset-nz/Projects"
+          onCancel={proj.cancelCreating}
+          onCreate={(name, description) =>
+            void proj.create(name, description).then((key) => {
+              if (key) {
+                leaveIngestView()
+                setPanel("library")
+                setSelectedProjectKey(key)
+              }
+            })
+          }
+        />
+      )}
       <ThemeSync />
       <SettingsWindow
         open={settingsOpen}
@@ -796,6 +840,22 @@ function AppShell() {
             libraryActive={panel === "library"}
             onSelectLibrary={onSelectLibrary}
             filtersDisabled={panel === "trash"}
+            projectCount={proj.projects.filter((p) => !p.archived).length}
+            projects={
+              <ProjectList
+                projects={proj.projects}
+                selectedKey={selectedProjectKey}
+                disabled={panel === "trash"}
+                onSelect={(key) => {
+                  leaveIngestView()
+                  setPanel("library")
+                  setSelectedProjectKey(key)
+                }}
+                onFavourite={(p, on) => void proj.setFavourite(p, on)}
+                onArchive={(p, on) => void proj.setArchived(p, on)}
+                onDrop={(key, images) => void proj.add(key, images)}
+              />
+            }
             collectionCount={coll.collections.length}
             collectionsOpen={coll.naming !== null}
             collections={

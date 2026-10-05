@@ -29,6 +29,7 @@ export type ImagesQuery = {
   labels?: string[]
   batchId?: string | null
   collectionId?: string | null
+  projectKey?: string | null
   includeDeleted?: boolean
   onlyDeleted?: boolean
   /** Typed keywords. While set, results are ranked by relevance. */
@@ -50,6 +51,7 @@ export function listImages(
     labels: opts?.labels,
     batchId: opts?.batchId ?? undefined,
     collectionId: opts?.collectionId ?? undefined,
+    projectKey: opts?.projectKey ?? undefined,
     includeDeleted: opts?.includeDeleted,
     onlyDeleted: opts?.onlyDeleted,
     query: opts?.query || undefined,
@@ -78,6 +80,7 @@ export type CountQuery = {
   labels?: string[]
   batchId?: string | null
   collectionId?: string | null
+  projectKey?: string | null
   includeDeleted?: boolean
   onlyDeleted?: boolean
   query?: string
@@ -102,6 +105,7 @@ export function libraryCount(opts?: CountQuery): Promise<number> {
     labels: opts?.labels,
     batchId: opts?.batchId ?? undefined,
     collectionId: opts?.collectionId ?? undefined,
+    projectKey: opts?.projectKey ?? undefined,
     includeDeleted: opts?.includeDeleted,
     onlyDeleted: opts?.onlyDeleted,
     query: opts?.query || undefined,

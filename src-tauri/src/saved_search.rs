@@ -14,11 +14,13 @@ pub struct SavedSearch {
     pub query: serde_json::Value,
     pub created_at: String,
     pub updated_at: String,
+    /// The project it belongs to; `None` is a global search.
+    pub project_key: Option<String>,
 }
 
 pub fn list(conn: &Connection) -> Result<Vec<SavedSearch>> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, query, created_at, updated_at FROM saved_search ORDER BY name COLLATE NOCASE, created_at",
+        "SELECT id, name, query, created_at, updated_at, project_key FROM saved_search ORDER BY name COLLATE NOCASE, created_at",
     )?;
     let rows = stmt
         .query_map([], from_row)?
@@ -34,6 +36,7 @@ pub fn put(
     name: &str,
     query: &serde_json::Value,
     created_at: Option<&str>,
+    project_key: Option<&str>,
 ) -> Result<SavedSearch> {
     let name = name.trim();
     if name.is_empty() {
@@ -45,12 +48,13 @@ pub fn put(
     let id = id.map(str::to_string).unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let now = Utc::now().to_rfc3339();
     conn.execute(
-        "INSERT INTO saved_search (id, name, query, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5)
-         ON CONFLICT(id) DO UPDATE SET name = excluded.name, query = excluded.query, updated_at = excluded.updated_at",
-        params![id, name, query.to_string(), created_at.unwrap_or(&now), now],
+        "INSERT INTO saved_search (id, name, query, created_at, updated_at, project_key) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+         ON CONFLICT(id) DO UPDATE SET name = excluded.name, query = excluded.query,
+             updated_at = excluded.updated_at, project_key = excluded.project_key",
+        params![id, name, query.to_string(), created_at.unwrap_or(&now), now, project_key],
     )?;
     Ok(conn.query_row(
-        "SELECT id, name, query, created_at, updated_at FROM saved_search WHERE id = ?",
+        "SELECT id, name, query, created_at, updated_at, project_key FROM saved_search WHERE id = ?",
         params![id],
         from_row,
     )?)
@@ -60,7 +64,7 @@ pub fn put(
 pub fn delete(conn: &Connection, id: &str) -> Result<Option<SavedSearch>> {
     let row = conn
         .query_row(
-            "SELECT id, name, query, created_at, updated_at FROM saved_search WHERE id = ?",
+            "SELECT id, name, query, created_at, updated_at, project_key FROM saved_search WHERE id = ?",
             params![id],
             from_row,
         )
@@ -76,6 +80,7 @@ fn from_row(r: &rusqlite::Row) -> rusqlite::Result<SavedSearch> {
         query: serde_json::from_str(&r.get::<_, String>(2)?).unwrap_or(serde_json::Value::Null),
         created_at: r.get(3)?,
         updated_at: r.get(4)?,
+        project_key: r.get(5)?,
     })
 }
 
@@ -96,24 +101,24 @@ mod tests {
         let conn = db.0.lock().unwrap();
         let q = json!({"v": 1, "text": "bark", "orientations": ["landscape"]});
 
-        let saved = put(&conn, None, "  Olive bark ", &q, None).unwrap();
+        let saved = put(&conn, None, "  Olive bark ", &q, None, None).unwrap();
         assert_eq!(saved.name, "Olive bark");
         assert_eq!(saved.query, q);
-        put(&conn, None, "alpha", &json!({"v": 1}), None).unwrap();
+        put(&conn, None, "alpha", &json!({"v": 1}), None, None).unwrap();
         let names: Vec<String> = list(&conn).unwrap().into_iter().map(|s| s.name).collect();
         assert_eq!(names, ["alpha", "Olive bark"]);
 
-        let renamed = put(&conn, Some(&saved.id), "Bark", &q, None).unwrap();
+        let renamed = put(&conn, Some(&saved.id), "Bark", &q, None, None).unwrap();
         assert_eq!((renamed.id.as_str(), renamed.created_at.as_str()), (saved.id.as_str(), saved.created_at.as_str()));
 
         let gone = delete(&conn, &saved.id).unwrap().unwrap();
         assert_eq!(list(&conn).unwrap().len(), 1);
-        let back = put(&conn, Some(&gone.id), &gone.name, &gone.query, Some(&gone.created_at)).unwrap();
+        let back = put(&conn, Some(&gone.id), &gone.name, &gone.query, Some(&gone.created_at), None).unwrap();
         assert_eq!(back.created_at, saved.created_at);
         assert_eq!(list(&conn).unwrap().len(), 2);
 
-        assert!(put(&conn, None, " ", &q, None).is_err());
-        assert!(put(&conn, None, "x", &json!([1]), None).is_err());
+        assert!(put(&conn, None, " ", &q, None, None).is_err());
+        assert!(put(&conn, None, "x", &json!([1]), None, None).is_err());
         assert!(delete(&conn, "missing").unwrap().is_none());
         drop(conn);
         std::fs::remove_dir_all(dir).ok();

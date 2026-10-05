@@ -255,6 +255,31 @@ const MIGRATIONS: &[(i64, &str)] = &[(
 
     CREATE INDEX idx_collection_member_image ON collection_member(image_id);
     "#,
+),
+// v7 — projects (`project.rs`). The project itself is a folder with
+// project.preset; the catalog keeps only Strata's curation per key.
+(
+    7,
+    r#"
+    CREATE TABLE project_curation (
+        key TEXT PRIMARY KEY,
+        favourite INTEGER NOT NULL DEFAULT 0,
+        archived_at TEXT,
+        updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE project_member (
+        key TEXT NOT NULL,
+        image_id TEXT NOT NULL,
+        added_at TEXT NOT NULL,
+        PRIMARY KEY (key, image_id)
+    );
+
+    CREATE INDEX idx_project_member_image ON project_member(image_id);
+
+    -- A saved search can belong to a project; NULL is global.
+    ALTER TABLE saved_search ADD COLUMN project_key TEXT;
+    "#,
 )];
 
 fn apply_migrations(conn: &Connection) -> Result<()> {

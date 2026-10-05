@@ -86,8 +86,14 @@ export function useSavedSearches(current: SavedQuery, apply: (q: SavedQuery) => 
     })?.id ?? null
   }, [searches, current])
 
+  // Global searches always show; a project's only while it is the filter.
+  const visible = useMemo(
+    () => searches.filter((s) => s.project_key === null || s.project_key === current.projectKey),
+    [searches, current.projectKey],
+  )
+
   return {
-    searches,
+    searches: visible,
     activeId,
     naming,
     startNaming,

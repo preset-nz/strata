@@ -78,12 +78,7 @@ pub struct ProjectsFolder {
     pub roots: Vec<PathBuf>,
 }
 
-pub const PROJECT_MARKER: &str = "project.preset";
-
-#[derive(serde::Deserialize)]
-struct Marker {
-    key: String,
-}
+pub const PROJECT_MARKER: &str = crate::project::MARKER;
 
 impl ProjectsFolder {
     pub fn in_home(home: &Path) -> Self {
@@ -98,8 +93,7 @@ impl ProjectLocator for ProjectsFolder {
         self.roots.iter().find_map(|root| {
             std::fs::read_dir(root).ok()?.flatten().find_map(|entry| {
                 let dir = entry.path();
-                let marker = std::fs::read_to_string(dir.join(PROJECT_MARKER)).ok()?;
-                let marker: Marker = toml::from_str(&marker).ok()?;
+                let marker = crate::project::read_marker(&dir)?;
                 marker.key.eq_ignore_ascii_case(key).then_some(dir)
             })
         })
