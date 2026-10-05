@@ -54,7 +54,14 @@ import { useMoveToTrash } from "./features/library/use-move-to-trash"
 import { SavedSearchList } from "./features/saved-searches/SavedSearchList"
 import { makeQuery, type SavedQuery } from "./features/saved-searches/query"
 import { useSavedSearches } from "./features/saved-searches/use-saved-searches"
-import { useCommands, type Binding } from "@preset.nz/app-kit/core"
+import {
+  HISTORY_CHANGED,
+  listLabelCounts,
+  setColourLabel,
+  setFavourite,
+  useMark,
+} from "./features/curation/marks"
+import { useCommands, useTextFocus, type Binding } from "@preset.nz/app-kit/core"
 import { paletteMarkers, usePaletteMarkers } from "./features/quickview/palette-markers"
 
 type View =
@@ -92,18 +99,20 @@ type LibraryCounts = {
   orientations: Record<Orientation, number>
   batches: BatchSummary[]
   trashed: number
+  labels: Record<LabelSelector, number>
 }
 
 // Pure fetch — no state. Keeping it outside the component lets the mount
 // effect apply the result in a promise callback instead of calling a
 // setState-bearing function synchronously.
 async function fetchLibraryCounts(): Promise<LibraryCounts> {
-  const [total, counts, orientationRows, batches, trashed] = await Promise.all([
+  const [total, counts, orientationRows, batches, trashed, labelRows] = await Promise.all([
     libraryCount(),
     listBucketCounts(),
     listOrientationCounts(),
     listBatches(),
     libraryCount({ onlyDeleted: true }),
+    listLabelCounts(),
   ])
   const buckets = { ...EMPTY_BUCKET_COUNTS }
   for (const { bucket, count } of counts) buckets[bucket] = count
@@ -111,7 +120,11 @@ async function fetchLibraryCounts(): Promise<LibraryCounts> {
   for (const { orientation, count } of orientationRows) {
     orientations[orientation] = count
   }
-  return { total, buckets, orientations, batches, trashed }
+  const labels = { ...EMPTY_LABEL_COUNTS }
+  for (const { label, count } of labelRows) {
+    if (label in labels) labels[label as LabelSelector] = count
+  }
+  return { total, buckets, orientations, batches, trashed, labels }
 }
 
 // Left rail needs ~200px to render its longest section heading without
@@ -219,6 +232,7 @@ function AppShell() {
   const [selectedBuckets, setSelectedBuckets] = useState<Set<Vga16Bucket>>(
     () => new Set(),
   )
+  const [labelCounts, setLabelCounts] = useState(EMPTY_LABEL_COUNTS)
   const [selectedLabels, setSelectedLabels] = useState<Set<LabelSelector>>(
     () => new Set(),
   )
@@ -291,6 +305,7 @@ function AppShell() {
     () => Array.from(selectedOrientations),
     [selectedOrientations],
   )
+  const labelsForQuery = useMemo(() => Array.from(selectedLabels), [selectedLabels])
 
   const applyCounts = useCallback((c: LibraryCounts) => {
     setTotalCount(c.total)
@@ -298,6 +313,7 @@ function AppShell() {
     setOrientationCounts(c.orientations)
     setBatches(c.batches)
     setTrashCount(c.trashed)
+    setLabelCounts(c.labels)
     // list_batches hides batches that no longer have any live images, so a
     // batch can vanish from the rail while it is still the active filter —
     // trash its last image and the row backing the filter is gone. Drop the
@@ -333,6 +349,11 @@ function AppShell() {
     const offs: UnlistenFn[] = []
     let cancelled = false
     ;(async () => {
+      offs.push(
+        await listen(HISTORY_CHANGED, () => {
+          void refreshCounts()
+        }),
+      )
       offs.push(
         await listen("ingest://batch-done", () => {
           setRunningBatchId(null)
@@ -383,11 +404,12 @@ function AppShell() {
         text: searchQuery,
         buckets: bucketsForQuery,
         orientations: orientationsForQuery,
+        labels: labelsForQuery,
         batchId: selectedBatchId,
         sort: sortState.key,
         direction: sortState.direction,
       }),
-    [searchQuery, bucketsForQuery, orientationsForQuery, selectedBatchId, sortState],
+    [searchQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, sortState],
   )
   const applyQuery = useCallback(
     (q: SavedQuery) => {
@@ -397,6 +419,7 @@ function AppShell() {
       setSearchQuery(q.text)
       setSelectedBuckets(new Set(q.buckets))
       setSelectedOrientations(new Set(q.orientations))
+      setSelectedLabels(new Set(q.labels))
       setSelectedBatchId(q.batchId)
       setSortState({ key: q.sort, direction: q.direction })
     },
@@ -409,8 +432,38 @@ function AppShell() {
   // menu, and sends Cmd+Z to a focused text field.
   const markers = usePaletteMarkers()
   const { startNaming } = saved
+  // Image menu: acts on the selected image. Off while typing, so the bare
+  // F and 0-7 keys reach the text field instead.
+  const textFocus = useTextFocus()
+  const selectedImage = selection.kind === "image" && panel === "library" ? selection.id : null
+  const selectedMark = useMark(selectedImage)
+  const canMark = selectedImage !== null && !textFocus
   const bindings = useMemo<Record<string, Binding>>(
     () => ({
+      "image.favourite": {
+        enabled: canMark,
+        pressed: selectedMark.favourite,
+        run: () => {
+          if (selectedImage) void setFavourite([selectedImage], !selectedMark.favourite).then(refreshCounts)
+        },
+      },
+      "image.label.none": {
+        enabled: canMark && selectedMark.label !== null,
+        run: () => {
+          if (selectedImage) void setColourLabel([selectedImage], null).then(refreshCounts)
+        },
+      },
+      ...Object.fromEntries(
+        COLOUR_LABELS.map((c) => [
+          `image.label.${c}`,
+          {
+            enabled: canMark,
+            run: () => {
+              if (selectedImage) void setColourLabel([selectedImage], c).then(refreshCounts)
+            },
+          },
+        ]),
+      ),
       "edit.find": {
         run: () => {
           searchRef.current?.focus()
@@ -420,7 +473,7 @@ function AppShell() {
       "edit.save_search": { run: startNaming },
       "view.palette_markers": { pressed: markers.on, run: paletteMarkers.toggle },
     }),
-    [startNaming, markers.on],
+    [startNaming, markers.on, canMark, selectedImage, selectedMark, refreshCounts],
   )
   useCommands(bindings)
 
@@ -428,6 +481,7 @@ function AppShell() {
     searchQuery !== "" ||
     bucketsForQuery.length > 0 ||
     orientationsForQuery.length > 0 ||
+    labelsForQuery.length > 0 ||
     selectedBatchId !== null
 
   useEffect(() => {
@@ -436,6 +490,7 @@ function AppShell() {
     void libraryCount({
       buckets: bucketsForQuery,
       orientations: orientationsForQuery,
+      labels: labelsForQuery,
       batchId: selectedBatchId,
       query: searchQuery,
     })
@@ -446,7 +501,7 @@ function AppShell() {
     return () => {
       cancelled = true
     }
-  }, [hasActiveQuery, bucketsForQuery, orientationsForQuery, selectedBatchId, searchQuery])
+  }, [hasActiveQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, searchQuery])
 
   // Derived rather than stored: gating on hasActiveQuery keeps a count left
   // over from a previous filter from showing once the filter is cleared.
@@ -601,6 +656,7 @@ function AppShell() {
         direction={sortState.direction}
         buckets={bucketsForQuery}
         orientations={orientationsForQuery}
+        labels={labelsForQuery}
         batchId={selectedBatchId}
         query={searchQuery}
         cellSize={cardSize}
@@ -609,6 +665,7 @@ function AppShell() {
     )
   }, [
     searchQuery,
+    labelsForQuery,
     view,
     panel,
     handleConfirm,
@@ -665,7 +722,7 @@ function AppShell() {
             bucketCounts={bucketCounts}
             selectedBuckets={selectedBuckets}
             onToggleBucket={toggleBucket}
-            labelCounts={EMPTY_LABEL_COUNTS}
+            labelCounts={labelCounts}
             selectedLabels={selectedLabels}
             onToggleLabel={toggleLabel}
             sort={panel === "trash" ? "deleted" : sortState.key}

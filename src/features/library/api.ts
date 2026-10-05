@@ -25,6 +25,8 @@ export type ImagesQuery = {
   direction?: SortDirection
   buckets?: Vga16Bucket[]
   orientations?: Orientation[]
+  /** "favourite" and colour labels; an image matching any of them shows. */
+  labels?: string[]
   batchId?: string | null
   includeDeleted?: boolean
   onlyDeleted?: boolean
@@ -44,6 +46,7 @@ export function listImages(
     direction: opts?.direction,
     buckets: opts?.buckets,
     orientations: opts?.orientations,
+    labels: opts?.labels,
     batchId: opts?.batchId ?? undefined,
     includeDeleted: opts?.includeDeleted,
     onlyDeleted: opts?.onlyDeleted,
@@ -70,6 +73,7 @@ export function getBatch(id: string): Promise<BatchSummary | null> {
 export type CountQuery = {
   buckets?: Vga16Bucket[]
   orientations?: Orientation[]
+  labels?: string[]
   batchId?: string | null
   includeDeleted?: boolean
   onlyDeleted?: boolean
@@ -92,6 +96,7 @@ export function libraryCount(opts?: CountQuery): Promise<number> {
   return invoke<number>("library_count", {
     buckets: opts?.buckets,
     orientations: opts?.orientations,
+    labels: opts?.labels,
     batchId: opts?.batchId ?? undefined,
     includeDeleted: opts?.includeDeleted,
     onlyDeleted: opts?.onlyDeleted,

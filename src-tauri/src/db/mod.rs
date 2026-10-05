@@ -219,6 +219,21 @@ const MIGRATIONS: &[(i64, &str)] = &[(
         updated_at TEXT NOT NULL
     );
     "#,
+),
+// v5 — favourites and colour labels (`curation.rs`). A row only while an
+// image has a heart or a label.
+(
+    5,
+    r#"
+    CREATE TABLE image_mark (
+        image_id TEXT PRIMARY KEY,
+        favourite INTEGER NOT NULL DEFAULT 0,
+        label TEXT,
+        updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX idx_image_mark_label ON image_mark(label);
+    "#,
 )];
 
 fn apply_migrations(conn: &Connection) -> Result<()> {

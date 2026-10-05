@@ -16,7 +16,6 @@ use crate::AppState;
 /// Emitted after an undo or redo changed the catalog, so the library reloads.
 pub const CHANGED_EVENT: &str = "history://changed";
 /// Steps kept; the oldest go first.
-#[allow(dead_code)]
 const LIMIT: usize = 200;
 
 type Apply = Box<dyn Fn(&rusqlite::Connection) -> anyhow::Result<()> + Send + Sync>;
@@ -36,7 +35,6 @@ pub struct Curation {
 
 impl Curation {
     /// Record a step that has just been done. Clears what Redo had.
-    #[allow(dead_code)] // the curation commands (epic 08, favourites onward) call it
     pub fn push(&self, step: Step) {
         let mut undo = self.undo.lock().unwrap();
         undo.push(step);

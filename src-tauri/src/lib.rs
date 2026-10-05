@@ -1,3 +1,4 @@
+mod curation;
 mod db;
 mod gestures;
 mod history;
@@ -199,6 +200,8 @@ struct ImportedRow {
     content_hash: String,
     original_filename: String,
     title: String,
+    favourite: bool,
+    label: Option<String>,
     thumbnails_status: String,
     dominant_bucket: Option<String>,
     dominant_l: Option<f32>,
@@ -277,6 +280,8 @@ fn row_from(row: &rusqlite::Row) -> rusqlite::Result<ImportedRow> {
         content_hash: row.get::<_, String>(1)?,
         original_filename: row.get::<_, String>(2)?,
         title: display_title(row.get::<_, Option<String>>(9)?.as_deref(), &row.get::<_, String>(2)?),
+        favourite: row.get::<_, Option<bool>>(10)?.unwrap_or(false),
+        label: row.get(11)?,
         thumbnails_status: row.get::<_, String>(3)?,
         dominant_bucket: row.get::<_, Option<String>>(4)?,
         dominant_l: row.get::<_, Option<f32>>(5)?,
@@ -290,7 +295,7 @@ fn row_from(row: &rusqlite::Row) -> rusqlite::Result<ImportedRow> {
 
 const ROW_COLUMNS: &str = "i.id, i.content_hash, i.original_filename, i.thumbnails_status, \
                            p.dominant_bucket, p.dominant_l, p.dominant_c, p.dominant_h, \
-                           i.deleted_at, pr.text";
+                           i.deleted_at, pr.text, mk.favourite, mk.label";
 
 /// The images a list reads, with the palette and the prompt behind each,
 /// when it has one, for the display title.
@@ -298,7 +303,8 @@ const ROW_SOURCE: &str = "images i \
                           LEFT JOIN image_palette p ON p.image_id = i.id \
                           LEFT JOIN generation_output go ON go.image_id = i.id \
                           LEFT JOIN generation g ON g.generation_id = go.generation_id \
-                          LEFT JOIN prompt pr ON pr.prompt_id = g.prompt_id";
+                          LEFT JOIN prompt pr ON pr.prompt_id = g.prompt_id \
+                          LEFT JOIN image_mark mk ON mk.image_id = i.id";
 
 /// With a typed query, joins the keyword index so only matches remain and
 /// each row carries its BM25 score (lower is better). The join's parameter
@@ -361,9 +367,18 @@ fn resolve_deleted(include_deleted: Option<bool>, only_deleted: Option<bool>) ->
     }
 }
 
+fn allowed_labels(input: &[String]) -> Vec<String> {
+    input
+        .iter()
+        .filter(|l| l.as_str() == "favourite" || curation::LABELS.contains(&l.as_str()))
+        .cloned()
+        .collect()
+}
+
 fn build_where(
     filter_buckets: &[String],
     filter_orientations: &[String],
+    filter_labels: &[String],
     batch_id: Option<&str>,
     deleted: DeletedFilter,
 ) -> (String, Vec<rusqlite::types::Value>) {
@@ -392,6 +407,24 @@ fn build_where(
             bound.push(rusqlite::types::Value::Text(o.clone()));
         }
     }
+    // Favourited and the colours are one section in the rail, read as "any of".
+    if !filter_labels.is_empty() {
+        let mut any = Vec::new();
+        if filter_labels.iter().any(|l| l == "favourite") {
+            any.push("favourite = 1".to_string());
+        }
+        let colours: Vec<&String> = filter_labels.iter().filter(|l| *l != "favourite").collect();
+        if !colours.is_empty() {
+            any.push(format!("label IN ({})", vec!["?"; colours.len()].join(", ")));
+            for c in colours {
+                bound.push(rusqlite::types::Value::Text(c.clone()));
+            }
+        }
+        clauses.push(format!(
+            "i.id IN (SELECT image_id FROM image_mark WHERE {})",
+            any.join(" OR ")
+        ));
+    }
     if let Some(b) = batch_id {
         clauses.push("i.ingest_batch_id = ?".to_string());
         bound.push(rusqlite::types::Value::Text(b.to_string()));
@@ -414,6 +447,7 @@ fn list_images(
     direction: Option<String>,
     buckets: Option<Vec<String>>,
     orientations: Option<Vec<String>>,
+    labels: Option<Vec<String>>,
     batch_id: Option<String>,
     include_deleted: Option<bool>,
     only_deleted: Option<bool>,
@@ -433,9 +467,11 @@ fn list_images(
     let deleted = resolve_deleted(include_deleted, only_deleted);
 
     let (join_sql, mut bound) = search_join(query.as_deref());
+    let filter_labels = labels.as_ref().map(|l| allowed_labels(l)).unwrap_or_default();
     let (where_sql, where_bound) = build_where(
         &filter_buckets,
         &filter_orientations,
+        &filter_labels,
         batch_id.as_deref(),
         deleted,
     );
@@ -685,6 +721,7 @@ fn library_count(
     state: State<'_, AppState>,
     buckets: Option<Vec<String>>,
     orientations: Option<Vec<String>>,
+    labels: Option<Vec<String>>,
     batch_id: Option<String>,
     include_deleted: Option<bool>,
     only_deleted: Option<bool>,
@@ -700,9 +737,11 @@ fn library_count(
         .unwrap_or_default();
     let deleted = resolve_deleted(include_deleted, only_deleted);
     let (join_sql, mut bound) = search_join(query.as_deref());
+    let filter_labels = labels.as_ref().map(|l| allowed_labels(l)).unwrap_or_default();
     let (where_sql, where_bound) = build_where(
         &filter_buckets,
         &filter_orientations,
+        &filter_labels,
         batch_id.as_deref(),
         deleted,
     );
@@ -855,6 +894,7 @@ fn purge_one(
         "DELETE FROM image_metadata WHERE image_id = ?",
         "DELETE FROM image_keyword WHERE image_id = ?",
         "DELETE FROM image_search WHERE image_id = ?",
+        "DELETE FROM image_mark WHERE image_id = ?",
         // The prompt and generation stay: the record outlives the output.
         "DELETE FROM generation_output WHERE image_id = ?",
         "DELETE FROM provenance_checked WHERE image_id = ?",
@@ -975,6 +1015,98 @@ fn purge_expired_on_start(db: Arc<Db>, store: crate::store::StoreRoot, retention
             }
         }
     });
+}
+
+/// Hearts or un-hearts images; one undo step.
+#[tauri::command]
+fn set_favourite(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    history: State<'_, history::Curation>,
+    ids: Vec<String>,
+    on: bool,
+) -> Result<Vec<curation::Marked>, String> {
+    let action = if on { "Favourite" } else { "Unfavourite" };
+    mark(&app, &state, &history, &ids, action, |m| curation::Mark { favourite: on, ..m.clone() })
+}
+
+/// Sets or clears the colour label of images; one undo step.
+#[tauri::command]
+fn set_colour_label(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    history: State<'_, history::Curation>,
+    ids: Vec<String>,
+    label: Option<String>,
+) -> Result<Vec<curation::Marked>, String> {
+    curation::check_label(label.as_deref()).map_err(|e| e.to_string())?;
+    let action = match &label {
+        Some(l) => format!("Label {}{}", l[..1].to_uppercase(), &l[1..]),
+        None => "Clear Label".to_string(),
+    };
+    mark(&app, &state, &history, &ids, &action, |m| curation::Mark { label: label.clone(), ..m.clone() })
+}
+
+fn mark(
+    app: &AppHandle,
+    state: &AppState,
+    history: &history::Curation,
+    ids: &[String],
+    action: &str,
+    change: impl Fn(&curation::Mark) -> curation::Mark,
+) -> Result<Vec<curation::Marked>, String> {
+    let changed = {
+        let conn = state.db.0.lock().unwrap();
+        curation::change(&conn, ids, action, change).map_err(|e| e.to_string())?
+    };
+    let Some((shown, step)) = changed else {
+        return Ok(Vec::new());
+    };
+    history.push(step);
+    preset_app_kit::refresh_history(app);
+    Ok(shown)
+}
+
+/// Current marks, for cards that didn't come from a list query (the contact
+/// sheet's skipped duplicates).
+#[tauri::command]
+fn image_marks(state: State<'_, AppState>, ids: Vec<String>) -> Result<Vec<curation::Marked>, String> {
+    let conn = state.db.0.lock().unwrap();
+    let marks = curation::marks(&conn, &ids).map_err(|e| e.to_string())?;
+    Ok(ids
+        .into_iter()
+        .map(|id| {
+            let mark = marks.get(&id).cloned().unwrap_or_default();
+            curation::Marked { id, mark }
+        })
+        .collect())
+}
+
+#[derive(Serialize)]
+struct LabelCount {
+    label: String,
+    count: i64,
+}
+
+/// Counts for the rail's Label section: "favourite" and each colour, live images only.
+#[tauri::command]
+fn list_label_counts(state: State<'_, AppState>) -> Result<Vec<LabelCount>, String> {
+    let conn = state.db.0.lock().unwrap();
+    let mut stmt = conn
+        .prepare(
+            "SELECT 'favourite', COUNT(*) FROM image_mark mk JOIN images i ON i.id = mk.image_id
+              WHERE mk.favourite = 1 AND i.deleted_at IS NULL
+             UNION ALL
+             SELECT mk.label, COUNT(*) FROM image_mark mk JOIN images i ON i.id = mk.image_id
+              WHERE mk.label IS NOT NULL AND i.deleted_at IS NULL GROUP BY mk.label",
+        )
+        .map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map([], |r| Ok(LabelCount { label: r.get(0)?, count: r.get(1)? }))
+        .map_err(|e| e.to_string())?
+        .collect::<rusqlite::Result<Vec<_>>>()
+        .map_err(|e| e.to_string())?;
+    Ok(rows)
 }
 
 /// The palette tool: k swatches from one image, computed now, not stored.
@@ -1133,6 +1265,10 @@ pub fn run() {
             restore_image,
             purge_image,
             extract_palette,
+            set_favourite,
+            set_colour_label,
+            list_label_counts,
+            image_marks,
             palette_markers,
             saved_search_list,
             saved_search_put,
@@ -1249,16 +1385,16 @@ mod catalog_round_trip {
 
         for sort in ["imported", "filename", "created", "updated", "colour", "deleted", "orientation"] {
             for direction in [Some("asc"), Some("desc"), None] {
-                let (where_sql, bound) = build_where(&[], &[], None, DeletedFilter::HideDeleted);
+                let (where_sql, bound) = build_where(&[], &[], &[], None, DeletedFilter::HideDeleted);
                 let rows = list(&conn, &where_sql, &bound, &sort_clause(sort, direction));
                 assert_eq!(rows.len(), 1, "sort {sort} {direction:?}");
                 assert_eq!(rows[0].dominant_bucket.as_deref(), Some("green"));
             }
         }
 
-        let filtered = build_where(&["green".into()], &["landscape".into()], Some(BATCH), DeletedFilter::HideDeleted);
+        let filtered = build_where(&["green".into()], &["landscape".into()], &[], Some(BATCH), DeletedFilter::HideDeleted);
         assert_eq!(list(&conn, &filtered.0, &filtered.1, "i.imported_at").len(), 1);
-        let miss = build_where(&["red".into()], &[], None, DeletedFilter::HideDeleted);
+        let miss = build_where(&["red".into()], &[], &[], None, DeletedFilter::HideDeleted);
         assert!(list(&conn, &miss.0, &miss.1, "i.imported_at").is_empty());
 
         let (w, h, bucket): (i32, i32, String) = conn
@@ -1308,7 +1444,7 @@ mod catalog_round_trip {
             .unwrap();
         assert_eq!(counts, (1, 1, 1));
 
-        let (where_sql, bound) = build_where(&[], &[], None, DeletedFilter::HideDeleted);
+        let (where_sql, bound) = build_where(&[], &[], &[], None, DeletedFilter::HideDeleted);
         let rows = list(&conn, &where_sql, &bound, &sort_clause("imported", None));
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].title, "lichen-colony");
@@ -1331,7 +1467,7 @@ mod catalog_round_trip {
 
         let search = |typed: &str| -> Vec<ImportedRow> {
             let (join_sql, mut bound) = search_join(Some(typed));
-            let (where_sql, where_bound) = build_where(&[], &[], None, DeletedFilter::HideDeleted);
+            let (where_sql, where_bound) = build_where(&[], &[], &[], None, DeletedFilter::HideDeleted);
             bound.extend(where_bound);
             list(&conn, &format!("{join_sql}{where_sql}"), &bound, "hit.score ASC")
         };
@@ -1349,13 +1485,39 @@ mod catalog_round_trip {
     }
 
     #[test]
+    fn marks_show_on_rows_and_filter_by_label() {
+        let (db, dir) = catalog();
+        ingest_one(&db, &dir);
+        let conn = db.0.lock().unwrap();
+        let ids = vec![IMAGE.to_string()];
+        curation::change(&conn, &ids, "Favourite", |m| curation::Mark { favourite: true, ..m.clone() }).unwrap();
+        curation::change(&conn, &ids, "Label Red", |m| curation::Mark { label: Some("red".into()), ..m.clone() }).unwrap();
+
+        let by = |labels: &[&str]| {
+            let labels: Vec<String> = labels.iter().map(|l| l.to_string()).collect();
+            let (where_sql, bound) = build_where(&[], &[], &labels, None, DeletedFilter::HideDeleted);
+            list(&conn, &where_sql, &bound, "i.imported_at")
+        };
+        let all = by(&[]);
+        assert!(all[0].favourite);
+        assert_eq!(all[0].label.as_deref(), Some("red"));
+        assert_eq!(by(&["favourite"]).len(), 1);
+        assert_eq!(by(&["red"]).len(), 1);
+        assert_eq!(by(&["blue"]).len(), 0);
+        assert_eq!(by(&["blue", "favourite"]).len(), 1, "any of the selected");
+        assert_eq!(allowed_labels(&["teal".into(), "grey".into()]), ["grey"]);
+        drop(conn);
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
     fn trash_then_purge_sweep_compares_timestamps() {
         let (db, dir) = catalog();
         ingest_one(&db, &dir);
         let conn = db.0.lock().unwrap();
 
         assert_eq!(soft_delete(&conn, &[IMAGE.to_string()]).unwrap(), 1);
-        let (where_sql, bound) = build_where(&[], &[], None, DeletedFilter::OnlyDeleted);
+        let (where_sql, bound) = build_where(&[], &[], &[], None, DeletedFilter::OnlyDeleted);
         let trashed = list(&conn, &where_sql, &bound, &sort_clause("deleted", None));
         assert_eq!(trashed.len(), 1);
         assert!(trashed[0].deleted_at.is_some());

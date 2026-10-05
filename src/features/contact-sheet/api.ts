@@ -7,6 +7,8 @@ export type ImportedRow = {
   original_filename: string
   /** The prompt head for a generated image, else the filename. */
   title: string
+  favourite: boolean
+  label: string | null
   thumbnails_status: string
   dominant_bucket: Vga16Bucket | null
   dominant_l: number | null

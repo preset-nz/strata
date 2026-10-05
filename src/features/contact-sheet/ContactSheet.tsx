@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
-import { ImageCard, type ColourLabel } from "@/components/image-card"
+import { ImageCard } from "@/components/image-card"
+import { MarkedImageCard } from "@/features/curation/MarkedImageCard"
+import { loadMarks, putRows } from "@/features/curation/marks"
 import { ThumbGrid } from "./ThumbGrid"
 import { batchImported, type ImportedRow } from "./api"
-
-type Marks = { isFavourite: boolean; colourLabel: ColourLabel | null }
 
 type FileState =
   | "queued"
@@ -67,34 +67,13 @@ export function ContactSheet({ batchId, cellSize }: Props) {
   const [skipped, setSkipped] = useState<Map<string, SkippedCell>>(new Map())
   const [failed, setFailed] = useState<Map<string, FailedCell>>(new Map())
   const [done, setDone] = useState<BatchDoneEvent | null>(null)
-  const [marks, setMarks] = useState<Map<string, Marks>>(new Map())
-
-  const toggleFavourite = useCallback((key: string) => {
-    setMarks((prev) => {
-      const next = new Map(prev)
-      const cur = next.get(key) ?? { isFavourite: false, colourLabel: null }
-      next.set(key, { ...cur, isFavourite: !cur.isFavourite })
-      return next
-    })
-  }, [])
-
-  const setColourLabel = useCallback(
-    (key: string, label: ColourLabel | null) => {
-      setMarks((prev) => {
-        const next = new Map(prev)
-        const cur = next.get(key) ?? { isFavourite: false, colourLabel: null }
-        next.set(key, { ...cur, colourLabel: label })
-        return next
-      })
-    },
-    [],
-  )
 
   useEffect(() => {
     let cancelled = false
     batchImported(batchId)
       .then((rows) => {
         if (cancelled) return
+        putRows(rows)
         setImported((prev) => mergeRows(prev, rows))
       })
       .catch(() => {})
@@ -152,6 +131,7 @@ export function ContactSheet({ batchId, cellSize }: Props) {
         setDone(event.payload)
         try {
           const rows = await batchImported(batchId)
+          putRows(rows)
           setImported((prev) => mergeRows(prev, rows))
         } catch {
           // ignore
@@ -163,6 +143,14 @@ export function ContactSheet({ batchId, cellSize }: Props) {
       off2?.()
     }
   }, [batchId])
+
+  const skippedIds = useMemo(
+    () => Array.from(skipped.values(), (c) => c.existingId).filter(Boolean),
+    [skipped],
+  )
+  useEffect(() => {
+    void loadMarks(skippedIds)
+  }, [skippedIds])
 
   const importedList = useMemo(
     () => Array.from(imported.values()),
@@ -187,20 +175,14 @@ export function ContactSheet({ batchId, cellSize }: Props) {
         <ThumbGrid
           items={importedList}
           cellSize={cellSize}
-          renderCell={(it) => {
-            const m = marks.get(it.key)
-            return (
-              <ImageCard
-                hash={it.hash}
-                filename={it.filename}
-                status={it.status}
-                isFavourite={m?.isFavourite ?? false}
-                colourLabel={m?.colourLabel ?? null}
-                onFavouriteToggle={() => toggleFavourite(it.key)}
-                onColourLabelChange={(c) => setColourLabel(it.key, c)}
-              />
-            )
-          }}
+          renderCell={(it) => (
+            <MarkedImageCard
+              id={it.key}
+              hash={it.hash}
+              filename={it.filename}
+              status={it.status}
+            />
+          )}
         />
       </Section>
 
@@ -208,20 +190,14 @@ export function ContactSheet({ batchId, cellSize }: Props) {
         <ThumbGrid
           items={skippedList}
           cellSize={cellSize}
-          renderCell={(it) => {
-            const m = marks.get(it.key)
-            return (
-              <ImageCard
-                hash={it.hash}
-                filename={it.filename}
-                status="ready"
-                isFavourite={m?.isFavourite ?? false}
-                colourLabel={m?.colourLabel ?? null}
-                onFavouriteToggle={() => toggleFavourite(it.key)}
-                onColourLabelChange={(c) => setColourLabel(it.key, c)}
-              />
+          renderCell={(it) =>
+            // A duplicate is the catalog's existing image: its marks are that image's.
+            it.existingId ? (
+              <MarkedImageCard id={it.existingId} hash={it.hash} filename={it.filename} status="ready" />
+            ) : (
+              <ImageCard hash={it.hash} filename={it.filename} status="ready" />
             )
-          }}
+          }
         />
       </Section>
 

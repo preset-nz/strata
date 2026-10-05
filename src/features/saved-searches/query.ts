@@ -1,6 +1,11 @@
 import { LIBRARY_SORT_KEYS, type SortDirection, type SortKey } from "@/components/shell/sort-keys"
 import { ORIENTATIONS, ORIENTATION_LABEL, type Orientation } from "@/lib/orientation"
 import { VGA16_BUCKETS, VGA16_LABEL, type Vga16Bucket } from "@/lib/vga16"
+import { COLOUR_LABELS, type ColourLabel } from "@/components/image-card/colour-label"
+
+/** The rail's Label section: Favourited and the colours. */
+export type LabelFilter = "favourite" | ColourLabel
+const LABEL_SELECTORS: readonly string[] = ["favourite", ...COLOUR_LABELS]
 
 /**
  * What a saved search remembers: the library query, not its results. Stored
@@ -12,6 +17,8 @@ export type SavedQuery = {
   text: string
   buckets: Vga16Bucket[]
   orientations: Orientation[]
+  /** "favourite" and colour labels. Added 2026-10-05; older saves read as none. */
+  labels: LabelFilter[]
   batchId: string | null
   sort: SortKey
   direction: SortDirection
@@ -23,6 +30,7 @@ export function makeQuery(q: Omit<SavedQuery, "v">): SavedQuery {
     text: q.text.trim(),
     buckets: [...q.buckets].sort(),
     orientations: [...q.orientations].sort(),
+    labels: [...q.labels].sort(),
     batchId: q.batchId,
     sort: q.sort,
     direction: q.direction,
@@ -31,7 +39,13 @@ export function makeQuery(q: Omit<SavedQuery, "v">): SavedQuery {
 
 /** Something worth saving: a typed query or at least one filter. */
 export function isSavable(q: SavedQuery): boolean {
-  return q.text !== "" || q.buckets.length > 0 || q.orientations.length > 0 || q.batchId !== null
+  return (
+    q.text !== "" ||
+    q.buckets.length > 0 ||
+    q.orientations.length > 0 ||
+    q.labels.length > 0 ||
+    q.batchId !== null
+  )
 }
 
 function strings(value: unknown): string[] {
@@ -52,6 +66,7 @@ export function parseQuery(raw: unknown): SavedQuery | null {
     orientations: strings(r.orientations).filter((o): o is Orientation =>
       (ORIENTATIONS as readonly string[]).includes(o),
     ),
+    labels: strings(r.labels).filter((l): l is LabelFilter => LABEL_SELECTORS.includes(l)),
     batchId: typeof r.batchId === "string" ? r.batchId : null,
     sort,
     direction: r.direction === "asc" ? "asc" : "desc",
@@ -68,6 +83,7 @@ export function suggestName(q: SavedQuery): string {
     q.text,
     ...q.buckets.map((b) => VGA16_LABEL[b]),
     ...q.orientations.map((o) => ORIENTATION_LABEL[o]),
+    ...q.labels.map((l) => (l === "favourite" ? "Favourites" : l.charAt(0).toUpperCase() + l.slice(1))),
     q.batchId ? "one import" : "",
   ].filter(Boolean)
   return parts.join(", ")

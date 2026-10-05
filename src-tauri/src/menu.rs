@@ -1,7 +1,8 @@
 //! Strata's commands for the native menu. app-kit builds the menu bar from
 //! these and the built-in items `menu.toml` switches on (guidance
 //! `design/native-apps.md`, rule 1); each item reaches the webview as one
-//! `command` event, bound by id in `App.tsx`.
+//! `command` event, bound by id in `App.tsx`. Domain menus (Image) sit
+//! between View and Window.
 
 use preset_app_kit::{AppKit, Command, MenuName};
 use tauri::{AppHandle, Emitter, Runtime};
@@ -25,8 +26,44 @@ fn commands() -> Vec<Command> {
         Command::toggle("view.palette_markers", "Palette Markers")
             .accelerator("CmdOrCtrl+Shift+M")
             .menu(MenuName::View)
-            .section(0),
+            .section(0)
+            .unchecked(),
     ]
+    .into_iter()
+    .chain(image_commands())
+    .collect()
+}
+
+/// The Image menu: curation of the selected image. Bare keys, as Lightroom and
+/// Photos do: F hearts, 1 to 7 label, 0 clears. The webview disables them while
+/// a text field has focus, so typing an "f" never hearts anything.
+fn image_commands() -> Vec<Command> {
+    let mut commands = vec![Command::toggle("image.favourite", "Favourite")
+        .accelerator("F")
+        .domain("Image")
+        .section(0)
+        .unchecked()
+        .disabled()];
+    let labels = crate::curation::LABELS.iter().enumerate().map(|(i, label)| {
+        let title = format!("{}{}", label[..1].to_uppercase(), &label[1..]);
+        Command::item(&format!("image.label.{label}"), &title)
+            .accelerator(&(i + 1).to_string())
+            .domain("Image")
+            .submenu("Colour Label")
+            .section(1)
+            .disabled()
+    });
+    commands.extend(labels);
+    commands.push(
+        Command::item("image.label.none", "No Label")
+            .accelerator("0")
+            .domain("Image")
+            .submenu("Colour Label")
+            .section(1)
+            .category("clear")
+            .disabled(),
+    );
+    commands
 }
 
 pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
