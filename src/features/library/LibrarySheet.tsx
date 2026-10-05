@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
-import { CardContextMenu } from "@/components/image-card/CardContextMenu"
+import { CardContextMenu, type CollectionMenu } from "@/components/image-card/CardContextMenu"
 import { Quickview } from "@/features/quickview/Quickview"
 import { MarkedImageCard } from "@/features/curation/MarkedImageCard"
-import { HISTORY_CHANGED, putRows } from "@/features/curation/marks"
+import { putRows } from "@/features/curation/marks"
 import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import type { ImportedRow } from "../contact-sheet/api"
 import { listImages, type SortDirection } from "./api"
@@ -42,7 +42,13 @@ type Props = {
   batchId?: string | null
   /** "favourite" and colour labels, any of. */
   labels?: string[]
+  /** Show only this collection's images. */
+  collectionId?: string | null
   query?: string
+  /** Change it to reload: membership changed, or Undo / Redo ran. */
+  reloadToken?: number
+  /** Collection commands for a card's context menu, given its image id. */
+  collectionMenu?: (imageId: string) => CollectionMenu
   cellSize?: number
   onLibraryChanged?: () => void
 }
@@ -54,7 +60,10 @@ export function LibrarySheet({
   orientations,
   batchId,
   labels,
+  collectionId,
   query,
+  reloadToken,
+  collectionMenu,
   cellSize,
   onLibraryChanged,
 }: Props) {
@@ -64,7 +73,7 @@ export function LibrarySheet({
   const [quickviewIndex, setQuickviewIndex] = useState<number | null>(null)
   const loadingRef = useRef(false)
   const offsetRef = useRef(0)
-  const queryRef = useRef({ sort, direction, buckets, orientations, batchId, labels, query })
+  const queryRef = useRef({ sort, direction, buckets, orientations, batchId, labels, collectionId, query })
   const pendingUndoRef = useRef<Map<string, { cell: Cell; idx: number }>>(
     new Map(),
   )
@@ -114,14 +123,14 @@ export function LibrarySheet({
   }, [])
 
   useEffect(() => {
-    queryRef.current = { sort, direction, buckets, orientations, batchId, labels, query }
+    queryRef.current = { sort, direction, buckets, orientations, batchId, labels, collectionId, query }
     // The clears inside `reset` must land in the same commit that kicks off the
     // fetch: they also zero `offsetRef`/`loadingRef`, and deferring them past an
     // await lets a scroll-driven `loadNext` page against the old offset and
     // concat stale-order rows onto the new query.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void reset()
-  }, [reset, sort, direction, buckets, orientations, batchId, labels, query])
+  }, [reset, sort, direction, buckets, orientations, batchId, labels, collectionId, query, reloadToken])
 
   useEffect(() => {
     let off: UnlistenFn | undefined
@@ -131,16 +140,7 @@ export function LibrarySheet({
         onLibraryChanged?.()
       })
     })()
-    // Undo and Redo change marks behind the grid's back, and with a label
-    // filter on, which images belong in it.
-    const history = listen(HISTORY_CHANGED, () => {
-      void reset()
-      onLibraryChanged?.()
-    })
-    return () => {
-      off?.()
-      void history.then((u) => u())
-    }
+    return () => off?.()
   }, [reset, onLibraryChanged])
 
   useEffect(() => {
@@ -219,6 +219,7 @@ export function LibrarySheet({
           <CardContextMenu
             mode="library"
             onMoveToTrash={() => void moveToTrash([it.row.id])}
+            collections={collectionMenu?.(it.row.id)}
           >
             <MarkedImageCard
               id={it.row.id}

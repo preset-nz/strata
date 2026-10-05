@@ -34,7 +34,7 @@ fn commands() -> Vec<Command> {
     .collect()
 }
 
-/// The Image menu: curation of the selected image. Bare keys, as Lightroom and
+/// The Image menu: curation of the selected image, and collections. Bare keys, as Lightroom and
 /// Photos do: F hearts, 1 to 7 label, 0 clears. The webview disables them while
 /// a text field has focus, so typing an "f" never hearts anything.
 fn image_commands() -> Vec<Command> {
@@ -54,6 +54,18 @@ fn image_commands() -> Vec<Command> {
             .disabled()
     });
     commands.extend(labels);
+    commands.push(
+        Command::item("image.new_collection", "New Collection…")
+            .accelerator("CmdOrCtrl+Shift+N")
+            .domain("Image")
+            .section(2),
+    );
+    commands.push(
+        Command::item("image.remove_from_collection", "Remove from Collection")
+            .domain("Image")
+            .section(2)
+            .disabled(),
+    );
     commands.push(
         Command::item("image.label.none", "No Label")
             .accelerator("0")

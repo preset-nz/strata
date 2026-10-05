@@ -1,3 +1,4 @@
+mod collection;
 mod curation;
 mod db;
 mod gestures;
@@ -380,6 +381,7 @@ fn build_where(
     filter_orientations: &[String],
     filter_labels: &[String],
     batch_id: Option<&str>,
+    collection_id: Option<&str>,
     deleted: DeletedFilter,
 ) -> (String, Vec<rusqlite::types::Value>) {
     let mut clauses: Vec<String> = Vec::new();
@@ -429,6 +431,10 @@ fn build_where(
         clauses.push("i.ingest_batch_id = ?".to_string());
         bound.push(rusqlite::types::Value::Text(b.to_string()));
     }
+    if let Some(c) = collection_id {
+        clauses.push("i.id IN (SELECT image_id FROM collection_member WHERE collection_id = ?)".to_string());
+        bound.push(rusqlite::types::Value::Text(c.to_string()));
+    }
 
     let where_sql = if clauses.is_empty() {
         String::new()
@@ -449,6 +455,7 @@ fn list_images(
     orientations: Option<Vec<String>>,
     labels: Option<Vec<String>>,
     batch_id: Option<String>,
+    collection_id: Option<String>,
     include_deleted: Option<bool>,
     only_deleted: Option<bool>,
     query: Option<String>,
@@ -473,6 +480,7 @@ fn list_images(
         &filter_orientations,
         &filter_labels,
         batch_id.as_deref(),
+        collection_id.as_deref(),
         deleted,
     );
     bound.extend(where_bound);
@@ -723,6 +731,7 @@ fn library_count(
     orientations: Option<Vec<String>>,
     labels: Option<Vec<String>>,
     batch_id: Option<String>,
+    collection_id: Option<String>,
     include_deleted: Option<bool>,
     only_deleted: Option<bool>,
     query: Option<String>,
@@ -743,6 +752,7 @@ fn library_count(
         &filter_orientations,
         &filter_labels,
         batch_id.as_deref(),
+        collection_id.as_deref(),
         deleted,
     );
     bound.extend(where_bound);
@@ -895,6 +905,7 @@ fn purge_one(
         "DELETE FROM image_keyword WHERE image_id = ?",
         "DELETE FROM image_search WHERE image_id = ?",
         "DELETE FROM image_mark WHERE image_id = ?",
+        "DELETE FROM collection_member WHERE image_id = ?",
         // The prompt and generation stay: the record outlives the output.
         "DELETE FROM generation_output WHERE image_id = ?",
         "DELETE FROM provenance_checked WHERE image_id = ?",
@@ -1017,6 +1028,100 @@ fn purge_expired_on_start(db: Arc<Db>, store: crate::store::StoreRoot, retention
     });
 }
 
+/// Records a done step in the curation history and retitles Undo.
+fn record(app: &AppHandle, history: &history::Curation, step: Option<history::Step>) {
+    if let Some(step) = step {
+        history.push(step);
+        preset_app_kit::refresh_history(app);
+    }
+}
+
+#[tauri::command]
+fn collection_list(state: State<'_, AppState>) -> Result<Vec<collection::Collection>, String> {
+    let conn = state.db.0.lock().unwrap();
+    collection::list(&conn).map_err(|e| e.to_string())
+}
+
+/// New collection holding `images` (possibly none); one undo step. Returns its id.
+#[tauri::command]
+fn collection_create(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    history: State<'_, history::Curation>,
+    name: String,
+    images: Vec<String>,
+) -> Result<String, String> {
+    let (id, step) = {
+        let conn = state.db.0.lock().unwrap();
+        collection::create(&conn, &name, &images).map_err(|e| e.to_string())?
+    };
+    record(&app, &history, Some(step));
+    Ok(id)
+}
+
+#[tauri::command]
+fn collection_rename(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    history: State<'_, history::Curation>,
+    id: String,
+    name: String,
+) -> Result<(), String> {
+    let step = {
+        let conn = state.db.0.lock().unwrap();
+        collection::rename(&conn, &id, &name).map_err(|e| e.to_string())?
+    };
+    record(&app, &history, step);
+    Ok(())
+}
+
+#[tauri::command]
+fn collection_delete(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    history: State<'_, history::Curation>,
+    id: String,
+) -> Result<(), String> {
+    let step = {
+        let conn = state.db.0.lock().unwrap();
+        collection::delete(&conn, &id).map_err(|e| e.to_string())?
+    };
+    record(&app, &history, Some(step));
+    Ok(())
+}
+
+#[tauri::command]
+fn collection_add(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    history: State<'_, history::Curation>,
+    id: String,
+    images: Vec<String>,
+) -> Result<(), String> {
+    let step = {
+        let conn = state.db.0.lock().unwrap();
+        collection::add(&conn, &id, &images).map_err(|e| e.to_string())?
+    };
+    record(&app, &history, step);
+    Ok(())
+}
+
+#[tauri::command]
+fn collection_remove(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    history: State<'_, history::Curation>,
+    id: String,
+    images: Vec<String>,
+) -> Result<(), String> {
+    let step = {
+        let conn = state.db.0.lock().unwrap();
+        collection::remove(&conn, &id, &images).map_err(|e| e.to_string())?
+    };
+    record(&app, &history, step);
+    Ok(())
+}
+
 /// Hearts or un-hearts images; one undo step.
 #[tauri::command]
 fn set_favourite(
@@ -1062,8 +1167,7 @@ fn mark(
     let Some((shown, step)) = changed else {
         return Ok(Vec::new());
     };
-    history.push(step);
-    preset_app_kit::refresh_history(app);
+    record(app, history, Some(step));
     Ok(shown)
 }
 
@@ -1269,6 +1373,12 @@ pub fn run() {
             set_colour_label,
             list_label_counts,
             image_marks,
+            collection_list,
+            collection_create,
+            collection_rename,
+            collection_delete,
+            collection_add,
+            collection_remove,
             palette_markers,
             saved_search_list,
             saved_search_put,
@@ -1385,16 +1495,16 @@ mod catalog_round_trip {
 
         for sort in ["imported", "filename", "created", "updated", "colour", "deleted", "orientation"] {
             for direction in [Some("asc"), Some("desc"), None] {
-                let (where_sql, bound) = build_where(&[], &[], &[], None, DeletedFilter::HideDeleted);
+                let (where_sql, bound) = build_where(&[], &[], &[], None, None, DeletedFilter::HideDeleted);
                 let rows = list(&conn, &where_sql, &bound, &sort_clause(sort, direction));
                 assert_eq!(rows.len(), 1, "sort {sort} {direction:?}");
                 assert_eq!(rows[0].dominant_bucket.as_deref(), Some("green"));
             }
         }
 
-        let filtered = build_where(&["green".into()], &["landscape".into()], &[], Some(BATCH), DeletedFilter::HideDeleted);
+        let filtered = build_where(&["green".into()], &["landscape".into()], &[], Some(BATCH), None, DeletedFilter::HideDeleted);
         assert_eq!(list(&conn, &filtered.0, &filtered.1, "i.imported_at").len(), 1);
-        let miss = build_where(&["red".into()], &[], &[], None, DeletedFilter::HideDeleted);
+        let miss = build_where(&["red".into()], &[], &[], None, None, DeletedFilter::HideDeleted);
         assert!(list(&conn, &miss.0, &miss.1, "i.imported_at").is_empty());
 
         let (w, h, bucket): (i32, i32, String) = conn
@@ -1444,7 +1554,7 @@ mod catalog_round_trip {
             .unwrap();
         assert_eq!(counts, (1, 1, 1));
 
-        let (where_sql, bound) = build_where(&[], &[], &[], None, DeletedFilter::HideDeleted);
+        let (where_sql, bound) = build_where(&[], &[], &[], None, None, DeletedFilter::HideDeleted);
         let rows = list(&conn, &where_sql, &bound, &sort_clause("imported", None));
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].title, "lichen-colony");
@@ -1467,7 +1577,7 @@ mod catalog_round_trip {
 
         let search = |typed: &str| -> Vec<ImportedRow> {
             let (join_sql, mut bound) = search_join(Some(typed));
-            let (where_sql, where_bound) = build_where(&[], &[], &[], None, DeletedFilter::HideDeleted);
+            let (where_sql, where_bound) = build_where(&[], &[], &[], None, None, DeletedFilter::HideDeleted);
             bound.extend(where_bound);
             list(&conn, &format!("{join_sql}{where_sql}"), &bound, "hit.score ASC")
         };
@@ -1495,7 +1605,7 @@ mod catalog_round_trip {
 
         let by = |labels: &[&str]| {
             let labels: Vec<String> = labels.iter().map(|l| l.to_string()).collect();
-            let (where_sql, bound) = build_where(&[], &[], &labels, None, DeletedFilter::HideDeleted);
+            let (where_sql, bound) = build_where(&[], &[], &labels, None, None, DeletedFilter::HideDeleted);
             list(&conn, &where_sql, &bound, "i.imported_at")
         };
         let all = by(&[]);
@@ -1506,6 +1616,14 @@ mod catalog_round_trip {
         assert_eq!(by(&["blue"]).len(), 0);
         assert_eq!(by(&["blue", "favourite"]).len(), 1, "any of the selected");
         assert_eq!(allowed_labels(&["teal".into(), "grey".into()]), ["grey"]);
+
+        let (coll, _) = collection::create(&conn, "Bark", &ids).unwrap();
+        let in_coll = |c: &str| {
+            let (where_sql, bound) = build_where(&[], &[], &[], None, Some(c), DeletedFilter::HideDeleted);
+            list(&conn, &where_sql, &bound, "i.imported_at").len()
+        };
+        assert_eq!(in_coll(&coll), 1);
+        assert_eq!(in_coll("other"), 0);
         drop(conn);
         std::fs::remove_dir_all(dir).ok();
     }
@@ -1517,7 +1635,7 @@ mod catalog_round_trip {
         let conn = db.0.lock().unwrap();
 
         assert_eq!(soft_delete(&conn, &[IMAGE.to_string()]).unwrap(), 1);
-        let (where_sql, bound) = build_where(&[], &[], &[], None, DeletedFilter::OnlyDeleted);
+        let (where_sql, bound) = build_where(&[], &[], &[], None, None, DeletedFilter::OnlyDeleted);
         let trashed = list(&conn, &where_sql, &bound, &sort_clause("deleted", None));
         assert_eq!(trashed.len(), 1);
         assert!(trashed[0].deleted_at.is_some());

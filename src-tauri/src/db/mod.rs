@@ -234,6 +234,27 @@ const MIGRATIONS: &[(i64, &str)] = &[(
 
     CREATE INDEX idx_image_mark_label ON image_mark(label);
     "#,
+),
+// v6 — collections (`collection.rs`): a name and members, an image in many.
+(
+    6,
+    r#"
+    CREATE TABLE collection (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE collection_member (
+        collection_id TEXT NOT NULL,
+        image_id TEXT NOT NULL,
+        added_at TEXT NOT NULL,
+        PRIMARY KEY (collection_id, image_id)
+    );
+
+    CREATE INDEX idx_collection_member_image ON collection_member(image_id);
+    "#,
 )];
 
 fn apply_migrations(conn: &Connection) -> Result<()> {

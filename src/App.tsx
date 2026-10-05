@@ -62,6 +62,8 @@ import {
   useMark,
 } from "./features/curation/marks"
 import { useCommands, useTextFocus, type Binding } from "@preset.nz/app-kit/core"
+import { CollectionList } from "./features/collections/CollectionList"
+import { useCollections } from "./features/collections/use-collections"
 import { paletteMarkers, usePaletteMarkers } from "./features/quickview/palette-markers"
 
 type View =
@@ -253,6 +255,10 @@ function AppShell() {
   const searchRef = useRef<HTMLInputElement | null>(null)
   const [batches, setBatches] = useState<BatchSummary[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null)
+  // Bumped when membership changed under the library's feet (added to or
+  // removed from the collection it shows).
+  const [reloadToken, setReloadToken] = useState(0)
   const [trashCount, setTrashCount] = useState(0)
   const moveToTrash = useMoveToTrash()
   const onTrashDrop = useCallback(
@@ -350,8 +356,11 @@ function AppShell() {
     let cancelled = false
     ;(async () => {
       offs.push(
+        // Undo and Redo change the catalog behind every view: counts, the
+        // grid (through reloadToken) and the filtered count.
         await listen(HISTORY_CHANGED, () => {
           void refreshCounts()
+          setReloadToken((t) => t + 1)
         }),
       )
       offs.push(
@@ -406,10 +415,11 @@ function AppShell() {
         orientations: orientationsForQuery,
         labels: labelsForQuery,
         batchId: selectedBatchId,
+        collectionId: selectedCollectionId,
         sort: sortState.key,
         direction: sortState.direction,
       }),
-    [searchQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, sortState],
+    [searchQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, selectedCollectionId, sortState],
   )
   const applyQuery = useCallback(
     (q: SavedQuery) => {
@@ -421,11 +431,36 @@ function AppShell() {
       setSelectedOrientations(new Set(q.orientations))
       setSelectedLabels(new Set(q.labels))
       setSelectedBatchId(q.batchId)
+      setSelectedCollectionId(q.collectionId)
       setSortState({ key: q.sort, direction: q.direction })
     },
     [leaveIngestView, setSortState],
   )
   const saved = useSavedSearches(currentQuery, applyQuery)
+
+  const collectionChanged = useCallback(() => {
+    void refreshCounts()
+    setReloadToken((t) => t + 1)
+  }, [refreshCounts])
+  const coll = useCollections(collectionChanged)
+  // A deleted collection can't stay the filter.
+  useEffect(() => {
+    if (selectedCollectionId && !coll.collections.some((c) => c.id === selectedCollectionId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- follows the list
+      setSelectedCollectionId(null)
+    }
+  }, [coll.collections, selectedCollectionId])
+  const collectionMenu = useCallback(
+    (imageId: string) => ({
+      collections: coll.collections,
+      onAdd: (id: string) => void coll.add(id, [imageId]),
+      onNew: () => coll.startNaming([imageId]),
+      onRemove: selectedCollectionId
+        ? () => void coll.removeImages(selectedCollectionId, [imageId])
+        : undefined,
+    }),
+    [coll, selectedCollectionId],
+  )
 
   // The menu's commands, by the ids `src-tauri/src/menu.rs` declares. app-kit
   // owns Undo and Redo, keeps enabled and checked state in step with the
@@ -445,6 +480,16 @@ function AppShell() {
         pressed: selectedMark.favourite,
         run: () => {
           if (selectedImage) void setFavourite([selectedImage], !selectedMark.favourite).then(refreshCounts)
+        },
+      },
+      "image.new_collection": {
+        enabled: !textFocus,
+        run: () => coll.startNaming(selectedImage ? [selectedImage] : []),
+      },
+      "image.remove_from_collection": {
+        enabled: canMark && selectedCollectionId !== null,
+        run: () => {
+          if (selectedImage && selectedCollectionId) void coll.removeImages(selectedCollectionId, [selectedImage])
         },
       },
       "image.label.none": {
@@ -473,7 +518,7 @@ function AppShell() {
       "edit.save_search": { run: startNaming },
       "view.palette_markers": { pressed: markers.on, run: paletteMarkers.toggle },
     }),
-    [startNaming, markers.on, canMark, selectedImage, selectedMark, refreshCounts],
+    [startNaming, markers.on, canMark, selectedImage, selectedMark, refreshCounts, textFocus, coll, selectedCollectionId],
   )
   useCommands(bindings)
 
@@ -482,7 +527,8 @@ function AppShell() {
     bucketsForQuery.length > 0 ||
     orientationsForQuery.length > 0 ||
     labelsForQuery.length > 0 ||
-    selectedBatchId !== null
+    selectedBatchId !== null ||
+    selectedCollectionId !== null
 
   useEffect(() => {
     if (!hasActiveQuery) return
@@ -492,6 +538,7 @@ function AppShell() {
       orientations: orientationsForQuery,
       labels: labelsForQuery,
       batchId: selectedBatchId,
+      collectionId: selectedCollectionId,
       query: searchQuery,
     })
       .then((n) => {
@@ -501,7 +548,8 @@ function AppShell() {
     return () => {
       cancelled = true
     }
-  }, [hasActiveQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, searchQuery])
+    // reloadToken: membership changed under the same filter, so the count did too.
+  }, [hasActiveQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, selectedCollectionId, searchQuery, reloadToken])
 
   // Derived rather than stored: gating on hasActiveQuery keeps a count left
   // over from a previous filter from showing once the filter is cleared.
@@ -603,7 +651,8 @@ function AppShell() {
     selectedBuckets.size +
     selectedOrientations.size +
     selectedLabels.size +
-    (selectedBatchId ? 1 : 0)
+    (selectedBatchId ? 1 : 0) +
+    (selectedCollectionId ? 1 : 0)
   const addDisabled =
     view.kind === "scanning" ||
     view.kind === "scanned" ||
@@ -658,6 +707,9 @@ function AppShell() {
         orientations={orientationsForQuery}
         labels={labelsForQuery}
         batchId={selectedBatchId}
+        collectionId={selectedCollectionId}
+        reloadToken={reloadToken}
+        collectionMenu={collectionMenu}
         query={searchQuery}
         cellSize={cardSize}
         onLibraryChanged={refreshCounts}
@@ -666,6 +718,9 @@ function AppShell() {
   }, [
     searchQuery,
     labelsForQuery,
+    selectedCollectionId,
+    reloadToken,
+    collectionMenu,
     view,
     panel,
     handleConfirm,
@@ -741,6 +796,26 @@ function AppShell() {
             libraryActive={panel === "library"}
             onSelectLibrary={onSelectLibrary}
             filtersDisabled={panel === "trash"}
+            collectionCount={coll.collections.length}
+            collectionsOpen={coll.naming !== null}
+            collections={
+              <CollectionList
+                collections={coll.collections}
+                selectedId={selectedCollectionId}
+                disabled={panel === "trash"}
+                onSelect={(id) => {
+                  leaveIngestView()
+                  setPanel("library")
+                  setSelectedCollectionId(id)
+                }}
+                onRename={(id, name) => void coll.rename(id, name)}
+                onDelete={(c) => void coll.remove(c)}
+                onDrop={(id, images) => void coll.add(id, images)}
+                naming={coll.naming !== null}
+                onName={(name) => void coll.create(name)}
+                onCancelNaming={coll.cancelNaming}
+              />
+            }
             savedSearchCount={saved.searches.length}
             savedSearchesOpen={saved.naming !== null}
             savedSearches={

@@ -20,6 +20,8 @@ export type SavedQuery = {
   /** "favourite" and colour labels. Added 2026-10-05; older saves read as none. */
   labels: LabelFilter[]
   batchId: string | null
+  /** Added 2026-10-05 with collections; older saves read as none. */
+  collectionId: string | null
   sort: SortKey
   direction: SortDirection
 }
@@ -32,6 +34,7 @@ export function makeQuery(q: Omit<SavedQuery, "v">): SavedQuery {
     orientations: [...q.orientations].sort(),
     labels: [...q.labels].sort(),
     batchId: q.batchId,
+    collectionId: q.collectionId,
     sort: q.sort,
     direction: q.direction,
   }
@@ -44,7 +47,8 @@ export function isSavable(q: SavedQuery): boolean {
     q.buckets.length > 0 ||
     q.orientations.length > 0 ||
     q.labels.length > 0 ||
-    q.batchId !== null
+    q.batchId !== null ||
+    q.collectionId !== null
   )
 }
 
@@ -68,6 +72,7 @@ export function parseQuery(raw: unknown): SavedQuery | null {
     ),
     labels: strings(r.labels).filter((l): l is LabelFilter => LABEL_SELECTORS.includes(l)),
     batchId: typeof r.batchId === "string" ? r.batchId : null,
+    collectionId: typeof r.collectionId === "string" ? r.collectionId : null,
     sort,
     direction: r.direction === "asc" ? "asc" : "desc",
   })
@@ -85,6 +90,7 @@ export function suggestName(q: SavedQuery): string {
     ...q.orientations.map((o) => ORIENTATION_LABEL[o]),
     ...q.labels.map((l) => (l === "favourite" ? "Favourites" : l.charAt(0).toUpperCase() + l.slice(1))),
     q.batchId ? "one import" : "",
+    q.collectionId ? "one collection" : "",
   ].filter(Boolean)
   return parts.join(", ")
 }

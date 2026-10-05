@@ -35,6 +35,7 @@ import {
 
 type SectionId =
   | "searches"
+  | "collections"
   | "sort"
   | "orientation"
   | "content_colour"
@@ -79,6 +80,10 @@ type Props = {
   savedSearchCount: number
   /** Holds Searches open while a name is being typed into it. */
   savedSearchesOpen?: boolean
+  /** The Collections section's body and count; held open while naming. */
+  collections: React.ReactNode
+  collectionCount: number
+  collectionsOpen?: boolean
 }
 
 export function LeftRail({
@@ -110,11 +115,15 @@ export function LeftRail({
   savedSearches,
   savedSearchCount,
   savedSearchesOpen,
+  collections,
+  collectionCount,
+  collectionsOpen,
 }: Props) {
   const [collapsed, setCollapsed] = usePersistedState<Record<SectionId, boolean>>(
     "strata.rail.collapsed",
     {
       searches: false,
+      collections: false,
       sort: false,
       orientation: false,
       content_colour: false,
@@ -151,6 +160,15 @@ export function LeftRail({
         summary={savedSearchCount > 0 ? savedSearchCount : undefined}
       >
         {savedSearches}
+      </Section>
+      <Section
+        id="collections"
+        title="Collections"
+        collapsed={collapsed.collections && !collectionsOpen}
+        onToggle={() => toggle("collections")}
+        summary={collectionCount > 0 ? collectionCount : undefined}
+      >
+        {collections}
       </Section>
       <Section
         id="sort"

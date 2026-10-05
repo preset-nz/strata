@@ -28,6 +28,7 @@ export type ImagesQuery = {
   /** "favourite" and colour labels; an image matching any of them shows. */
   labels?: string[]
   batchId?: string | null
+  collectionId?: string | null
   includeDeleted?: boolean
   onlyDeleted?: boolean
   /** Typed keywords. While set, results are ranked by relevance. */
@@ -48,6 +49,7 @@ export function listImages(
     orientations: opts?.orientations,
     labels: opts?.labels,
     batchId: opts?.batchId ?? undefined,
+    collectionId: opts?.collectionId ?? undefined,
     includeDeleted: opts?.includeDeleted,
     onlyDeleted: opts?.onlyDeleted,
     query: opts?.query || undefined,
@@ -75,6 +77,7 @@ export type CountQuery = {
   orientations?: Orientation[]
   labels?: string[]
   batchId?: string | null
+  collectionId?: string | null
   includeDeleted?: boolean
   onlyDeleted?: boolean
   query?: string
@@ -98,6 +101,7 @@ export function libraryCount(opts?: CountQuery): Promise<number> {
     orientations: opts?.orientations,
     labels: opts?.labels,
     batchId: opts?.batchId ?? undefined,
+    collectionId: opts?.collectionId ?? undefined,
     includeDeleted: opts?.includeDeleted,
     onlyDeleted: opts?.onlyDeleted,
     query: opts?.query || undefined,
