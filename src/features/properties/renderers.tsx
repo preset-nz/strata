@@ -1,83 +1,70 @@
 /* eslint-disable react-refresh/only-export-components --
  * Renderers + the registration entry point are colocated by design. */
-import { registerFieldRenderer } from "@preset.nz/facets"
-import type { FieldRenderer } from "@preset.nz/facets"
 import {
-  VGA16_HEX,
-  VGA16_LABEL,
-  type Vga16Bucket,
-} from "@/lib/vga16"
-import { COLOUR_SWATCH, type ColourLabel } from "@/components/image-card/colour-label"
-import { Label } from "@/components/ui/label"
+  FieldShell,
+  ReadOnlyText,
+  registerFieldRenderer,
+} from "@preset.nz/facets"
+import type { FieldRenderer } from "@preset.nz/facets"
+import { VGA16_HEX, VGA16_LABEL, type Vga16Bucket } from "@/lib/vga16"
+import {
+  COLOUR_SWATCH,
+  type ColourLabel,
+} from "@/components/image-card/colour-label"
 import { PaletteExtract } from "./PaletteExtract"
 
-function FieldShell({
-  label,
-  children,
-}: {
-  label?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      {label && (
-        <Label className="text-[11px] font-medium text-muted-foreground tracking-wide">
-          {label}
-        </Label>
-      )}
-      {children}
-    </div>
-  )
-}
-
-const Vga16BucketRenderer: FieldRenderer = ({ field, value }) => {
+const Vga16BucketRenderer: FieldRenderer = ({ field, value, view }) => {
   const bucket = value as Vga16Bucket | null | undefined
   const hex = bucket ? VGA16_HEX[bucket] : null
   const label = bucket ? VGA16_LABEL[bucket] : null
   return (
-    <FieldShell label={field.label ?? field.id}>
-      <div className="flex items-center gap-2">
-        {hex ? (
-          <span
-            aria-hidden
-            className="inline-block size-4 shrink-0 border border-border"
-            style={{ backgroundColor: hex }}
-          />
-        ) : (
-          <span className="inline-block size-4 shrink-0 border border-dashed border-border" />
-        )}
-        <span className="text-xs text-foreground">
-          {label ?? <span className="text-muted-foreground">—</span>}
-        </span>
-      </div>
+    <FieldShell label={field.label ?? field.id} view={view}>
+      <ReadOnlyText>
+        <div className="flex items-center gap-2">
+          {hex ? (
+            <span
+              aria-hidden
+              className="inline-block size-4 shrink-0 border border-border"
+              style={{ backgroundColor: hex }}
+            />
+          ) : (
+            <span className="inline-block size-4 shrink-0 border border-dashed border-border" />
+          )}
+          <span className="text-xs text-foreground">
+            {label ?? <span className="text-muted-foreground">—</span>}
+          </span>
+        </div>
+      </ReadOnlyText>
     </FieldShell>
   )
 }
 
-const ColourLabelRenderer: FieldRenderer = ({ field, value }) => {
+const ColourLabelRenderer: FieldRenderer = ({ field, value, view }) => {
   const colour = value as ColourLabel | null | undefined
   const swatch = colour ? COLOUR_SWATCH[colour] : null
   return (
-    <FieldShell label={field.label ?? field.id}>
-      <div className="flex items-center gap-2">
-        {swatch ? (
-          <span
-            aria-hidden
-            className="inline-block size-4 shrink-0 border border-border"
-            style={{ backgroundColor: swatch }}
-          />
-        ) : (
-          <span className="inline-block size-4 shrink-0 border border-dashed border-border" />
-        )}
-        <span className="text-xs text-foreground capitalize">
-          {colour ?? <span className="text-muted-foreground">—</span>}
-        </span>
-      </div>
+    <FieldShell label={field.label ?? field.id} view={view}>
+      <ReadOnlyText>
+        <div className="flex items-center gap-2">
+          {swatch ? (
+            <span
+              aria-hidden
+              className="inline-block size-4 shrink-0 border border-border"
+              style={{ backgroundColor: swatch }}
+            />
+          ) : (
+            <span className="inline-block size-4 shrink-0 border border-dashed border-border" />
+          )}
+          <span className="text-xs text-foreground capitalize">
+            {colour ?? <span className="text-muted-foreground">—</span>}
+          </span>
+        </div>
+      </ReadOnlyText>
     </FieldShell>
   )
 }
 
-const StatusRenderer: FieldRenderer = ({ field, value }) => {
+const StatusRenderer: FieldRenderer = ({ field, value, view }) => {
   const status = String(value ?? "")
   const tone = (() => {
     if (status === "ready") return "text-foreground"
@@ -85,10 +72,12 @@ const StatusRenderer: FieldRenderer = ({ field, value }) => {
     return "text-muted-foreground"
   })()
   return (
-    <FieldShell label={field.label ?? field.id}>
-      <div className={`text-xs capitalize ${tone}`}>
-        {status || <span className="text-muted-foreground">—</span>}
-      </div>
+    <FieldShell label={field.label ?? field.id} view={view}>
+      <ReadOnlyText>
+        <span className={`capitalize ${tone}`}>
+          {status || <span className="text-muted-foreground">—</span>}
+        </span>
+      </ReadOnlyText>
     </FieldShell>
   )
 }
@@ -101,14 +90,14 @@ const DATE_FMT = new Intl.DateTimeFormat(undefined, {
   minute: "2-digit",
 })
 
-const DateRenderer: FieldRenderer = ({ field, value }) => {
+const DateRenderer: FieldRenderer = ({ field, value, view }) => {
   const iso = value as string | null | undefined
   const formatted = iso ? DATE_FMT.format(new Date(iso)) : null
   return (
-    <FieldShell label={field.label ?? field.id}>
-      <span className="text-xs text-foreground tabular-nums">
+    <FieldShell label={field.label ?? field.id} view={view}>
+      <ReadOnlyText>
         {formatted ?? <span className="text-muted-foreground">—</span>}
-      </span>
+      </ReadOnlyText>
     </FieldShell>
   )
 }
@@ -119,25 +108,31 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-const FileSizeRenderer: FieldRenderer = ({ field, value }) => {
+const FileSizeRenderer: FieldRenderer = ({ field, value, view }) => {
   const bytes = value as number | null | undefined
   return (
-    <FieldShell label={field.label ?? field.id}>
-      <span className="text-xs text-foreground tabular-nums">
-        {bytes != null ? formatBytes(bytes) : <span className="text-muted-foreground">—</span>}
-      </span>
+    <FieldShell label={field.label ?? field.id} view={view}>
+      <ReadOnlyText>
+        {bytes != null ? (
+          formatBytes(bytes)
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </ReadOnlyText>
     </FieldShell>
   )
 }
 
-const KeywordsRenderer: FieldRenderer = ({ field, value }) => {
+const KeywordsRenderer: FieldRenderer = ({ field, value, view }) => {
   const list = Array.isArray(value) ? (value as string[]) : []
   return (
-    <FieldShell label={field.label ?? field.id}>
+    <FieldShell label={field.label ?? field.id} view={view} top>
       {list.length === 0 ? (
-        <span className="text-xs text-muted-foreground">—</span>
+        <ReadOnlyText>
+          <span className="text-muted-foreground">—</span>
+        </ReadOnlyText>
       ) : (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 py-1.5">
           {list.map((kw) => (
             <span
               key={kw}

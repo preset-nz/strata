@@ -17,7 +17,7 @@ export default defineConfig({
     // node_modules of its own, so pin the shared runtime to this app's copy.
     // facets is in the list because two copies would mean two registries;
     // app-kit (a path dependency with its own node_modules) per its README.
-    dedupe: ["react", "react-dom", "@tauri-apps/api", "@preset.nz/facets", "@preset.nz/app-kit"],
+    dedupe: ["react", "react-dom", "@tauri-apps/api", "@preset.nz/facets", "@preset.nz/app-kit", "@preset.nz/ux-kit"],
   },
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   clearScreen: false,
