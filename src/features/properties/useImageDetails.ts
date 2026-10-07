@@ -7,7 +7,7 @@ import {
 export function useImageDetails(id: string | null): ImageDetails | null {
   const { data } = useQuery({
     queryKey: ["image-details", id],
-    queryFn: () => getImageDetails(id!),
+    queryFn: () => (id === null ? Promise.resolve(null) : getImageDetails(id)),
     enabled: id !== null,
     staleTime: 30_000,
   })

@@ -89,25 +89,26 @@ export function ContactSheet({ batchId, cellSize }: Props) {
       off1 = await listen<FileEvent>("ingest://file", (event) => {
         const ev = event.payload
         if (ev.batch_id !== batchId) return
-        if (ev.state === "done" && ev.image_id && ev.content_hash) {
+        const { image_id: imageId, content_hash: contentHash } = ev
+        if (ev.state === "done" && imageId && contentHash) {
           setImported((prev) => {
             const next = new Map(prev)
-            const existing = next.get(ev.image_id!)
-            next.set(ev.image_id!, {
-              key: ev.image_id!,
-              id: ev.image_id,
-              hash: ev.content_hash!,
+            const existing = next.get(imageId)
+            next.set(imageId, {
+              key: imageId,
+              id: imageId,
+              hash: contentHash,
               filename: ev.original_filename,
               status: existing?.status === "ready" ? "ready" : "thumbnailing",
             })
             return next
           })
-        } else if (ev.state === "skipped_duplicate" && ev.content_hash) {
+        } else if (ev.state === "skipped_duplicate" && contentHash) {
           setSkipped((prev) => {
             const next = new Map(prev)
             next.set(ev.source_path, {
               key: ev.source_path,
-              hash: ev.content_hash!,
+              hash: contentHash,
               filename: ev.original_filename,
               existingId: ev.image_id ?? "",
             })

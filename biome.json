@@ -45,18 +45,6 @@
             "functions": ["cn", "cva"]
           }
         }
-      },
-      "style": {
-        "noNonNullAssertion": "warn"
-      },
-      "suspicious": {
-        "noArrayIndexKey": "warn"
-      },
-      "a11y": {
-        "useKeyWithClickEvents": "warn",
-        "noStaticElementInteractions": "warn",
-        "noLabelWithoutControl": "warn",
-        "useSemanticElements": "warn"
       }
     }
   },

@@ -4,7 +4,7 @@ import { type BatchSummary, getBatch } from "@/features/library/api"
 export function useBatchDetails(id: string | null): BatchSummary | null {
   const { data } = useQuery({
     queryKey: ["batch", id],
-    queryFn: () => getBatch(id!),
+    queryFn: () => (id === null ? Promise.resolve(null) : getBatch(id)),
     enabled: id !== null,
     staleTime: 30_000,
   })
