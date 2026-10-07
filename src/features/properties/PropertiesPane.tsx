@@ -1,10 +1,10 @@
-import { useMemo } from "react"
 import { PropertyPanel, registerBuiltinRenderers } from "@preset.nz/facets"
+import { useMemo } from "react"
 import { useSelection } from "@/stores/selection"
 import { registerStrataRenderers } from "./renderers"
 import { registerStrataScopes } from "./scopes"
-import { useImageDetails } from "./useImageDetails"
 import { useBatchDetails } from "./useBatchDetails"
+import { useImageDetails } from "./useImageDetails"
 
 registerBuiltinRenderers()
 registerStrataRenderers()
@@ -38,15 +38,15 @@ export function PropertiesPane() {
       data-testid="properties-pane"
       className="flex min-h-0 flex-1 flex-col bg-background"
     >
-      <header className="flex h-9 shrink-0 items-center border-b border-border px-3">
-        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <header className="flex h-9 shrink-0 items-center border-border border-b px-3">
+        <h2 className="font-semibold text-[11px] text-muted-foreground uppercase tracking-wider">
           {title}
         </h2>
       </header>
       <div className="flex-1 overflow-auto">
         {selection.kind === "none" ? (
           <div className="flex h-full items-center justify-center p-6 text-center">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Select an image or a batch to see its properties.
             </p>
           </div>

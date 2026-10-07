@@ -126,8 +126,16 @@ mod tests {
             Srgb { r: 255, g: 0, b: 0 },
             Srgb { r: 0, g: 255, b: 0 },
             Srgb { r: 0, g: 0, b: 255 },
-            Srgb { r: 128, g: 128, b: 128 },
-            Srgb { r: 255, g: 255, b: 255 },
+            Srgb {
+                r: 128,
+                g: 128,
+                b: 128,
+            },
+            Srgb {
+                r: 255,
+                g: 255,
+                b: 255,
+            },
             Srgb { r: 0, g: 0, b: 0 },
         ] {
             let lab = srgb_to_lab(c);

@@ -9,9 +9,7 @@ use tauri::AppHandle;
 use uuid::Uuid;
 
 use crate::db::Db;
-use crate::ingest::events::{
-    emit_batch_done, emit_file, BatchDoneEvent, FileEvent, FileState,
-};
+use crate::ingest::events::{emit_batch_done, emit_file, BatchDoneEvent, FileEvent, FileState};
 use crate::ingest::{
     extension_for, hash::hash_file, metadata, mime_for_ext, store::copy_and_verify,
 };
@@ -191,7 +189,12 @@ fn process_one(
     let hash_hex = match hash_file(source) {
         Ok(h) => h,
         Err(e) => {
-            send(FileState::Failed, None, None, Some(format!("hash failed: {e}")));
+            send(
+                FileState::Failed,
+                None,
+                None,
+                Some(format!("hash failed: {e}")),
+            );
             return Ok(Outcome::Failed);
         }
     };
@@ -202,7 +205,8 @@ fn process_one(
             .prepare("SELECT id FROM images WHERE content_hash = ?")
             .ok();
         if let Some(ref mut s) = stmt {
-            s.query_row(params![hash_hex], |row| row.get::<_, String>(0)).ok()
+            s.query_row(params![hash_hex], |row| row.get::<_, String>(0))
+                .ok()
         } else {
             None
         }
@@ -249,7 +253,12 @@ fn process_one(
     let exif_created_at = metadata::date_time_original(&extracted);
     let fs_mtime = metadata::exif::fs_mtime(source);
 
-    send(FileState::Indexing, Some(hash_hex.clone()), Some(image_id.clone()), None);
+    send(
+        FileState::Indexing,
+        Some(hash_hex.clone()),
+        Some(image_id.clone()),
+        None,
+    );
     {
         let conn = db.0.lock().unwrap();
         if let Err(e) = conn.execute(
@@ -288,12 +297,9 @@ fn process_one(
     }
 
     let exif_orientation = extracted.exif.as_ref().and_then(|e| e.orientation);
-    if let Err(e) = crate::ingest::orientation::run(
-        &db,
-        &image_id,
-        &stored.target_path,
-        exif_orientation,
-    ) {
+    if let Err(e) =
+        crate::ingest::orientation::run(&db, &image_id, &stored.target_path, exif_orientation)
+    {
         eprintln!("orientation::run failed for {image_id}: {e:?}");
     }
 

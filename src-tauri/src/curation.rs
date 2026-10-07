@@ -39,7 +39,12 @@ pub fn marks(conn: &Connection, ids: &[String]) -> Result<HashMap<String, Mark>>
     let mut out = HashMap::new();
     for id in ids {
         let mark = stmt
-            .query_row(params![id], |r| Ok(Mark { favourite: r.get(0)?, label: r.get(1)? }))
+            .query_row(params![id], |r| {
+                Ok(Mark {
+                    favourite: r.get(0)?,
+                    label: r.get(1)?,
+                })
+            })
             .unwrap_or_default();
         out.insert(id.clone(), mark);
     }
@@ -93,7 +98,13 @@ pub fn change(
         return Ok(None);
     }
     write_all(conn, &now)?;
-    let shown = now.iter().map(|(id, mark)| Marked { id: id.clone(), mark: mark.clone() }).collect();
+    let shown = now
+        .iter()
+        .map(|(id, mark)| Marked {
+            id: id.clone(),
+            mark: mark.clone(),
+        })
+        .collect();
     let redo = now;
     let step = Step {
         label: step_label(label, redo.len()),
@@ -105,7 +116,11 @@ pub fn change(
 
 /// "Favourite", or "Favourite 3 Images" when it covered several.
 fn step_label(action: &str, n: usize) -> String {
-    if n == 1 { action.to_string() } else { format!("{action} {n} Images") }
+    if n == 1 {
+        action.to_string()
+    } else {
+        format!("{action} {n} Images")
+    }
 }
 
 #[cfg(test)]
@@ -128,26 +143,54 @@ mod tests {
         let conn = db.0.lock().unwrap();
         let both = ids(&["a", "b"]);
 
-        let (shown, step) = change(&conn, &both, "Favourite", |m| Mark { favourite: true, ..m.clone() })
-            .unwrap()
-            .unwrap();
+        let (shown, step) = change(&conn, &both, "Favourite", |m| Mark {
+            favourite: true,
+            ..m.clone()
+        })
+        .unwrap()
+        .unwrap();
         assert_eq!(shown.len(), 2);
         assert_eq!(step.label, "Favourite 2 Images");
 
-        let (_, label_step) = change(&conn, &ids(&["a"]), "Label Red", |m| Mark { label: Some("red".into()), ..m.clone() })
-            .unwrap()
-            .unwrap();
-        assert_eq!(marks(&conn, &ids(&["a"])).unwrap()["a"], Mark { favourite: true, label: Some("red".into()) });
+        let (_, label_step) = change(&conn, &ids(&["a"]), "Label Red", |m| Mark {
+            label: Some("red".into()),
+            ..m.clone()
+        })
+        .unwrap()
+        .unwrap();
+        assert_eq!(
+            marks(&conn, &ids(&["a"])).unwrap()["a"],
+            Mark {
+                favourite: true,
+                label: Some("red".into())
+            }
+        );
 
         (label_step.undo)(&conn).unwrap();
-        assert_eq!(marks(&conn, &ids(&["a"])).unwrap()["a"], Mark { favourite: true, label: None });
+        assert_eq!(
+            marks(&conn, &ids(&["a"])).unwrap()["a"],
+            Mark {
+                favourite: true,
+                label: None
+            }
+        );
         (step.undo)(&conn).unwrap();
-        let count: i64 = conn.query_row("SELECT COUNT(*) FROM image_mark", [], |r| r.get(0)).unwrap();
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM image_mark", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(count, 0, "a cleared mark leaves no row");
         (step.redo)(&conn).unwrap();
         assert!(marks(&conn, &both).unwrap().values().all(|m| m.favourite));
 
-        assert!(change(&conn, &both, "Favourite", |m| Mark { favourite: true, ..m.clone() }).unwrap().is_none(), "no-op is no step");
+        assert!(
+            change(&conn, &both, "Favourite", |m| Mark {
+                favourite: true,
+                ..m.clone()
+            })
+            .unwrap()
+            .is_none(),
+            "no-op is no step"
+        );
         drop(conn);
         std::fs::remove_dir_all(dir).ok();
     }

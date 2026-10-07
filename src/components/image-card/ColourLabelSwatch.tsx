@@ -1,10 +1,6 @@
 import { Popover } from "@base-ui/react/popover"
 import { cn } from "@/lib/utils"
-import {
-  COLOUR_LABELS,
-  COLOUR_SWATCH,
-  type ColourLabel,
-} from "./colour-label"
+import { COLOUR_LABELS, COLOUR_SWATCH, type ColourLabel } from "./colour-label"
 
 type Props = {
   value: ColourLabel | null
@@ -20,9 +16,7 @@ export function ColourLabelSwatch({ value, onChange }: Props) {
         className={cn(
           "inline-flex size-4 items-center justify-center rounded-full outline-none transition-opacity",
           "focus-visible:ring-1 focus-visible:ring-ring",
-          value
-            ? "opacity-100"
-            : "opacity-0 group-hover/card:opacity-100",
+          value ? "opacity-100" : "opacity-0 group-hover/card:opacity-100"
         )}
       >
         <span
@@ -30,7 +24,7 @@ export function ColourLabelSwatch({ value, onChange }: Props) {
             "block size-3 rounded-full",
             value
               ? COLOUR_SWATCH[value]
-              : "border border-dashed border-muted-foreground/60",
+              : "border border-muted-foreground/60 border-dashed"
           )}
         />
       </Popover.Trigger>
@@ -51,7 +45,7 @@ export function ColourLabelSwatch({ value, onChange }: Props) {
                   "size-4 rounded-full outline-none transition-transform hover:scale-110",
                   "focus-visible:ring-1 focus-visible:ring-ring",
                   COLOUR_SWATCH[c],
-                  value === c && "ring-2 ring-foreground/40",
+                  value === c && "ring-2 ring-foreground/40"
                 )}
               />
             ))}
@@ -60,8 +54,8 @@ export function ColourLabelSwatch({ value, onChange }: Props) {
               aria-label="clear"
               onClick={() => onChange(null)}
               className={cn(
-                "ml-1 size-4 rounded-full border border-dashed border-muted-foreground/60 outline-none transition-transform hover:scale-110",
-                "focus-visible:ring-1 focus-visible:ring-ring",
+                "ml-1 size-4 rounded-full border border-muted-foreground/60 border-dashed outline-none transition-transform hover:scale-110",
+                "focus-visible:ring-1 focus-visible:ring-ring"
               )}
             />
           </Popover.Popup>

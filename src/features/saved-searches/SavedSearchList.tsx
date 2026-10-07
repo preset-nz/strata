@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react"
 import { MagnifyingGlass, X } from "@phosphor-icons/react"
+import { useEffect, useRef, useState } from "react"
 
 import { cn } from "@/lib/utils"
 import type { SavedSearch } from "./api"
@@ -28,9 +28,11 @@ export function SavedSearchList({
 }: Props) {
   return (
     <div className="flex flex-col gap-1">
-      {naming !== null && <NameField initial={naming} onName={onName} onCancel={onCancelNaming} />}
+      {naming !== null && (
+        <NameField initial={naming} onName={onName} onCancel={onCancelNaming} />
+      )}
       {searches.length === 0 && naming === null ? (
-        <p className="text-muted-foreground/70 px-1">
+        <p className="px-1 text-muted-foreground/70">
           Search or filter, then Edit › Save Search…
         </p>
       ) : (
@@ -45,11 +47,16 @@ export function SavedSearchList({
                 className={cn(
                   "flex w-full items-center gap-1.5 rounded-sm px-1 py-0.5 pr-5 text-left transition-colors",
                   "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  activeId === s.id ? "bg-muted text-foreground" : "text-foreground hover:bg-muted/60",
-                  disabled && "opacity-60 cursor-default hover:bg-transparent",
+                  activeId === s.id
+                    ? "bg-muted text-foreground"
+                    : "text-foreground hover:bg-muted/60",
+                  disabled && "cursor-default opacity-60 hover:bg-transparent"
                 )}
               >
-                <MagnifyingGlass weight="bold" className="size-3 shrink-0 text-muted-foreground" />
+                <MagnifyingGlass
+                  weight="bold"
+                  className="size-3 shrink-0 text-muted-foreground"
+                />
                 <span className="truncate">{s.name}</span>
               </button>
               <button
@@ -58,7 +65,7 @@ export function SavedSearchList({
                 title="Delete"
                 disabled={disabled}
                 onClick={() => onDelete(s)}
-                className="absolute top-1/2 right-0.5 hidden -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground group-hover:block hover:text-foreground focus-visible:block"
+                className="absolute top-1/2 right-0.5 hidden -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground focus-visible:block group-hover:block"
               >
                 <X weight="bold" className="size-3" />
               </button>

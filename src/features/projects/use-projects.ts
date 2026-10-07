@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react"
 import { listen } from "@tauri-apps/api/event"
+import { useCallback, useEffect, useState } from "react"
 
 import { useSnackbar } from "@/components/ui/use-snackbar"
 import { HISTORY_CHANGED } from "@/features/curation/marks"
@@ -7,10 +7,10 @@ import {
   addToProject,
   createProject,
   listProjects,
+  type Project,
   removeFromProject,
   setProjectArchived,
   setProjectFavourite,
-  type Project,
 } from "./api"
 
 /**
@@ -54,7 +54,7 @@ export function useProjects(changed: () => void) {
         show({ message: `Couldn't ${what}: ${String(e)}` })
       }
     },
-    [reload, changed, show],
+    [reload, changed, show]
   )
 
   return {
@@ -75,24 +75,34 @@ export function useProjects(changed: () => void) {
           return null
         }
       },
-      [reload, show],
+      [reload, show]
     ),
     setFavourite: useCallback(
-      (p: Project, on: boolean) => run("change the project", () => setProjectFavourite(p.key, on)),
-      [run],
+      (p: Project, on: boolean) =>
+        run("change the project", () => setProjectFavourite(p.key, on)),
+      [run]
     ),
     setArchived: useCallback(
-      (p: Project, on: boolean) => run("change the project", () => setProjectArchived(p.key, on)),
-      [run],
+      (p: Project, on: boolean) =>
+        run("change the project", () => setProjectArchived(p.key, on)),
+      [run]
     ),
-    add: useCallback((key: string, images: string[]) => run("add to the project", () => addToProject(key, images)), [run]),
+    add: useCallback(
+      (key: string, images: string[]) =>
+        run("add to the project", () => addToProject(key, images)),
+      [run]
+    ),
     removeImages: useCallback(
       (key: string, images: string[]) =>
         run("remove from the project", async () => {
           const removed = await removeFromProject(key, images)
-          if (!removed) show({ message: "Images under the project's folder stay in it. Move the files to take them out." })
+          if (!removed)
+            show({
+              message:
+                "Images under the project's folder stay in it. Move the files to take them out.",
+            })
         }),
-      [run, show],
+      [run, show]
     ),
   }
 }

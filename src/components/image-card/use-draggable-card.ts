@@ -52,7 +52,7 @@ export function useDraggableCard({ id }: Options): DragProps {
       e.dataTransfer.setData("text/plain", ids.join("\n"))
       draggingRef.current = true
     },
-    [id],
+    [id]
   )
 
   const onDragEnd = useCallback(() => {
@@ -61,7 +61,7 @@ export function useDraggableCard({ id }: Options): DragProps {
 
   return useMemo(
     () => ({ draggable: true, onDragStart, onDragEnd }),
-    [onDragStart, onDragEnd],
+    [onDragStart, onDragEnd]
   )
 }
 
@@ -70,7 +70,7 @@ export function useDraggableCard({ id }: Options): DragProps {
  * Returns the id list, or null if the drop didn't come from a Strata card.
  */
 export function readStrataImagePayload(
-  dt: DataTransfer | null,
+  dt: DataTransfer | null
 ): string[] | null {
   if (!dt) return null
   const raw = dt.getData(STRATA_IMAGE_MIME)

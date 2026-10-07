@@ -65,13 +65,26 @@ pub fn markers(source: &Path, n: usize) -> Result<Vec<Marker>> {
     }
     let img = image::open(source)?;
     let found = swatches(&sample(&img), n);
-    let grid = img.resize(REGION_SIDE, REGION_SIDE, FilterType::Triangle).to_rgb8();
+    let grid = img
+        .resize(REGION_SIDE, REGION_SIDE, FilterType::Triangle)
+        .to_rgb8();
     let (w, h) = grid.dimensions();
-    let centroids: Vec<Lab> = found.iter().map(|s| Lab { l: s.lab[0], a: s.lab[1], b: s.lab[2] }).collect();
+    let centroids: Vec<Lab> = found
+        .iter()
+        .map(|s| Lab {
+            l: s.lab[0],
+            a: s.lab[1],
+            b: s.lab[2],
+        })
+        .collect();
     let labels: Vec<usize> = grid
         .pixels()
         .map(|p| {
-            let lab = srgb_to_lab(Srgb { r: p.0[0], g: p.0[1], b: p.0[2] });
+            let lab = srgb_to_lab(Srgb {
+                r: p.0[0],
+                g: p.0[1],
+                b: p.0[2],
+            });
             nearest(&centroids, lab)
         })
         .collect();
@@ -99,7 +112,12 @@ fn nearest(centroids: &[Lab], lab: Lab) -> usize {
 
 /// The largest 4-connected run of `cluster` in a `w` x `h` label grid, and
 /// the cell in it nearest the run's mean.
-fn largest_region_anchor(labels: &[usize], w: usize, h: usize, cluster: usize) -> Option<(usize, usize)> {
+fn largest_region_anchor(
+    labels: &[usize],
+    w: usize,
+    h: usize,
+    cluster: usize,
+) -> Option<(usize, usize)> {
     let mut seen = vec![false; labels.len()];
     let mut best: Vec<usize> = Vec::new();
     let mut stack = Vec::new();
@@ -136,19 +154,18 @@ fn largest_region_anchor(labels: &[usize], w: usize, h: usize, cluster: usize) -
     let n = best.len() as f32;
     let mx = best.iter().map(|i| (i % w) as f32).sum::<f32>() / n;
     let my = best.iter().map(|i| (i / w) as f32).sum::<f32>() / n;
-    best.into_iter()
-        .map(|i| (i % w, i / w))
-        .min_by(|a, b| {
-            let d = |(x, y): (usize, usize)| (x as f32 - mx).powi(2) + (y as f32 - my).powi(2);
-            d(*a).total_cmp(&d(*b))
-        })
+    best.into_iter().map(|i| (i % w, i / w)).min_by(|a, b| {
+        let d = |(x, y): (usize, usize)| (x as f32 - mx).powi(2) + (y as f32 - my).powi(2);
+        d(*a).total_cmp(&d(*b))
+    })
 }
 
 /// Lab points from the image at no more than `SOURCE_SIDE`, evenly sampled
 /// down to `MAX_SAMPLES`.
 fn sample(img: &image::DynamicImage) -> Vec<Lab> {
     let rgb = if img.width().max(img.height()) > SOURCE_SIDE {
-        img.resize(SOURCE_SIDE, SOURCE_SIDE, FilterType::Triangle).to_rgb8()
+        img.resize(SOURCE_SIDE, SOURCE_SIDE, FilterType::Triangle)
+            .to_rgb8()
     } else {
         img.to_rgb8()
     };
@@ -156,7 +173,13 @@ fn sample(img: &image::DynamicImage) -> Vec<Lab> {
     let stride = total.div_ceil(MAX_SAMPLES).max(1);
     rgb.pixels()
         .step_by(stride)
-        .map(|p| srgb_to_lab(Srgb { r: p.0[0], g: p.0[1], b: p.0[2] }))
+        .map(|p| {
+            srgb_to_lab(Srgb {
+                r: p.0[0],
+                g: p.0[1],
+                b: p.0[2],
+            })
+        })
         .collect()
 }
 
@@ -168,7 +191,11 @@ fn swatches(points: &[Lab], k: usize) -> Vec<ExtractedSwatch> {
             ExtractedSwatch {
                 hex: format!("#{r:02x}{g:02x}{b:02x}"),
                 lab: [c.centroid.l, c.centroid.a, c.centroid.b],
-                lch: [c.centroid.l, lab_chroma(c.centroid), lab_hue_deg(c.centroid)],
+                lch: [
+                    c.centroid.l,
+                    lab_chroma(c.centroid),
+                    lab_hue_deg(c.centroid),
+                ],
                 weight: c.weight,
                 bucket: vga16::nearest_bucket(c.centroid).name,
             }
@@ -185,9 +212,14 @@ mod tests {
         // A 4 x 4 image, three quarters red, one quarter blue.
         let mut img = image::RgbImage::new(4, 4);
         for (x, _, p) in img.enumerate_pixels_mut() {
-            *p = if x < 3 { image::Rgb([200, 20, 20]) } else { image::Rgb([20, 20, 200]) };
+            *p = if x < 3 {
+                image::Rgb([200, 20, 20])
+            } else {
+                image::Rgb([20, 20, 200])
+            };
         }
-        let path = std::env::temp_dir().join(format!("strata-extract-{}.png", uuid::Uuid::new_v4()));
+        let path =
+            std::env::temp_dir().join(format!("strata-extract-{}.png", uuid::Uuid::new_v4()));
         img.save(&path).unwrap();
         let swatches = extract(&path, 4).unwrap();
         std::fs::remove_file(&path).ok();
@@ -205,9 +237,14 @@ mod tests {
         let mut img = image::RgbImage::new(40, 20);
         for (x, y, p) in img.enumerate_pixels_mut() {
             let red = x < 20 || (x >= 34 && y < 3);
-            *p = if red { image::Rgb([200, 20, 20]) } else { image::Rgb([20, 20, 200]) };
+            *p = if red {
+                image::Rgb([200, 20, 20])
+            } else {
+                image::Rgb([20, 20, 200])
+            };
         }
-        let path = std::env::temp_dir().join(format!("strata-markers-{}.png", uuid::Uuid::new_v4()));
+        let path =
+            std::env::temp_dir().join(format!("strata-markers-{}.png", uuid::Uuid::new_v4()));
         img.save(&path).unwrap();
         let found = markers(&path, 3).unwrap();
         std::fs::remove_file(&path).ok();
@@ -215,7 +252,11 @@ mod tests {
         assert_eq!(found.len(), 2, "two colours present");
         let red = found.iter().find(|m| m.swatch.hex == "#c81414").unwrap();
         let blue = found.iter().find(|m| m.swatch.hex == "#1414c8").unwrap();
-        assert!(red.x < 0.5, "red marker on the big left region, not the island: {}", red.x);
+        assert!(
+            red.x < 0.5,
+            "red marker on the big left region, not the island: {}",
+            red.x
+        );
         assert!(blue.x > 0.5);
         assert!(markers(&std::path::PathBuf::from("/x.png"), 4).is_err());
     }
@@ -225,7 +266,10 @@ mod tests {
         // A 5 x 5 ring of label 1 around a label-0 centre.
         let w = 5;
         let labels: Vec<usize> = (0..25)
-            .map(|i| { let (x, y) = (i % w, i / w); usize::from(x == 0 || y == 0 || x == 4 || y == 4) })
+            .map(|i| {
+                let (x, y) = (i % w, i / w);
+                usize::from(x == 0 || y == 0 || x == 4 || y == 4)
+            })
             .collect();
         let (x, y) = largest_region_anchor(&labels, 5, 5, 1).unwrap();
         assert_eq!(labels[y * w + x], 1);

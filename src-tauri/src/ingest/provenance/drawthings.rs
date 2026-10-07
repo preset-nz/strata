@@ -223,7 +223,11 @@ mod tests {
     #[test]
     fn attribute_form_and_entities() {
         assert_eq!(
-            xmp_value(r#"<d xmp:CreatorTool="Draw Things &#8212; 1.2"/>"#, "xmp:CreatorTool").as_deref(),
+            xmp_value(
+                r#"<d xmp:CreatorTool="Draw Things &#8212; 1.2"/>"#,
+                "xmp:CreatorTool"
+            )
+            .as_deref(),
             Some("Draw Things \u{2014} 1.2")
         );
         assert_eq!(unescape("a &unknown; b &amp"), "a &unknown; b &amp");

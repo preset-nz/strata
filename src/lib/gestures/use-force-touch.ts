@@ -1,5 +1,5 @@
-import { useEffect } from "react"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
+import { useEffect } from "react"
 
 /**
  * Payload of the `force-touch` Tauri event emitted by the macOS NSEvent

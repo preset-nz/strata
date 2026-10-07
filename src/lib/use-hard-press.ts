@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react"
 import {
-  useForceTouch,
   type ForceTouchPayload,
+  useForceTouch,
 } from "./gestures/use-force-touch"
 
 /**
@@ -19,7 +19,7 @@ import {
  * for Quickview when those land.
  */
 export function useHardPress<T extends HTMLElement>(
-  onActivate: (() => void) | undefined,
+  onActivate: (() => void) | undefined
 ) {
   const ref = useRef<T | null>(null)
   const cbRef = useRef(onActivate)

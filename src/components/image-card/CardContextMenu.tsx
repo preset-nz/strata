@@ -45,19 +45,33 @@ export function CardContextMenu({
               groups?.map((g) => (
                 <div key={g.title}>
                   <ContextMenu.SubmenuRoot>
-                    <ContextMenu.SubmenuTrigger className={cn(menuItem, "justify-between")}>
+                    <ContextMenu.SubmenuTrigger
+                      className={cn(menuItem, "justify-between")}
+                    >
                       Add to {g.title} <span aria-hidden>›</span>
                     </ContextMenu.SubmenuTrigger>
                     <ContextMenu.Portal>
-                      <ContextMenu.Positioner className="outline-none" sideOffset={4}>
+                      <ContextMenu.Positioner
+                        className="outline-none"
+                        sideOffset={4}
+                      >
                         <ContextMenu.Popup className={popup}>
                           {g.items.map((c) => (
-                            <ContextMenu.Item key={c.id} onClick={() => g.onAdd(c.id)} className={menuItem}>
+                            <ContextMenu.Item
+                              key={c.id}
+                              onClick={() => g.onAdd(c.id)}
+                              className={menuItem}
+                            >
                               {c.name}
                             </ContextMenu.Item>
                           ))}
-                          {g.items.length > 0 && <ContextMenu.Separator className={separator} />}
-                          <ContextMenu.Item onClick={g.onNew} className={menuItem}>
+                          {g.items.length > 0 && (
+                            <ContextMenu.Separator className={separator} />
+                          )}
+                          <ContextMenu.Item
+                            onClick={g.onNew}
+                            className={menuItem}
+                          >
                             New {g.title}…
                           </ContextMenu.Item>
                         </ContextMenu.Popup>
@@ -71,7 +85,9 @@ export function CardContextMenu({
                   )}
                 </div>
               ))}
-            {mode === "library" && groups && groups.length > 0 && <ContextMenu.Separator className={separator} />}
+            {mode === "library" && groups && groups.length > 0 && (
+              <ContextMenu.Separator className={separator} />
+            )}
             {mode === "library" && (
               <ContextMenu.Item
                 onClick={() => onMoveToTrash?.()}
@@ -103,10 +119,11 @@ export function CardContextMenu({
   )
 }
 
-const popup = "z-50 min-w-44 rounded-sm border border-border bg-popover p-1 text-xs shadow-md outline-none"
+const popup =
+  "z-50 min-w-44 rounded-sm border border-border bg-popover p-1 text-xs shadow-md outline-none"
 const separator = "my-1 h-px bg-border"
 
 const menuItem = cn(
   "flex w-full cursor-default select-none items-center rounded-xs px-2 py-1 text-xs outline-none",
-  "data-[highlighted]:bg-muted data-[highlighted]:text-foreground",
+  "data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
 )

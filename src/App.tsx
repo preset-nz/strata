@@ -1,21 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { open } from "@tauri-apps/plugin-dialog"
-import { listen, type UnlistenFn } from "@tauri-apps/api/event"
-import { DropZone } from "./features/ingest/DropZone"
-import { ImportConfirmation } from "./features/ingest/ImportConfirmation"
-import { JobProgress } from "./features/ingest/JobProgress"
-import { ContactSheet } from "./features/contact-sheet/ContactSheet"
-import { LibrarySheet } from "./features/library/LibrarySheet"
-import { TrashSheet } from "./features/trash/TrashSheet"
-import { AppHeader } from "./components/shell/AppHeader"
-import { LeftRail } from "./components/shell/LeftRail"
 import {
-  DEFAULT_DIRECTION,
-  LIBRARY_SORT_KEYS,
-  TRASH_SORT_KEYS,
-  type SortDirection,
-  type SortKey,
-} from "./components/shell/sort-keys"
+  type Binding,
+  useCommands,
+  useTextFocus,
+} from "@preset.nz/app-kit/core"
 import {
   onSettingsMenu,
   SettingsWindow,
@@ -24,36 +11,31 @@ import {
   usePreferences,
   usePreferencesBootstrap,
 } from "@preset.nz/preferences"
+import { listen, type UnlistenFn } from "@tauri-apps/api/event"
+import { open } from "@tauri-apps/plugin-dialog"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import type { GroupMenu } from "./components/image-card/CardContextMenu"
+import {
+  COLOUR_LABELS,
+  type ColourLabel,
+} from "./components/image-card/colour-label"
+import { AppHeader } from "./components/shell/AppHeader"
+import { LeftRail } from "./components/shell/LeftRail"
+import { clampWidth, type PanelState } from "./components/shell/panel-geometry"
 import { SidePanel } from "./components/shell/SidePanel"
+import { CARD_SIZE_DEFAULT, StatusBar } from "./components/shell/StatusBar"
 import {
-  clampWidth,
-  type PanelState,
-} from "./components/shell/panel-geometry"
-import { isTypingTarget } from "./lib/keyboard"
-import { isOverlayOpen, registerOverlay } from "./lib/overlay"
+  DEFAULT_DIRECTION,
+  LIBRARY_SORT_KEYS,
+  type SortDirection,
+  type SortKey,
+  TRASH_SORT_KEYS,
+} from "./components/shell/sort-keys"
 import { ThemeSync } from "./components/theme-sync"
-import {
-  CARD_SIZE_DEFAULT,
-  StatusBar,
-} from "./components/shell/StatusBar"
-import { VGA16_BUCKETS, type Vga16Bucket } from "./lib/vga16"
-import { ORIENTATIONS, type Orientation } from "./lib/orientation"
-import { COLOUR_LABELS, type ColourLabel } from "./components/image-card/colour-label"
-import { prescan, startIngest, type PrescanSummary } from "./features/ingest/api"
-import {
-  libraryCount,
-  listBatches,
-  listBucketCounts,
-  listOrientationCounts,
-  type BatchSummary,
-} from "./features/library/api"
-import { useSelection } from "./stores/selection"
-import { PropertiesPane } from "./features/properties/PropertiesPane"
 import { SnackbarProvider } from "./components/ui/snackbar"
-import { useMoveToTrash } from "./features/library/use-move-to-trash"
-import { SavedSearchList } from "./features/saved-searches/SavedSearchList"
-import { makeQuery, type SavedQuery } from "./features/saved-searches/query"
-import { useSavedSearches } from "./features/saved-searches/use-saved-searches"
+import { CollectionList } from "./features/collections/CollectionList"
+import { useCollections } from "./features/collections/use-collections"
+import { ContactSheet } from "./features/contact-sheet/ContactSheet"
 import {
   HISTORY_CHANGED,
   listLabelCounts,
@@ -61,14 +43,40 @@ import {
   setFavourite,
   useMark,
 } from "./features/curation/marks"
-import { useCommands, useTextFocus, type Binding } from "@preset.nz/app-kit/core"
-import { CollectionList } from "./features/collections/CollectionList"
-import { useCollections } from "./features/collections/use-collections"
+import {
+  type PrescanSummary,
+  prescan,
+  startIngest,
+} from "./features/ingest/api"
+import { DropZone } from "./features/ingest/DropZone"
+import { ImportConfirmation } from "./features/ingest/ImportConfirmation"
+import { JobProgress } from "./features/ingest/JobProgress"
+import {
+  type BatchSummary,
+  libraryCount,
+  listBatches,
+  listBucketCounts,
+  listOrientationCounts,
+} from "./features/library/api"
+import { LibrarySheet } from "./features/library/LibrarySheet"
+import { useMoveToTrash } from "./features/library/use-move-to-trash"
 import { NewProjectDialog } from "./features/projects/NewProjectDialog"
 import { ProjectList } from "./features/projects/ProjectList"
 import { useProjects } from "./features/projects/use-projects"
-import type { GroupMenu } from "./components/image-card/CardContextMenu"
-import { paletteMarkers, usePaletteMarkers } from "./features/quickview/palette-markers"
+import { PropertiesPane } from "./features/properties/PropertiesPane"
+import {
+  paletteMarkers,
+  usePaletteMarkers,
+} from "./features/quickview/palette-markers"
+import { makeQuery, type SavedQuery } from "./features/saved-searches/query"
+import { SavedSearchList } from "./features/saved-searches/SavedSearchList"
+import { useSavedSearches } from "./features/saved-searches/use-saved-searches"
+import { TrashSheet } from "./features/trash/TrashSheet"
+import { isTypingTarget } from "./lib/keyboard"
+import { ORIENTATIONS, type Orientation } from "./lib/orientation"
+import { isOverlayOpen, registerOverlay } from "./lib/overlay"
+import { VGA16_BUCKETS, type Vga16Bucket } from "./lib/vga16"
+import { useSelection } from "./stores/selection"
 
 type View =
   | { kind: "idle" }
@@ -80,7 +88,7 @@ type View =
 type LabelSelector = "favourite" | ColourLabel
 
 const EMPTY_BUCKET_COUNTS: Record<Vga16Bucket, number> = Object.fromEntries(
-  VGA16_BUCKETS.map((b) => [b, 0]),
+  VGA16_BUCKETS.map((b) => [b, 0])
 ) as Record<Vga16Bucket, number>
 
 const EMPTY_ORIENTATION_COUNTS: Record<Orientation, number> =
@@ -112,14 +120,15 @@ type LibraryCounts = {
 // effect apply the result in a promise callback instead of calling a
 // setState-bearing function synchronously.
 async function fetchLibraryCounts(): Promise<LibraryCounts> {
-  const [total, counts, orientationRows, batches, trashed, labelRows] = await Promise.all([
-    libraryCount(),
-    listBucketCounts(),
-    listOrientationCounts(),
-    listBatches(),
-    libraryCount({ onlyDeleted: true }),
-    listLabelCounts(),
-  ])
+  const [total, counts, orientationRows, batches, trashed, labelRows] =
+    await Promise.all([
+      libraryCount(),
+      listBucketCounts(),
+      listOrientationCounts(),
+      listBatches(),
+      libraryCount({ onlyDeleted: true }),
+      listLabelCounts(),
+    ])
   const buckets = { ...EMPTY_BUCKET_COUNTS }
   for (const { bucket, count } of counts) buckets[bucket] = count
   const orientations = { ...EMPTY_ORIENTATION_COUNTS }
@@ -165,7 +174,7 @@ function AppShell() {
     const key = defaultSort as SortKey
     if (!(key in DEFAULT_DIRECTION)) return
     setSortState((prev) =>
-      prev.key === key ? prev : { key, direction: DEFAULT_DIRECTION[key] },
+      prev.key === key ? prev : { key, direction: DEFAULT_DIRECTION[key] }
     )
     // Runs once, when preferences first arrive on a fresh install.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -173,14 +182,16 @@ function AppShell() {
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   useEffect(() => onSettingsMenu(() => setSettingsOpen(true)), [])
-  const [trashDirection, setTrashDirection] =
-    usePersistedState<SortDirection>("strata.trash.sortDirection", "desc")
+  const [trashDirection, setTrashDirection] = usePersistedState<SortDirection>(
+    "strata.trash.sortDirection",
+    "desc"
+  )
   const onSortChange = useCallback(
     (key: SortKey) => {
       if (panel === "trash") return
       setSortState({ key, direction: DEFAULT_DIRECTION[key] })
     },
-    [panel, setSortState],
+    [panel, setSortState]
   )
   const onDirectionToggle = useCallback(() => {
     if (panel === "trash") {
@@ -194,11 +205,11 @@ function AppShell() {
   }, [panel, setSortState, setTrashDirection])
   const [leftPanel, setLeftPanel] = usePersistedState<PanelState>(
     "strata.shell.panel.left",
-    { width: LEFT_PANEL.default, collapsed: false },
+    { width: LEFT_PANEL.default, collapsed: false }
   )
   const [rightPanel, setRightPanel] = usePersistedState<PanelState>(
     "strata.shell.panel.right",
-    { width: RIGHT_PANEL.default, collapsed: false },
+    { width: RIGHT_PANEL.default, collapsed: false }
   )
   // A width persisted on a wider display must not escape this display's
   // bounds, so clamp on read rather than trusting what was stored.
@@ -206,41 +217,41 @@ function AppShell() {
   const rightWidth = clampWidth(
     rightPanel.width,
     RIGHT_PANEL.min,
-    RIGHT_PANEL.max,
+    RIGHT_PANEL.max
   )
   const setLeftWidth = useCallback(
     (width: number) => setLeftPanel((p) => ({ ...p, width })),
-    [setLeftPanel],
+    [setLeftPanel]
   )
   const setRightWidth = useCallback(
     (width: number) => setRightPanel((p) => ({ ...p, width })),
-    [setRightPanel],
+    [setRightPanel]
   )
   const toggleLeftPanel = useCallback(
     () => setLeftPanel((p) => ({ ...p, collapsed: !p.collapsed })),
-    [setLeftPanel],
+    [setLeftPanel]
   )
   const toggleRightPanel = useCallback(
     () => setRightPanel((p) => ({ ...p, collapsed: !p.collapsed })),
-    [setRightPanel],
+    [setRightPanel]
   )
   const expandLeftPanel = useCallback(
     () => setLeftPanel((p) => ({ ...p, collapsed: false })),
-    [setLeftPanel],
+    [setLeftPanel]
   )
   const expandRightPanel = useCallback(
     () => setRightPanel((p) => ({ ...p, collapsed: false })),
-    [setRightPanel],
+    [setRightPanel]
   )
 
   const [cardSize, setCardSize] = useState<number>(CARD_SIZE_DEFAULT)
   const [runningBatchId, setRunningBatchId] = useState<string | null>(null)
   const [selectedBuckets, setSelectedBuckets] = useState<Set<Vga16Bucket>>(
-    () => new Set(),
+    () => new Set()
   )
   const [labelCounts, setLabelCounts] = useState(EMPTY_LABEL_COUNTS)
   const [selectedLabels, setSelectedLabels] = useState<Set<LabelSelector>>(
-    () => new Set(),
+    () => new Set()
   )
   const [bucketCounts, setBucketCounts] =
     useState<Record<Vga16Bucket, number>>(EMPTY_BUCKET_COUNTS)
@@ -259,8 +270,12 @@ function AppShell() {
   const searchRef = useRef<HTMLInputElement | null>(null)
   const [batches, setBatches] = useState<BatchSummary[]>([])
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
-  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null)
-  const [selectedProjectKey, setSelectedProjectKey] = useState<string | null>(null)
+  const [selectedCollectionId, setSelectedCollectionId] = useState<
+    string | null
+  >(null)
+  const [selectedProjectKey, setSelectedProjectKey] = useState<string | null>(
+    null
+  )
   // Bumped when membership changed under the library's feet (added to or
   // removed from the collection it shows).
   const [reloadToken, setReloadToken] = useState(0)
@@ -270,7 +285,7 @@ function AppShell() {
     (ids: string[]) => {
       void moveToTrash(ids)
     },
-    [moveToTrash],
+    [moveToTrash]
   )
 
   // Rail navigation is the universal escape hatch from any in-progress
@@ -291,7 +306,7 @@ function AppShell() {
       }
       selectBatch(id)
     },
-    [leaveIngestView, selection.kind, selectBatch, clear],
+    [leaveIngestView, selection.kind, selectBatch, clear]
   )
 
   const onSelectTrash = useCallback(() => {
@@ -310,13 +325,16 @@ function AppShell() {
 
   const bucketsForQuery = useMemo(
     () => Array.from(selectedBuckets),
-    [selectedBuckets],
+    [selectedBuckets]
   )
   const orientationsForQuery = useMemo(
     () => Array.from(selectedOrientations),
-    [selectedOrientations],
+    [selectedOrientations]
   )
-  const labelsForQuery = useMemo(() => Array.from(selectedLabels), [selectedLabels])
+  const labelsForQuery = useMemo(
+    () => Array.from(selectedLabels),
+    [selectedLabels]
+  )
 
   const applyCounts = useCallback((c: LibraryCounts) => {
     setTotalCount(c.total)
@@ -331,7 +349,7 @@ function AppShell() {
     // selection with it, or the catalog shows an empty grid and a filter badge
     // with nothing in the rail to explain or clear them.
     setSelectedBatchId((prev) =>
-      prev && c.batches.some((b) => b.id === prev) ? prev : null,
+      prev && c.batches.some((b) => b.id === prev) ? prev : null
     )
   }, [])
 
@@ -366,38 +384,38 @@ function AppShell() {
         await listen(HISTORY_CHANGED, () => {
           void refreshCounts()
           setReloadToken((t) => t + 1)
-        }),
+        })
       )
       offs.push(
         await listen("ingest://batch-done", () => {
           setRunningBatchId(null)
           void refreshCounts()
-        }),
+        })
       )
       offs.push(
         await listen("palette://backfill-done", () => {
           void refreshCounts()
-        }),
+        })
       )
       offs.push(
         await listen("orientation://backfill-done", () => {
           void refreshCounts()
-        }),
+        })
       )
       offs.push(
         await listen("library://images-trashed", () => {
           void refreshCounts()
-        }),
+        })
       )
       offs.push(
         await listen("library://images-restored", () => {
           void refreshCounts()
-        }),
+        })
       )
       offs.push(
         await listen("library://images-purged", () => {
           void refreshCounts()
-        }),
+        })
       )
       if (cancelled) offs.forEach((o) => o())
     })()
@@ -425,7 +443,16 @@ function AppShell() {
         sort: sortState.key,
         direction: sortState.direction,
       }),
-    [searchQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, selectedCollectionId, selectedProjectKey, sortState],
+    [
+      searchQuery,
+      bucketsForQuery,
+      orientationsForQuery,
+      labelsForQuery,
+      selectedBatchId,
+      selectedCollectionId,
+      selectedProjectKey,
+      sortState,
+    ]
   )
   const applyQuery = useCallback(
     (q: SavedQuery) => {
@@ -441,7 +468,7 @@ function AppShell() {
       setSelectedProjectKey(q.projectKey)
       setSortState({ key: q.sort, direction: q.direction })
     },
-    [leaveIngestView, setSortState],
+    [leaveIngestView, setSortState]
   )
   const saved = useSavedSearches(currentQuery, applyQuery)
 
@@ -452,7 +479,10 @@ function AppShell() {
   const coll = useCollections(collectionChanged)
   // A deleted collection can't stay the filter.
   useEffect(() => {
-    if (selectedCollectionId && !coll.collections.some((c) => c.id === selectedCollectionId)) {
+    if (
+      selectedCollectionId &&
+      !coll.collections.some((c) => c.id === selectedCollectionId)
+    ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- follows the list
       setSelectedCollectionId(null)
     }
@@ -460,7 +490,11 @@ function AppShell() {
   const proj = useProjects(collectionChanged)
   // A project archived elsewhere stays selectable; one whose folder is gone can't stay the filter.
   useEffect(() => {
-    if (selectedProjectKey && proj.projects.length > 0 && !proj.projects.some((p) => p.key === selectedProjectKey)) {
+    if (
+      selectedProjectKey &&
+      proj.projects.length > 0 &&
+      !proj.projects.some((p) => p.key === selectedProjectKey)
+    ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- follows the list
       setSelectedProjectKey(null)
     }
@@ -472,17 +506,23 @@ function AppShell() {
         items: coll.collections,
         onAdd: (id) => void coll.add(id, [imageId]),
         onNew: () => coll.startNaming([imageId]),
-        onRemove: selectedCollectionId ? () => void coll.removeImages(selectedCollectionId, [imageId]) : undefined,
+        onRemove: selectedCollectionId
+          ? () => void coll.removeImages(selectedCollectionId, [imageId])
+          : undefined,
       },
       {
         title: "Project",
-        items: proj.projects.filter((p) => !p.archived).map((p) => ({ id: p.key, name: p.name })),
+        items: proj.projects
+          .filter((p) => !p.archived)
+          .map((p) => ({ id: p.key, name: p.name })),
         onAdd: (key) => void proj.add(key, [imageId]),
         onNew: proj.startCreating,
-        onRemove: selectedProjectKey ? () => void proj.removeImages(selectedProjectKey, [imageId]) : undefined,
+        onRemove: selectedProjectKey
+          ? () => void proj.removeImages(selectedProjectKey, [imageId])
+          : undefined,
       },
     ],
-    [coll, proj, selectedCollectionId, selectedProjectKey],
+    [coll, proj, selectedCollectionId, selectedProjectKey]
   )
 
   // The menu's commands, by the ids `src-tauri/src/menu.rs` declares. app-kit
@@ -493,7 +533,8 @@ function AppShell() {
   // Image menu: acts on the selected image. Off while typing, so the bare
   // F and 0-7 keys reach the text field instead.
   const textFocus = useTextFocus()
-  const selectedImage = selection.kind === "image" && panel === "library" ? selection.id : null
+  const selectedImage =
+    selection.kind === "image" && panel === "library" ? selection.id : null
   const selectedMark = useMark(selectedImage)
   const canMark = selectedImage !== null && !textFocus
   const bindings = useMemo<Record<string, Binding>>(
@@ -502,7 +543,10 @@ function AppShell() {
         enabled: canMark,
         pressed: selectedMark.favourite,
         run: () => {
-          if (selectedImage) void setFavourite([selectedImage], !selectedMark.favourite).then(refreshCounts)
+          if (selectedImage)
+            void setFavourite([selectedImage], !selectedMark.favourite).then(
+              refreshCounts
+            )
         },
       },
       "file.new_project": { run: proj.startCreating },
@@ -513,13 +557,15 @@ function AppShell() {
       "image.remove_from_collection": {
         enabled: canMark && selectedCollectionId !== null,
         run: () => {
-          if (selectedImage && selectedCollectionId) void coll.removeImages(selectedCollectionId, [selectedImage])
+          if (selectedImage && selectedCollectionId)
+            void coll.removeImages(selectedCollectionId, [selectedImage])
         },
       },
       "image.label.none": {
         enabled: canMark && selectedMark.label !== null,
         run: () => {
-          if (selectedImage) void setColourLabel([selectedImage], null).then(refreshCounts)
+          if (selectedImage)
+            void setColourLabel([selectedImage], null).then(refreshCounts)
         },
       },
       ...Object.fromEntries(
@@ -528,10 +574,11 @@ function AppShell() {
           {
             enabled: canMark,
             run: () => {
-              if (selectedImage) void setColourLabel([selectedImage], c).then(refreshCounts)
+              if (selectedImage)
+                void setColourLabel([selectedImage], c).then(refreshCounts)
             },
           },
-        ]),
+        ])
       ),
       "edit.find": {
         run: () => {
@@ -540,9 +587,23 @@ function AppShell() {
         },
       },
       "edit.save_search": { run: startNaming },
-      "view.palette_markers": { pressed: markers.on, run: paletteMarkers.toggle },
+      "view.palette_markers": {
+        pressed: markers.on,
+        run: paletteMarkers.toggle,
+      },
     }),
-    [startNaming, markers.on, canMark, selectedImage, selectedMark, refreshCounts, textFocus, coll, selectedCollectionId, proj.startCreating],
+    [
+      startNaming,
+      markers.on,
+      canMark,
+      selectedImage,
+      selectedMark,
+      refreshCounts,
+      textFocus,
+      coll,
+      selectedCollectionId,
+      proj.startCreating,
+    ]
   )
   useCommands(bindings)
 
@@ -575,7 +636,17 @@ function AppShell() {
       cancelled = true
     }
     // reloadToken: membership changed under the same filter, so the count did too.
-  }, [hasActiveQuery, bucketsForQuery, orientationsForQuery, labelsForQuery, selectedBatchId, selectedCollectionId, selectedProjectKey, searchQuery, reloadToken])
+  }, [
+    hasActiveQuery,
+    bucketsForQuery,
+    orientationsForQuery,
+    labelsForQuery,
+    selectedBatchId,
+    selectedCollectionId,
+    selectedProjectKey,
+    searchQuery,
+    reloadToken,
+  ])
 
   // Derived rather than stored: gating on hasActiveQuery keeps a count left
   // over from a previous filter from showing once the filter is cleared.
@@ -591,15 +662,18 @@ function AppShell() {
     }
   }, [])
 
-  const handleConfirm = useCallback(async (scan: PrescanSummary, folders: string[]) => {
-    try {
-      const result = await startIngest(scan.root, folders)
-      setRunningBatchId(result.batch_id)
-      setView({ kind: "running", batchId: result.batch_id })
-    } catch (e) {
-      setView({ kind: "error", message: String(e) })
-    }
-  }, [])
+  const handleConfirm = useCallback(
+    async (scan: PrescanSummary, folders: string[]) => {
+      try {
+        const result = await startIngest(scan.root, folders)
+        setRunningBatchId(result.batch_id)
+        setView({ kind: "running", batchId: result.batch_id })
+      } catch (e) {
+        setView({ kind: "error", message: String(e) })
+      }
+    },
+    []
+  )
 
   const handleBack = useCallback(() => {
     setView({ kind: "idle" })
@@ -642,7 +716,7 @@ function AppShell() {
         return next
       })
     },
-    [leaveIngestView],
+    [leaveIngestView]
   )
 
   const toggleOrientation = useCallback(
@@ -656,7 +730,7 @@ function AppShell() {
         return next
       })
     },
-    [leaveIngestView],
+    [leaveIngestView]
   )
 
   const toggleLabel = useCallback(
@@ -670,7 +744,7 @@ function AppShell() {
         return next
       })
     },
-    [leaveIngestView],
+    [leaveIngestView]
   )
 
   const activeFilterCount =
@@ -688,14 +762,14 @@ function AppShell() {
   const content = useMemo(() => {
     if (view.kind === "scanning") {
       return (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Scanning <span className="select-text">{view.path}</span>...
         </p>
       )
     }
     if (view.kind === "error") {
       return (
-        <p className="text-sm text-destructive">
+        <p className="text-destructive text-sm">
           Error: <span className="select-text">{view.message}</span>
         </p>
       )
@@ -828,7 +902,9 @@ function AppShell() {
             onSortChange={onSortChange}
             direction={panel === "trash" ? trashDirection : sortState.direction}
             onDirectionToggle={onDirectionToggle}
-            sortOptions={panel === "trash" ? TRASH_SORT_KEYS : LIBRARY_SORT_KEYS}
+            sortOptions={
+              panel === "trash" ? TRASH_SORT_KEYS : LIBRARY_SORT_KEYS
+            }
             batches={batches}
             selectedBatchId={selectedBatchId}
             onSelectBatch={handleSelectBatch}
@@ -891,7 +967,9 @@ function AppShell() {
             }
           />
         </SidePanel>
-        <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">{content}</main>
+        <main className="flex min-w-0 flex-1 flex-col gap-3 p-4">
+          {content}
+        </main>
         <SidePanel
           side="right"
           title="Properties"

@@ -13,13 +13,13 @@ export function StatusBar({ cardSize, onCardSizeChange }: Props) {
   return (
     <footer
       className={cn(
-        "flex h-7 shrink-0 items-center gap-3 border-t border-border bg-card/40 px-3",
-        "text-[10px] tracking-wide text-muted-foreground",
+        "flex h-7 shrink-0 items-center gap-3 border-border border-t bg-card/40 px-3",
+        "text-[10px] text-muted-foreground tracking-wide"
       )}
     >
       <div className="ml-auto flex items-center gap-2">
         <label
-          className="font-heading text-[11px] font-semibold tracking-[0.08em] uppercase"
+          className="font-heading font-semibold text-[11px] uppercase tracking-[0.08em]"
           htmlFor="card-size"
         >
           Size

@@ -33,7 +33,11 @@ pub fn prescan(root: &Path, allow: &[String]) -> PrescanResult {
     let mut by_extension: HashMap<String, usize> = HashMap::new();
     let mut files: Vec<PathBuf> = Vec::new();
 
-    for entry in WalkDir::new(root).follow_links(false).into_iter().filter_map(Result::ok) {
+    for entry in WalkDir::new(root)
+        .follow_links(false)
+        .into_iter()
+        .filter_map(Result::ok)
+    {
         if !entry.file_type().is_file() {
             continue;
         }
@@ -148,17 +152,32 @@ mod tests {
             root: "/in/DrawThings".into(),
             total: files.len(),
             by_extension: HashMap::new(),
-            files: files.iter().map(|f| Path::new("/in/DrawThings").join(f)).collect(),
+            files: files
+                .iter()
+                .map(|f| Path::new("/in/DrawThings").join(f))
+                .collect(),
         }
     }
 
     fn row(path: &str, name: &str, depth: usize, own: usize, total: usize) -> FolderRow {
-        FolderRow { path: path.into(), name: name.into(), depth, own, total }
+        FolderRow {
+            path: path.into(),
+            name: name.into(),
+            depth,
+            own,
+            total,
+        }
     }
 
     #[test]
     fn folders_nest_with_own_and_total_counts() {
-        let s = scan(&["a.png", "bark/b.png", "bark/c.png", "moss/deep/d.png", "moss-2/e.png"]);
+        let s = scan(&[
+            "a.png",
+            "bark/b.png",
+            "bark/c.png",
+            "moss/deep/d.png",
+            "moss-2/e.png",
+        ]);
         assert_eq!(
             s.folders(),
             vec![
@@ -174,7 +193,10 @@ mod tests {
     #[test]
     fn root_without_files_of_its_own_still_heads_the_tree() {
         let s = scan(&["only/a.png"]);
-        assert_eq!(s.folders(), vec![row("", "DrawThings", 0, 0, 1), row("only", "only", 1, 1, 1)]);
+        assert_eq!(
+            s.folders(),
+            vec![row("", "DrawThings", 0, 0, 1), row("only", "only", 1, 1, 1)]
+        );
         assert!(scan(&[]).folders().is_empty());
     }
 
@@ -184,7 +206,10 @@ mod tests {
         let kept = s.select(&["bark/inner".into(), "".into()]);
         assert_eq!(
             kept,
-            vec![Path::new("/in/DrawThings/a.png"), Path::new("/in/DrawThings/bark/inner/c.png")]
+            vec![
+                Path::new("/in/DrawThings/a.png"),
+                Path::new("/in/DrawThings/bark/inner/c.png")
+            ]
         );
     }
 }

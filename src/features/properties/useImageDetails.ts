@@ -1,5 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
-import { getImageDetails, type ImageDetails } from "@/features/contact-sheet/api"
+import {
+  getImageDetails,
+  type ImageDetails,
+} from "@/features/contact-sheet/api"
 
 export function useImageDetails(id: string | null): ImageDetails | null {
   const { data } = useQuery({

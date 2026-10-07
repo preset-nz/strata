@@ -1,7 +1,18 @@
-import { LIBRARY_SORT_KEYS, type SortDirection, type SortKey } from "@/components/shell/sort-keys"
-import { ORIENTATIONS, ORIENTATION_LABEL, type Orientation } from "@/lib/orientation"
+import {
+  COLOUR_LABELS,
+  type ColourLabel,
+} from "@/components/image-card/colour-label"
+import {
+  LIBRARY_SORT_KEYS,
+  type SortDirection,
+  type SortKey,
+} from "@/components/shell/sort-keys"
+import {
+  ORIENTATION_LABEL,
+  ORIENTATIONS,
+  type Orientation,
+} from "@/lib/orientation"
 import { VGA16_BUCKETS, VGA16_LABEL, type Vga16Bucket } from "@/lib/vga16"
-import { COLOUR_LABELS, type ColourLabel } from "@/components/image-card/colour-label"
 
 /** The rail's Label section: Favourited and the colours. */
 export type LabelFilter = "favourite" | ColourLabel
@@ -57,7 +68,9 @@ export function isSavable(q: SavedQuery): boolean {
 }
 
 function strings(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((x): x is string => typeof x === "string") : []
+  return Array.isArray(value)
+    ? value.filter((x): x is string => typeof x === "string")
+    : []
 }
 
 /** Reads a stored query, dropping values this build doesn't know. */
@@ -69,12 +82,14 @@ export function parseQuery(raw: unknown): SavedQuery | null {
   return makeQuery({
     text: typeof r.text === "string" ? r.text : "",
     buckets: strings(r.buckets).filter((b): b is Vga16Bucket =>
-      (VGA16_BUCKETS as readonly string[]).includes(b),
+      (VGA16_BUCKETS as readonly string[]).includes(b)
     ),
     orientations: strings(r.orientations).filter((o): o is Orientation =>
-      (ORIENTATIONS as readonly string[]).includes(o),
+      (ORIENTATIONS as readonly string[]).includes(o)
     ),
-    labels: strings(r.labels).filter((l): l is LabelFilter => LABEL_SELECTORS.includes(l)),
+    labels: strings(r.labels).filter((l): l is LabelFilter =>
+      LABEL_SELECTORS.includes(l)
+    ),
     batchId: typeof r.batchId === "string" ? r.batchId : null,
     collectionId: typeof r.collectionId === "string" ? r.collectionId : null,
     projectKey: typeof r.projectKey === "string" ? r.projectKey : null,
@@ -93,7 +108,9 @@ export function suggestName(q: SavedQuery): string {
     q.text,
     ...q.buckets.map((b) => VGA16_LABEL[b]),
     ...q.orientations.map((o) => ORIENTATION_LABEL[o]),
-    ...q.labels.map((l) => (l === "favourite" ? "Favourites" : l.charAt(0).toUpperCase() + l.slice(1))),
+    ...q.labels.map((l) =>
+      l === "favourite" ? "Favourites" : l.charAt(0).toUpperCase() + l.slice(1)
+    ),
     q.batchId ? "one import" : "",
     q.collectionId ? "one collection" : "",
   ].filter(Boolean)

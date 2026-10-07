@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
+import { useEffect, useState } from "react"
 
 type FileState =
   | "queued"
@@ -91,16 +91,16 @@ export function JobProgress({ batchId }: Props) {
 
   return (
     <section className="mt-4">
-      <h2 className="mb-1 font-heading text-base font-medium">
+      <h2 className="mb-1 font-heading font-medium text-base">
         Batch {batchId.slice(0, 8)}
       </h2>
       {doneEvent ? (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Imported {doneEvent.imported} · Skipped {doneEvent.skipped} · Failed{" "}
           {doneEvent.failed}
         </p>
       ) : (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Queued {counts.queued} · In-flight {counts.inflight} · Done{" "}
           {counts.done} · Skipped {counts.skipped} · Failed {counts.failed}
         </p>

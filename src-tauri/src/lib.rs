@@ -53,7 +53,9 @@ fn ingest_options(prefs: &Preferences) -> IngestOptions {
         extension_allow_list: prefs
             .get_list(preferences::EXTENSION_ALLOW_LIST)
             .unwrap_or_else(|| vec!["jpg".into(), "jpeg".into(), "png".into()]),
-        keep_source_files: prefs.get_bool(preferences::KEEP_SOURCE_FILES).unwrap_or(true),
+        keep_source_files: prefs
+            .get_bool(preferences::KEEP_SOURCE_FILES)
+            .unwrap_or(true),
     }
 }
 
@@ -68,7 +70,10 @@ struct PrescanSummary {
 }
 
 #[tauri::command]
-async fn ingest_prescan(state: State<'_, AppState>, path: String) -> Result<PrescanSummary, String> {
+async fn ingest_prescan(
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<PrescanSummary, String> {
     let root = PathBuf::from(&path);
     if !root.is_dir() {
         return Err(format!("not a directory: {path}"));
@@ -283,7 +288,10 @@ fn row_from(row: &rusqlite::Row) -> rusqlite::Result<ImportedRow> {
         id: row.get::<_, String>(0)?,
         content_hash: row.get::<_, String>(1)?,
         original_filename: row.get::<_, String>(2)?,
-        title: display_title(row.get::<_, Option<String>>(9)?.as_deref(), &row.get::<_, String>(2)?),
+        title: display_title(
+            row.get::<_, Option<String>>(9)?.as_deref(),
+            &row.get::<_, String>(2)?,
+        ),
         favourite: row.get::<_, Option<bool>>(10)?.unwrap_or(false),
         label: row.get(11)?,
         thumbnails_status: row.get::<_, String>(3)?,
@@ -421,7 +429,10 @@ fn build_where(
         }
         let colours: Vec<&String> = filter_labels.iter().filter(|l| *l != "favourite").collect();
         if !colours.is_empty() {
-            any.push(format!("label IN ({})", vec!["?"; colours.len()].join(", ")));
+            any.push(format!(
+                "label IN ({})",
+                vec!["?"; colours.len()].join(", ")
+            ));
             for c in colours {
                 bound.push(rusqlite::types::Value::Text(c.clone()));
             }
@@ -436,7 +447,9 @@ fn build_where(
         bound.push(rusqlite::types::Value::Text(b.to_string()));
     }
     if let Some(c) = collection_id {
-        clauses.push("i.id IN (SELECT image_id FROM collection_member WHERE collection_id = ?)".to_string());
+        clauses.push(
+            "i.id IN (SELECT image_id FROM collection_member WHERE collection_id = ?)".to_string(),
+        );
         bound.push(rusqlite::types::Value::Text(c.to_string()));
     }
     if let Some((key, folder)) = project {
@@ -484,15 +497,22 @@ fn list_images(
     let deleted = resolve_deleted(include_deleted, only_deleted);
 
     let (join_sql, mut bound) = search_join(query.as_deref());
-    let filter_labels = labels.as_ref().map(|l| allowed_labels(l)).unwrap_or_default();
-    let project_folder = project_key.as_deref().and_then(|k| project::folder_of(&state.project_roots, k));
+    let filter_labels = labels
+        .as_ref()
+        .map(|l| allowed_labels(l))
+        .unwrap_or_default();
+    let project_folder = project_key
+        .as_deref()
+        .and_then(|k| project::folder_of(&state.project_roots, k));
     let (where_sql, where_bound) = build_where(
         &filter_buckets,
         &filter_orientations,
         &filter_labels,
         batch_id.as_deref(),
         collection_id.as_deref(),
-        project_key.as_deref().map(|k| (k, project_folder.as_deref())),
+        project_key
+            .as_deref()
+            .map(|k| (k, project_folder.as_deref())),
         deleted,
     );
     bound.extend(where_bound);
@@ -511,7 +531,9 @@ fn list_images(
     bound.push(rusqlite::types::Value::Integer(limit));
     bound.push(rusqlite::types::Value::Integer(offset));
     let rows = stmt
-        .query_map(rusqlite::params_from_iter(bound.iter()), |row| row_from(row))
+        .query_map(rusqlite::params_from_iter(bound.iter()), |row| {
+            row_from(row)
+        })
         .map_err(|e| e.to_string())?
         .filter_map(Result::ok)
         .collect();
@@ -519,7 +541,10 @@ fn list_images(
 }
 
 #[tauri::command]
-fn batch_imported(state: State<'_, AppState>, batch_id: String) -> Result<Vec<ImportedRow>, String> {
+fn batch_imported(
+    state: State<'_, AppState>,
+    batch_id: String,
+) -> Result<Vec<ImportedRow>, String> {
     let conn = state.db.0.lock().unwrap();
     let mut stmt = conn
         .prepare(&format!(
@@ -571,9 +596,7 @@ fn get_image_details(
                     original_path: row.get(3)?,
                     byte_size: row.get(4)?,
                     mime: row.get(5)?,
-                    imported_at: row
-                        .get::<_, chrono::DateTime<chrono::Utc>>(6)?
-                        .to_rfc3339(),
+                    imported_at: row.get::<_, chrono::DateTime<chrono::Utc>>(6)?.to_rfc3339(),
                     ingest_batch_id: row.get(7)?,
                     thumbnails_status: row.get(8)?,
                     exif_created_at: row
@@ -759,15 +782,22 @@ fn library_count(
         .unwrap_or_default();
     let deleted = resolve_deleted(include_deleted, only_deleted);
     let (join_sql, mut bound) = search_join(query.as_deref());
-    let filter_labels = labels.as_ref().map(|l| allowed_labels(l)).unwrap_or_default();
-    let project_folder = project_key.as_deref().and_then(|k| project::folder_of(&state.project_roots, k));
+    let filter_labels = labels
+        .as_ref()
+        .map(|l| allowed_labels(l))
+        .unwrap_or_default();
+    let project_folder = project_key
+        .as_deref()
+        .and_then(|k| project::folder_of(&state.project_roots, k));
     let (where_sql, where_bound) = build_where(
         &filter_buckets,
         &filter_orientations,
         &filter_labels,
         batch_id.as_deref(),
         collection_id.as_deref(),
-        project_key.as_deref().map(|k| (k, project_folder.as_deref())),
+        project_key
+            .as_deref()
+            .map(|k| (k, project_folder.as_deref())),
         deleted,
     );
     bound.extend(where_bound);
@@ -793,10 +823,7 @@ struct BatchSummary {
 }
 
 #[tauri::command]
-fn get_batch(
-    state: State<'_, AppState>,
-    id: String,
-) -> Result<Option<BatchSummary>, String> {
+fn get_batch(state: State<'_, AppState>, id: String) -> Result<Option<BatchSummary>, String> {
     let conn = state.db.0.lock().unwrap();
     let result = conn
         .query_row(
@@ -1061,9 +1088,14 @@ fn project_list(state: State<'_, AppState>) -> Result<Vec<project::Project>, Str
 /// File › New Project…: makes the folder and its marker. Files on disk aren't
 /// an undo step; the catalog has nothing to take back.
 #[tauri::command]
-fn project_create(state: State<'_, AppState>, name: String, description: String) -> Result<String, String> {
+fn project_create(
+    state: State<'_, AppState>,
+    name: String,
+    description: String,
+) -> Result<String, String> {
     let root = state.project_roots.first().ok_or("no projects folder")?;
-    let (marker, _) = project::create_on_disk(root, &name, &description).map_err(|e| e.to_string())?;
+    let (marker, _) =
+        project::create_on_disk(root, &name, &description).map_err(|e| e.to_string())?;
     Ok(marker.key)
 }
 
@@ -1242,7 +1274,10 @@ fn set_favourite(
     on: bool,
 ) -> Result<Vec<curation::Marked>, String> {
     let action = if on { "Favourite" } else { "Unfavourite" };
-    mark(&app, &state, &history, &ids, action, |m| curation::Mark { favourite: on, ..m.clone() })
+    mark(&app, &state, &history, &ids, action, |m| curation::Mark {
+        favourite: on,
+        ..m.clone()
+    })
 }
 
 /// Sets or clears the colour label of images; one undo step.
@@ -1259,7 +1294,10 @@ fn set_colour_label(
         Some(l) => format!("Label {}{}", l[..1].to_uppercase(), &l[1..]),
         None => "Clear Label".to_string(),
     };
-    mark(&app, &state, &history, &ids, &action, |m| curation::Mark { label: label.clone(), ..m.clone() })
+    mark(&app, &state, &history, &ids, &action, |m| curation::Mark {
+        label: label.clone(),
+        ..m.clone()
+    })
 }
 
 fn mark(
@@ -1284,7 +1322,10 @@ fn mark(
 /// Current marks, for cards that didn't come from a list query (the contact
 /// sheet's skipped duplicates).
 #[tauri::command]
-fn image_marks(state: State<'_, AppState>, ids: Vec<String>) -> Result<Vec<curation::Marked>, String> {
+fn image_marks(
+    state: State<'_, AppState>,
+    ids: Vec<String>,
+) -> Result<Vec<curation::Marked>, String> {
     let conn = state.db.0.lock().unwrap();
     let marks = curation::marks(&conn, &ids).map_err(|e| e.to_string())?;
     Ok(ids
@@ -1316,7 +1357,12 @@ fn list_label_counts(state: State<'_, AppState>) -> Result<Vec<LabelCount>, Stri
         )
         .map_err(|e| e.to_string())?;
     let rows = stmt
-        .query_map([], |r| Ok(LabelCount { label: r.get(0)?, count: r.get(1)? }))
+        .query_map([], |r| {
+            Ok(LabelCount {
+                label: r.get(0)?,
+                count: r.get(1)?,
+            })
+        })
         .map_err(|e| e.to_string())?
         .collect::<rusqlite::Result<Vec<_>>>()
         .map_err(|e| e.to_string())?;
@@ -1363,7 +1409,11 @@ fn display_source(state: &AppState, id: &str) -> Result<PathBuf, String> {
         .map_err(|e| e.to_string())?
     };
     let thumb = state.store.thumb_path(&hash, 1024);
-    Ok(if thumb.exists() { thumb } else { state.store.root().join(store_path) })
+    Ok(if thumb.exists() {
+        thumb
+    } else {
+        state.store.root().join(store_path)
+    })
 }
 
 #[tauri::command]
@@ -1382,8 +1432,15 @@ fn saved_search_put(
     project_key: Option<String>,
 ) -> Result<saved_search::SavedSearch, String> {
     let conn = state.db.0.lock().unwrap();
-    saved_search::put(&conn, id.as_deref(), &name, &query, created_at.as_deref(), project_key.as_deref())
-        .map_err(|e| e.to_string())
+    saved_search::put(
+        &conn,
+        id.as_deref(),
+        &name,
+        &query,
+        created_at.as_deref(),
+        project_key.as_deref(),
+    )
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -1469,7 +1526,10 @@ pub fn run() {
             });
             Ok(())
         })
-        .register_uri_scheme_protocol(crate::server::thumbnails::SCHEME, crate::server::thumbnails::handler)
+        .register_uri_scheme_protocol(
+            crate::server::thumbnails::SCHEME,
+            crate::server::thumbnails::handler,
+        )
         .invoke_handler(tauri::generate_handler![
             ingest_prescan,
             ingest_start,
@@ -1597,13 +1657,20 @@ mod catalog_round_trip {
         ingest::orientation::run(db, IMAGE, &png, None).unwrap();
     }
 
-    fn list(conn: &rusqlite::Connection, where_sql: &str, bound: &[rusqlite::types::Value], sort: &str) -> Vec<ImportedRow> {
+    fn list(
+        conn: &rusqlite::Connection,
+        where_sql: &str,
+        bound: &[rusqlite::types::Value],
+        sort: &str,
+    ) -> Vec<ImportedRow> {
         let sql = format!(
             "SELECT {ROW_COLUMNS} FROM {ROW_SOURCE}{where_sql} ORDER BY {sort} LIMIT 10 OFFSET 0",
         );
         let mut stmt = conn.prepare(&sql).unwrap();
         let rows = stmt
-            .query_map(rusqlite::params_from_iter(bound.iter()), |row| row_from(row))
+            .query_map(rusqlite::params_from_iter(bound.iter()), |row| {
+                row_from(row)
+            })
             .unwrap()
             .collect::<rusqlite::Result<Vec<_>>>()
             .unwrap();
@@ -1616,24 +1683,54 @@ mod catalog_round_trip {
         ingest_one(&db, &dir);
         let conn = db.0.lock().unwrap();
 
-        for sort in ["imported", "filename", "created", "updated", "colour", "deleted", "orientation"] {
+        for sort in [
+            "imported",
+            "filename",
+            "created",
+            "updated",
+            "colour",
+            "deleted",
+            "orientation",
+        ] {
             for direction in [Some("asc"), Some("desc"), None] {
-                let (where_sql, bound) = build_where(&[], &[], &[], None, None, None, DeletedFilter::HideDeleted);
+                let (where_sql, bound) =
+                    build_where(&[], &[], &[], None, None, None, DeletedFilter::HideDeleted);
                 let rows = list(&conn, &where_sql, &bound, &sort_clause(sort, direction));
                 assert_eq!(rows.len(), 1, "sort {sort} {direction:?}");
                 assert_eq!(rows[0].dominant_bucket.as_deref(), Some("green"));
             }
         }
 
-        let filtered = build_where(&["green".into()], &["landscape".into()], &[], Some(BATCH), None, None, DeletedFilter::HideDeleted);
-        assert_eq!(list(&conn, &filtered.0, &filtered.1, "i.imported_at").len(), 1);
-        let miss = build_where(&["red".into()], &[], &[], None, None, None, DeletedFilter::HideDeleted);
+        let filtered = build_where(
+            &["green".into()],
+            &["landscape".into()],
+            &[],
+            Some(BATCH),
+            None,
+            None,
+            DeletedFilter::HideDeleted,
+        );
+        assert_eq!(
+            list(&conn, &filtered.0, &filtered.1, "i.imported_at").len(),
+            1
+        );
+        let miss = build_where(
+            &["red".into()],
+            &[],
+            &[],
+            None,
+            None,
+            None,
+            DeletedFilter::HideDeleted,
+        );
         assert!(list(&conn, &miss.0, &miss.1, "i.imported_at").is_empty());
 
         let (w, h, bucket): (i32, i32, String) = conn
-            .query_row("SELECT width, height, orientation FROM images WHERE id = ?", params![IMAGE], |r| {
-                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
-            })
+            .query_row(
+                "SELECT width, height, orientation FROM images WHERE id = ?",
+                params![IMAGE],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
             .unwrap();
         assert_eq!((w, h, bucket.as_str()), (4, 2, "landscape"));
 
@@ -1648,7 +1745,11 @@ mod catalog_round_trip {
         assert!(lat.is_some() && created.is_some());
 
         let finished: Option<chrono::DateTime<Utc>> = conn
-            .query_row("SELECT finished_at FROM ingest_batches WHERE id = ?", params![BATCH], |r| r.get(0))
+            .query_row(
+                "SELECT finished_at FROM ingest_batches WHERE id = ?",
+                params![BATCH],
+                |r| r.get(0),
+            )
             .unwrap();
         assert!(finished.is_some());
 
@@ -1677,7 +1778,8 @@ mod catalog_round_trip {
             .unwrap();
         assert_eq!(counts, (1, 1, 1));
 
-        let (where_sql, bound) = build_where(&[], &[], &[], None, None, None, DeletedFilter::HideDeleted);
+        let (where_sql, bound) =
+            build_where(&[], &[], &[], None, None, None, DeletedFilter::HideDeleted);
         let rows = list(&conn, &where_sql, &bound, &sort_clause("imported", None));
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].title, "lichen-colony");
@@ -1700,9 +1802,15 @@ mod catalog_round_trip {
 
         let search = |typed: &str| -> Vec<ImportedRow> {
             let (join_sql, mut bound) = search_join(Some(typed));
-            let (where_sql, where_bound) = build_where(&[], &[], &[], None, None, None, DeletedFilter::HideDeleted);
+            let (where_sql, where_bound) =
+                build_where(&[], &[], &[], None, None, None, DeletedFilter::HideDeleted);
             bound.extend(where_bound);
-            list(&conn, &format!("{join_sql}{where_sql}"), &bound, "hit.score ASC")
+            list(
+                &conn,
+                &format!("{join_sql}{where_sql}"),
+                &bound,
+                "hit.score ASC",
+            )
         };
         assert_eq!(search("lich").len(), 1, "prefix of a prompt word");
         assert_eq!(search("mist bark").len(), 1, "weights stripped, every word");
@@ -1723,12 +1831,28 @@ mod catalog_round_trip {
         ingest_one(&db, &dir);
         let conn = db.0.lock().unwrap();
         let ids = vec![IMAGE.to_string()];
-        curation::change(&conn, &ids, "Favourite", |m| curation::Mark { favourite: true, ..m.clone() }).unwrap();
-        curation::change(&conn, &ids, "Label Red", |m| curation::Mark { label: Some("red".into()), ..m.clone() }).unwrap();
+        curation::change(&conn, &ids, "Favourite", |m| curation::Mark {
+            favourite: true,
+            ..m.clone()
+        })
+        .unwrap();
+        curation::change(&conn, &ids, "Label Red", |m| curation::Mark {
+            label: Some("red".into()),
+            ..m.clone()
+        })
+        .unwrap();
 
         let by = |labels: &[&str]| {
             let labels: Vec<String> = labels.iter().map(|l| l.to_string()).collect();
-            let (where_sql, bound) = build_where(&[], &[], &labels, None, None, None, DeletedFilter::HideDeleted);
+            let (where_sql, bound) = build_where(
+                &[],
+                &[],
+                &labels,
+                None,
+                None,
+                None,
+                DeletedFilter::HideDeleted,
+            );
             list(&conn, &where_sql, &bound, "i.imported_at")
         };
         let all = by(&[]);
@@ -1742,7 +1866,15 @@ mod catalog_round_trip {
 
         let (coll, _) = collection::create(&conn, "Bark", &ids).unwrap();
         let in_coll = |c: &str| {
-            let (where_sql, bound) = build_where(&[], &[], &[], None, Some(c), None, DeletedFilter::HideDeleted);
+            let (where_sql, bound) = build_where(
+                &[],
+                &[],
+                &[],
+                None,
+                Some(c),
+                None,
+                DeletedFilter::HideDeleted,
+            );
             list(&conn, &where_sql, &bound, "i.imported_at").len()
         };
         assert_eq!(in_coll(&coll), 1);
@@ -1758,7 +1890,8 @@ mod catalog_round_trip {
         let conn = db.0.lock().unwrap();
 
         assert_eq!(soft_delete(&conn, &[IMAGE.to_string()]).unwrap(), 1);
-        let (where_sql, bound) = build_where(&[], &[], &[], None, None, None, DeletedFilter::OnlyDeleted);
+        let (where_sql, bound) =
+            build_where(&[], &[], &[], None, None, None, DeletedFilter::OnlyDeleted);
         let trashed = list(&conn, &where_sql, &bound, &sort_clause("deleted", None));
         assert_eq!(trashed.len(), 1);
         assert!(trashed[0].deleted_at.is_some());
@@ -1778,4 +1911,3 @@ mod catalog_round_trip {
         std::fs::remove_dir_all(dir).ok();
     }
 }
-

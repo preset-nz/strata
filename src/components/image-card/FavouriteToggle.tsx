@@ -21,13 +21,10 @@ export function FavouriteToggle({ isFavourite, onToggle }: Props) {
         "focus-visible:ring-1 focus-visible:ring-ring",
         isFavourite
           ? "text-red-500 opacity-100"
-          : "text-muted-foreground/60 opacity-0 group-hover/card:opacity-100",
+          : "text-muted-foreground/60 opacity-0 group-hover/card:opacity-100"
       )}
     >
-      <Heart
-        weight={isFavourite ? "fill" : "regular"}
-        className="size-3.5"
-      />
+      <Heart weight={isFavourite ? "fill" : "regular"} className="size-3.5" />
     </button>
   )
 }

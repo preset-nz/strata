@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { getBatch, type BatchSummary } from "@/features/library/api"
+import { type BatchSummary, getBatch } from "@/features/library/api"
 
 export function useBatchDetails(id: string | null): BatchSummary | null {
   const { data } = useQuery({

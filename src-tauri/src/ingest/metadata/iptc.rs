@@ -284,8 +284,7 @@ fn parse_time_field(date: NaiveDate, time_str: &str) -> Option<DateTime<Utc>> {
     let tz_hh = time_str[7..9].parse::<i64>().ok()?;
     let tz_mm = time_str[9..11].parse::<i64>().ok()?;
 
-    let offset_secs: i64 = (tz_hh * 3600 + tz_mm * 60)
-        * if sign == "-" { -1 } else { 1 };
+    let offset_secs: i64 = (tz_hh * 3600 + tz_mm * 60) * if sign == "-" { -1 } else { 1 };
 
     let naive_dt = date.and_time(NaiveTime::from_hms_opt(hh, mm, ss)?);
     // Shift local time to UTC.
@@ -419,20 +418,24 @@ mod tests {
         let iptc = result.expect("iptc should be present");
 
         assert_eq!(iptc.title.as_deref(), Some("Harbour at dusk"));
-        assert_eq!(iptc.caption.as_deref(), Some("Looking west from Queens Wharf."));
+        assert_eq!(
+            iptc.caption.as_deref(),
+            Some("Looking west from Queens Wharf.")
+        );
         assert_eq!(iptc.copyright.as_deref(), Some("(c) 2026 Georg Duemlein"));
         assert_eq!(iptc.keywords, vec!["harbour", "dusk"]);
 
         // 2026-03-15 14:30:25 +12:00 → 2026-03-15 02:30:25 UTC
         let dt = iptc.date_created.expect("date_created should be set");
-        assert_eq!(dt.format("%Y-%m-%dT%H:%M:%SZ").to_string(), "2026-03-15T02:30:25Z");
+        assert_eq!(
+            dt.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+            "2026-03-15T02:30:25Z"
+        );
     }
 
     #[test]
     fn date_only_uses_midnight_utc() {
-        let records: &[(u8, u8, &[u8])] = &[
-            (2, DS_DATE_CREATED, b"20241231"),
-        ];
+        let records: &[(u8, u8, &[u8])] = &[(2, DS_DATE_CREATED, b"20241231")];
 
         let jpeg = build_jpeg_with_iptc(records);
         let path = write_temp(&jpeg);
@@ -441,7 +444,10 @@ mod tests {
 
         let iptc = result.expect("ok").expect("some");
         let dt = iptc.date_created.expect("date");
-        assert_eq!(dt.format("%Y-%m-%dT%H:%M:%SZ").to_string(), "2024-12-31T00:00:00Z");
+        assert_eq!(
+            dt.format("%Y-%m-%dT%H:%M:%SZ").to_string(),
+            "2024-12-31T00:00:00Z"
+        );
     }
 
     #[test]

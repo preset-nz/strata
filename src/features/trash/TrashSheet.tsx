@@ -1,18 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from "react"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ImageCard } from "@/components/image-card"
 import { CardContextMenu } from "@/components/image-card/CardContextMenu"
-import { ThumbGrid } from "../contact-sheet/ThumbGrid"
+import { SnackbarViewport } from "@/components/ui/snackbar"
+import { cn } from "@/lib/utils"
+import { useSelection } from "@/stores/selection"
 import type { ImportedRow } from "../contact-sheet/api"
+import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import {
   listImages,
   purgeImages,
   restoreImages,
   type SortDirection,
 } from "../library/api"
-import { useSelection } from "@/stores/selection"
-import { SnackbarViewport } from "@/components/ui/snackbar"
-import { cn } from "@/lib/utils"
 
 type Cell = {
   key: string
@@ -58,11 +58,7 @@ type Props = {
   onLibraryChanged?: () => void
 }
 
-export function TrashSheet({
-  direction,
-  cellSize,
-  onLibraryChanged,
-}: Props) {
+export function TrashSheet({ direction, cellSize, onLibraryChanged }: Props) {
   const [items, setItems] = useState<Cell[]>([])
   const [hasMore, setHasMore] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -70,8 +66,7 @@ export function TrashSheet({
   const offsetRef = useRef(0)
   const queryRef = useRef({ direction })
   const { selection, selectImage } = useSelection()
-  const selectedImageId =
-    selection.kind === "image" ? selection.id : null
+  const selectedImageId = selection.kind === "image" ? selection.id : null
 
   const loadNext = useCallback(async () => {
     if (loadingRef.current || !hasMore) return
@@ -137,7 +132,7 @@ export function TrashSheet({
         const next = prev.filter((c) => !idSet.has(c.key))
         offsetRef.current = Math.max(
           0,
-          offsetRef.current - (prev.length - next.length),
+          offsetRef.current - (prev.length - next.length)
         )
         return next
       })
@@ -152,20 +147,20 @@ export function TrashSheet({
       offs.push(
         await listen<string[]>("library://images-restored", (e) => {
           removeIds(e.payload)
-        }),
+        })
       )
       // Hard-deleted items leave the Trash collection (and the catalog).
       offs.push(
         await listen<string[]>("library://images-purged", (e) => {
           removeIds(e.payload)
-        }),
+        })
       )
       // A fresh soft-delete from elsewhere bumps the count and should appear
       // here on next entry — refresh so it lands in the current view too.
       offs.push(
         await listen<string[]>("library://images-trashed", () => {
           void reset()
-        }),
+        })
       )
       if (cancelled) offs.forEach((o) => o())
     })()
@@ -178,7 +173,7 @@ export function TrashSheet({
   return (
     <section className="relative flex min-h-0 flex-1 flex-col gap-2">
       {error && (
-        <p className="text-xs text-destructive">
+        <p className="text-destructive text-xs">
           Error: <span className="select-text">{error}</span>
         </p>
       )}
@@ -220,11 +215,11 @@ function DaysBadge({ days }: { days: number }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-xs px-1 py-0.5 text-[9px] font-medium tabular-nums shadow-sm",
+        "inline-flex items-center rounded-xs px-1 py-0.5 font-medium text-[9px] tabular-nums shadow-sm",
         "bg-background/85 backdrop-blur-sm",
         days <= 3
           ? "text-destructive ring-1 ring-destructive/40"
-          : "text-foreground/80",
+          : "text-foreground/80"
       )}
       title={`${days} ${days === 1 ? "day" : "days"} until permanent deletion`}
     >

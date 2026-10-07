@@ -1,15 +1,30 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 import { useSnackbar } from "@/components/ui/use-snackbar"
-import { deleteSearch, listSavedSearches, restoreSearch, saveSearch, type SavedSearch } from "./api"
-import { isSavable, parseQuery, sameQuery, suggestName, type SavedQuery } from "./query"
+import {
+  deleteSearch,
+  listSavedSearches,
+  restoreSearch,
+  type SavedSearch,
+  saveSearch,
+} from "./api"
+import {
+  isSavable,
+  parseQuery,
+  type SavedQuery,
+  sameQuery,
+  suggestName,
+} from "./query"
 
 /**
  * The saved searches, which one the library currently shows, and the save /
  * apply / delete commands. Save is Edit › Save Search… (bound in App.tsx to
  * `startNaming`); the rail asks for a name. Delete offers Undo the way Move to Trash does.
  */
-export function useSavedSearches(current: SavedQuery, apply: (q: SavedQuery) => void) {
+export function useSavedSearches(
+  current: SavedQuery,
+  apply: (q: SavedQuery) => void
+) {
   const [searches, setSearches] = useState<SavedSearch[]>([])
   const [naming, setNaming] = useState<string | null>(null)
   const { show } = useSnackbar()
@@ -45,7 +60,7 @@ export function useSavedSearches(current: SavedQuery, apply: (q: SavedQuery) => 
         show({ message: `Couldn't save the search: ${String(e)}` })
       }
     },
-    [current, reload, show],
+    [current, reload, show]
   )
 
   const remove = useCallback(
@@ -66,30 +81,38 @@ export function useSavedSearches(current: SavedQuery, apply: (q: SavedQuery) => 
         show({ message: `Couldn't delete the search: ${String(e)}` })
       }
     },
-    [reload, show],
+    [reload, show]
   )
 
   const applySearch = useCallback(
     (s: SavedSearch) => {
       const q = parseQuery(s.query)
       if (q) apply(q)
-      else show({ message: `"${s.name}" was saved by a newer Strata and can't run here.` })
+      else
+        show({
+          message: `"${s.name}" was saved by a newer Strata and can't run here.`,
+        })
     },
-    [apply, show],
+    [apply, show]
   )
 
   const activeId = useMemo(() => {
     if (!isSavable(current)) return null
-    return searches.find((s) => {
-      const q = parseQuery(s.query)
-      return q !== null && sameQuery(q, current)
-    })?.id ?? null
+    return (
+      searches.find((s) => {
+        const q = parseQuery(s.query)
+        return q !== null && sameQuery(q, current)
+      })?.id ?? null
+    )
   }, [searches, current])
 
   // Global searches always show; a project's only while it is the filter.
   const visible = useMemo(
-    () => searches.filter((s) => s.project_key === null || s.project_key === current.projectKey),
-    [searches, current.projectKey],
+    () =>
+      searches.filter(
+        (s) => s.project_key === null || s.project_key === current.projectKey
+      ),
+    [searches, current.projectKey]
   )
 
   return {

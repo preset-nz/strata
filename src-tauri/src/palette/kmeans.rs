@@ -13,7 +13,11 @@ pub fn kmeans(points: &[Lab], k: usize, max_iters: usize) -> Vec<Cluster> {
     }
     let k = k.min(points.len());
     let n = points.len();
-    refine(points, (0..k).map(|j| points[j * n / k]).collect(), max_iters)
+    refine(
+        points,
+        (0..k).map(|j| points[j * n / k]).collect(),
+        max_iters,
+    )
 }
 
 /// Seeds by k-means++ (each next seed drawn with probability proportional
@@ -153,9 +157,19 @@ mod tests {
     fn plus_plus_seeds_a_region_even_spacing_misses() {
         // Row-major 4 x 4, the last column blue: evenly spaced seeds
         // (indices 0, 4, 8, 12) all land on red.
-        let red = srgb_to_lab(Srgb { r: 200, g: 20, b: 20 });
-        let blue = srgb_to_lab(Srgb { r: 20, g: 20, b: 200 });
-        let pixels: Vec<Lab> = (0..16).map(|i| if i % 4 == 3 { blue } else { red }).collect();
+        let red = srgb_to_lab(Srgb {
+            r: 200,
+            g: 20,
+            b: 20,
+        });
+        let blue = srgb_to_lab(Srgb {
+            r: 20,
+            g: 20,
+            b: 200,
+        });
+        let pixels: Vec<Lab> = (0..16)
+            .map(|i| if i % 4 == 3 { blue } else { red })
+            .collect();
         assert_eq!(kmeans(&pixels, 4, 20).len(), 1);
         let clusters = kmeans_pp(&pixels, 4, 20);
         assert_eq!(clusters.len(), 2);

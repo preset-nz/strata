@@ -3,8 +3,12 @@
 // changes it; the provider's own "d" toggle writes back so the file matches
 // what is on screen. Guarded both ways, so no ping-pong.
 
+import {
+  usePreference,
+  usePreferenceActions,
+  usePreferences,
+} from "@preset.nz/preferences"
 import { useEffect, useRef } from "react"
-import { usePreference, usePreferenceActions, usePreferences } from "@preset.nz/preferences"
 import { useTheme } from "./theme-provider"
 
 type Theme = "dark" | "light" | "system"

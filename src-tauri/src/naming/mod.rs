@@ -121,9 +121,9 @@ impl Schema {
         let segments = parse_template(&file.file.template)?;
         let optional = optional_parts(&segments);
         for name in segment_parts(&segments) {
-            let part = parts
-                .get(&name)
-                .ok_or_else(|| NamingError::Schema(format!("template names unknown part `{name}`")))?;
+            let part = parts.get(&name).ok_or_else(|| {
+                NamingError::Schema(format!("template names unknown part `{name}`"))
+            })?;
             if part.optional != optional.contains(&name) {
                 return Err(NamingError::Schema(format!(
                     "part `{name}` is optional in one of the template and the part list only"
@@ -193,7 +193,8 @@ impl Schema {
 
     pub fn parse_filename(&self, filename: &str) -> Option<Tokens> {
         let mut tokens = Tokens::new();
-        self.matches(&self.file, filename, &mut tokens).then_some(tokens)
+        self.matches(&self.file, filename, &mut tokens)
+            .then_some(tokens)
     }
 
     /// Tokens to a reference, lowercase, version omitted when absent.
@@ -228,7 +229,10 @@ impl Schema {
             .ok_or_else(invalid)?;
         let (path, version) = match rest.rsplit_once('@') {
             Some((path, "published")) => (path, VersionSelector::Published),
-            Some((path, v)) => (path, VersionSelector::Number(v.parse().map_err(|_| invalid())?)),
+            Some((path, v)) => (
+                path,
+                VersionSelector::Number(v.parse().map_err(|_| invalid())?),
+            ),
             None => (rest, VersionSelector::Latest),
         };
         let segments: Vec<&str> = path.split('/').collect();
@@ -261,12 +265,20 @@ impl Schema {
                 continue;
             }
             let name = entry.file_name().to_string_lossy().into_owned();
-            let Some(tokens) = self.parse_filename(&name) else { continue };
+            let Some(tokens) = self.parse_filename(&name) else {
+                continue;
+            };
             if !same_ignoring_case(&self.stem_tokens(&tokens), &wanted) {
                 continue;
             }
-            let Some(version) = tokens.get(VERSION).and_then(|v| v.parse().ok()) else { continue };
-            found.push(Found { path: entry.path(), tokens, version });
+            let Some(version) = tokens.get(VERSION).and_then(|v| v.parse().ok()) else {
+                continue;
+            };
+            found.push(Found {
+                path: entry.path(),
+                tokens,
+                version,
+            });
         }
         found.sort_by(|a, b| a.version.cmp(&b.version).then_with(|| a.path.cmp(&b.path)));
         Ok(found)
@@ -290,7 +302,12 @@ impl Schema {
     }
 
     /// Prints `segments`; `Ok(false)` if a required part has no value.
-    fn print(&self, segments: &[Segment], tokens: &Tokens, out: &mut String) -> Result<bool, NamingError> {
+    fn print(
+        &self,
+        segments: &[Segment],
+        tokens: &Tokens,
+        out: &mut String,
+    ) -> Result<bool, NamingError> {
         for segment in segments {
             match segment {
                 Segment::Literal(text) => out.push_str(text),
@@ -349,7 +366,11 @@ impl Schema {
                         PartKind::Int => value.trim_start_matches('0').to_string(),
                         _ => value.to_string(),
                     };
-                    let stored = if stored.is_empty() { "0".to_string() } else { stored };
+                    let stored = if stored.is_empty() {
+                        "0".to_string()
+                    } else {
+                        stored
+                    };
                     attempt.insert(name.clone(), stored);
                     if self.matches(rest, &input[end..], &mut attempt) {
                         *tokens = attempt;
@@ -453,7 +474,10 @@ mod tests {
     use super::*;
 
     fn tokens(pairs: &[(&str, &str)]) -> Tokens {
-        pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect()
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
     }
 
     #[test]
@@ -477,11 +501,17 @@ mod tests {
     fn optional_parts_drop_out() {
         let schema = Schema::default_family();
         let parsed = schema.parse_filename("intro.v002.wav").unwrap();
-        assert_eq!(parsed, tokens(&[("element", "intro"), ("version", "2"), ("ext", "wav")]));
+        assert_eq!(
+            parsed,
+            tokens(&[("element", "intro"), ("version", "2"), ("ext", "wav")])
+        );
 
         let framed = schema.parse_filename("cover_bg.v002.0042.png").unwrap();
         assert_eq!(framed["frame"], "42");
-        assert_eq!(schema.format_filename(&framed).unwrap(), "cover_bg.v002.0042.png");
+        assert_eq!(
+            schema.format_filename(&framed).unwrap(),
+            "cover_bg.v002.0042.png"
+        );
     }
 
     #[test]
@@ -508,7 +538,9 @@ mod tests {
             "strata://night-drive/base/shard/patches/drums_kick@3"
         );
 
-        let latest = schema.parse_reference("strata://night-drive/base/shard/patches/intro").unwrap();
+        let latest = schema
+            .parse_reference("strata://night-drive/base/shard/patches/intro")
+            .unwrap();
         assert_eq!(latest.version, VersionSelector::Latest);
         assert!(!latest.tokens.contains_key("component"));
 

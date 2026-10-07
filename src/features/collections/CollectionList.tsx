@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react"
 import { Stack, X } from "@phosphor-icons/react"
+import { useEffect, useRef, useState } from "react"
 
 import { readStrataImagePayload } from "@/components/image-card/use-draggable-card"
 import { cn } from "@/lib/utils"
@@ -36,9 +36,18 @@ export function CollectionList({
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   return (
     <div className="flex flex-col gap-1">
-      {naming && <NameField initial="" placeholder="Name the collection" onName={onName} onCancel={onCancelNaming} />}
+      {naming && (
+        <NameField
+          initial=""
+          placeholder="Name the collection"
+          onName={onName}
+          onCancel={onCancelNaming}
+        />
+      )}
       {collections.length === 0 && !naming ? (
-        <p className="px-1 text-muted-foreground/70">Image › New Collection…, then drag images onto it</p>
+        <p className="px-1 text-muted-foreground/70">
+          Image › New Collection…, then drag images onto it
+        </p>
       ) : (
         <ul className="flex flex-col">
           {collections.map((c) =>
@@ -70,7 +79,9 @@ export function CollectionList({
                     e.dataTransfer.dropEffect = "copy"
                     setDropTarget(c.id)
                   }}
-                  onDragLeave={() => setDropTarget((t) => (t === c.id ? null : t))}
+                  onDragLeave={() =>
+                    setDropTarget((t) => (t === c.id ? null : t))
+                  }
                   onDrop={(e) => {
                     e.preventDefault()
                     setDropTarget(null)
@@ -80,14 +91,19 @@ export function CollectionList({
                   className={cn(
                     "flex w-full items-center gap-1.5 rounded-sm px-1 py-0.5 pr-5 text-left transition-colors",
                     "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                    selectedId === c.id ? "bg-muted text-foreground" : "text-foreground hover:bg-muted/60",
+                    selectedId === c.id
+                      ? "bg-muted text-foreground"
+                      : "text-foreground hover:bg-muted/60",
                     dropTarget === c.id && "ring-1 ring-ring",
-                    disabled && "cursor-default opacity-60 hover:bg-transparent",
+                    disabled && "cursor-default opacity-60 hover:bg-transparent"
                   )}
                 >
-                  <Stack weight="bold" className="size-3 shrink-0 text-muted-foreground" />
+                  <Stack
+                    weight="bold"
+                    className="size-3 shrink-0 text-muted-foreground"
+                  />
                   <span className="flex-1 truncate">{c.name}</span>
-                  <span className="text-[10px] tabular-nums text-muted-foreground group-hover:invisible">
+                  <span className="text-[10px] text-muted-foreground tabular-nums group-hover:invisible">
                     {c.count.toLocaleString()}
                   </span>
                 </button>
@@ -97,12 +113,12 @@ export function CollectionList({
                   title="Delete (Edit › Undo brings it back)"
                   disabled={disabled}
                   onClick={() => onDelete(c)}
-                  className="absolute top-1/2 right-0.5 hidden -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground group-hover:block hover:text-foreground focus-visible:block"
+                  className="absolute top-1/2 right-0.5 hidden -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground focus-visible:block group-hover:block"
                 >
                   <X weight="bold" className="size-3" />
                 </button>
               </li>
-            ),
+            )
           )}
         </ul>
       )}

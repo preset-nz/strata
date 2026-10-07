@@ -1,16 +1,17 @@
 /* eslint-disable react-refresh/only-export-components --
  * Renderers + the registration entry point are colocated by design. */
+
+import type { FieldRenderer } from "@preset.nz/facets"
 import {
   FieldShell,
   ReadOnlyText,
   registerFieldRenderer,
 } from "@preset.nz/facets"
-import type { FieldRenderer } from "@preset.nz/facets"
-import { VGA16_HEX, VGA16_LABEL, type Vga16Bucket } from "@/lib/vga16"
 import {
   COLOUR_SWATCH,
   type ColourLabel,
 } from "@/components/image-card/colour-label"
+import { VGA16_HEX, VGA16_LABEL, type Vga16Bucket } from "@/lib/vga16"
 import { PaletteExtract } from "./PaletteExtract"
 
 const Vga16BucketRenderer: FieldRenderer = ({ field, value, view }) => {
@@ -28,9 +29,9 @@ const Vga16BucketRenderer: FieldRenderer = ({ field, value, view }) => {
               style={{ backgroundColor: hex }}
             />
           ) : (
-            <span className="inline-block size-4 shrink-0 border border-dashed border-border" />
+            <span className="inline-block size-4 shrink-0 border border-border border-dashed" />
           )}
-          <span className="text-xs text-foreground">
+          <span className="text-foreground text-xs">
             {label ?? <span className="text-muted-foreground">—</span>}
           </span>
         </div>
@@ -53,9 +54,9 @@ const ColourLabelRenderer: FieldRenderer = ({ field, value, view }) => {
               style={{ backgroundColor: swatch }}
             />
           ) : (
-            <span className="inline-block size-4 shrink-0 border border-dashed border-border" />
+            <span className="inline-block size-4 shrink-0 border border-border border-dashed" />
           )}
-          <span className="text-xs text-foreground capitalize">
+          <span className="text-foreground text-xs capitalize">
             {colour ?? <span className="text-muted-foreground">—</span>}
           </span>
         </div>

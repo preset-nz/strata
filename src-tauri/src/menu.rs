@@ -51,15 +51,18 @@ fn image_commands() -> Vec<Command> {
         .section(0)
         .unchecked()
         .disabled()];
-    let labels = crate::curation::LABELS.iter().enumerate().map(|(i, label)| {
-        let title = format!("{}{}", label[..1].to_uppercase(), &label[1..]);
-        Command::item(&format!("image.label.{label}"), &title)
-            .accelerator(&(i + 1).to_string())
-            .domain("Image")
-            .submenu("Colour Label")
-            .section(1)
-            .disabled()
-    });
+    let labels = crate::curation::LABELS
+        .iter()
+        .enumerate()
+        .map(|(i, label)| {
+            let title = format!("{}{}", label[..1].to_uppercase(), &label[1..]);
+            Command::item(&format!("image.label.{label}"), &title)
+                .accelerator(&(i + 1).to_string())
+                .domain("Image")
+                .submenu("Colour Label")
+                .section(1)
+                .disabled()
+        });
     commands.extend(labels);
     commands.push(
         Command::item("image.new_collection", "New Collection…")

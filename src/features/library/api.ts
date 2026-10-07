@@ -1,8 +1,8 @@
 import { invoke } from "@tauri-apps/api/core"
-import type { Vga16Bucket } from "@/lib/vga16"
-import type { Orientation } from "@/lib/orientation"
-import type { ImportedRow } from "../contact-sheet/api"
 import type { SortKey } from "@/components/shell/sort-keys"
+import type { Orientation } from "@/lib/orientation"
+import type { Vga16Bucket } from "@/lib/vga16"
+import type { ImportedRow } from "../contact-sheet/api"
 
 export type BucketCount = { bucket: Vga16Bucket; count: number }
 export type OrientationCount = { orientation: Orientation; count: number }
@@ -39,7 +39,7 @@ export type ImagesQuery = {
 export function listImages(
   offset: number,
   limit: number,
-  opts?: ImagesQuery,
+  opts?: ImagesQuery
 ): Promise<ImportedRow[]> {
   return invoke<ImportedRow[]>("list_images", {
     offset,

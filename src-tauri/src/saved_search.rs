@@ -45,7 +45,9 @@ pub fn put(
     if !query.is_object() {
         bail!("a saved search's query must be an object");
     }
-    let id = id.map(str::to_string).unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
+    let id = id
+        .map(str::to_string)
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     let now = Utc::now().to_rfc3339();
     conn.execute(
         "INSERT INTO saved_search (id, name, query, created_at, updated_at, project_key) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
@@ -109,11 +111,22 @@ mod tests {
         assert_eq!(names, ["alpha", "Olive bark"]);
 
         let renamed = put(&conn, Some(&saved.id), "Bark", &q, None, None).unwrap();
-        assert_eq!((renamed.id.as_str(), renamed.created_at.as_str()), (saved.id.as_str(), saved.created_at.as_str()));
+        assert_eq!(
+            (renamed.id.as_str(), renamed.created_at.as_str()),
+            (saved.id.as_str(), saved.created_at.as_str())
+        );
 
         let gone = delete(&conn, &saved.id).unwrap().unwrap();
         assert_eq!(list(&conn).unwrap().len(), 1);
-        let back = put(&conn, Some(&gone.id), &gone.name, &gone.query, Some(&gone.created_at), None).unwrap();
+        let back = put(
+            &conn,
+            Some(&gone.id),
+            &gone.name,
+            &gone.query,
+            Some(&gone.created_at),
+            None,
+        )
+        .unwrap();
         assert_eq!(back.created_at, saved.created_at);
         assert_eq!(list(&conn).unwrap().len(), 2);
 

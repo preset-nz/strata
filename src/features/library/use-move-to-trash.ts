@@ -32,6 +32,6 @@ export function useMoveToTrash() {
         show({ message: `Could not delete: ${String(e)}` })
       }
     },
-    [show],
+    [show]
   )
 }

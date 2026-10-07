@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
 import { invoke } from "@tauri-apps/api/core"
+import { useEffect, useState } from "react"
 
 import { cn } from "@/lib/utils"
 import { VGA16_LABEL, type Vga16Bucket } from "@/lib/vga16"
@@ -30,9 +30,11 @@ export function PaletteExtract({ imageId }: { imageId: string }) {
   // Nothing runs until a k is picked: the panel shows every group open.
   const [k, setK] = useState<K | null>(null)
   const key = k === null ? null : `${imageId}:${k}`
-  const [result, setResult] = useState<{ key: string | null; swatches: Swatch[] | null; error: string | null }>(
-    { key: null, swatches: null, error: null },
-  )
+  const [result, setResult] = useState<{
+    key: string | null
+    swatches: Swatch[] | null
+    error: string | null
+  }>({ key: null, swatches: null, error: null })
   const [copied, setCopied] = useState<string | null>(null)
 
   useEffect(() => {
@@ -64,7 +66,11 @@ export function PaletteExtract({ imageId }: { imageId: string }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div role="radiogroup" aria-label="Number of colours" className="flex gap-1">
+      <div
+        role="radiogroup"
+        aria-label="Number of colours"
+        className="flex gap-1"
+      >
         {KS.map((n) => (
           <button
             key={n}
@@ -74,7 +80,9 @@ export function PaletteExtract({ imageId }: { imageId: string }) {
             onClick={() => setK(n)}
             className={cn(
               "rounded-sm border px-2 py-0.5 text-xs tabular-nums",
-              k === n ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted",
+              k === n
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border hover:bg-muted"
             )}
           >
             {n}
@@ -82,16 +90,24 @@ export function PaletteExtract({ imageId }: { imageId: string }) {
         ))}
       </div>
       {k === null ? (
-        <p className="text-xs text-muted-foreground">Pick how many colours to extract.</p>
+        <p className="text-muted-foreground text-xs">
+          Pick how many colours to extract.
+        </p>
       ) : current.error ? (
-        <p className="text-xs text-destructive select-text">{current.error}</p>
+        <p className="select-text text-destructive text-xs">{current.error}</p>
       ) : !current.swatches ? (
-        <p className="text-xs text-muted-foreground">Extracting…</p>
+        <p className="text-muted-foreground text-xs">Extracting…</p>
       ) : (
         <>
-          <div className="flex h-4 w-full overflow-hidden border border-border" aria-hidden>
+          <div
+            className="flex h-4 w-full overflow-hidden border border-border"
+            aria-hidden
+          >
             {current.swatches.map((s, i) => (
-              <span key={i} style={{ backgroundColor: s.hex, flexGrow: s.weight }} />
+              <span
+                key={i}
+                style={{ backgroundColor: s.hex, flexGrow: s.weight }}
+              />
             ))}
           </div>
           <ul className="flex flex-col gap-0.5">
@@ -119,7 +135,8 @@ export function PaletteExtract({ imageId }: { imageId: string }) {
                   {lchText(s.lch)}
                 </button>
                 <span className="ml-auto shrink-0 text-[10px] text-muted-foreground tabular-nums">
-                  {(s.weight * 100).toFixed(0)}% · {VGA16_LABEL[s.bucket] ?? s.bucket}
+                  {(s.weight * 100).toFixed(0)}% ·{" "}
+                  {VGA16_LABEL[s.bucket] ?? s.bucket}
                 </span>
               </li>
             ))}

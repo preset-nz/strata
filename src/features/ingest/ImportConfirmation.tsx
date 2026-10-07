@@ -3,7 +3,12 @@ import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { PrescanSummary } from "./api"
-import { allFolders, boxState, selectionTotals, toggleFolder } from "./folderSelection"
+import {
+  allFolders,
+  boxState,
+  selectionTotals,
+  toggleFolder,
+} from "./folderSelection"
 
 type Props = {
   scan: PrescanSummary
@@ -18,7 +23,10 @@ function plural(n: number, one: string, many: string): string {
 
 export function ImportConfirmation({ scan, onConfirm, onCancel, busy }: Props) {
   const [kept, setKept] = useState(() => allFolders(scan.folders))
-  const { images, folders } = useMemo(() => selectionTotals(scan.folders, kept), [scan.folders, kept])
+  const { images, folders } = useMemo(
+    () => selectionTotals(scan.folders, kept),
+    [scan.folders, kept]
+  )
 
   const breakdown = Object.entries(scan.by_extension)
     .map(([ext, n]) => `${n} ${ext}`)
@@ -34,7 +42,7 @@ export function ImportConfirmation({ scan, onConfirm, onCancel, busy }: Props) {
         </code>
       </p>
       {breakdown && (
-        <p className="mt-1 text-xs text-muted-foreground">{breakdown}</p>
+        <p className="mt-1 text-muted-foreground text-xs">{breakdown}</p>
       )}
 
       {scan.folders.length > 1 && (
@@ -50,11 +58,13 @@ export function ImportConfirmation({ scan, onConfirm, onCancel, busy }: Props) {
                   <Checkbox
                     checked={state === "checked"}
                     indeterminate={state === "mixed"}
-                    onCheckedChange={() => setKept((k) => toggleFolder(scan.folders, k, row.path))}
+                    onCheckedChange={() =>
+                      setKept((k) => toggleFolder(scan.folders, k, row.path))
+                    }
                     disabled={busy}
                   />
                   <span className="min-w-0 flex-1 truncate">{row.name}</span>
-                  <span className="text-xs tabular-nums text-muted-foreground">
+                  <span className="text-muted-foreground text-xs tabular-nums">
                     {row.own > 0 ? row.own : ""}
                   </span>
                 </label>
@@ -72,7 +82,10 @@ export function ImportConfirmation({ scan, onConfirm, onCancel, busy }: Props) {
         Unchecked folders and non-image files are left untouched. Continue?
       </p>
       <div className="mt-4 flex gap-2">
-        <Button onClick={() => onConfirm([...kept])} disabled={busy || images === 0}>
+        <Button
+          onClick={() => onConfirm([...kept])}
+          disabled={busy || images === 0}
+        >
           Confirm import
         </Button>
         <Button variant="outline" onClick={onCancel} disabled={busy}>

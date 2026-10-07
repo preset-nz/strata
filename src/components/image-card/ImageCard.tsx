@@ -1,9 +1,9 @@
-import { cn } from "@/lib/utils"
 import { Thumbnail } from "@/features/contact-sheet/Thumbnail"
 import { useHardPress } from "@/lib/use-hard-press"
-import { FavouriteToggle } from "./FavouriteToggle"
+import { cn } from "@/lib/utils"
 import { ColourLabelSwatch } from "./ColourLabelSwatch"
 import type { ColourLabel } from "./colour-label"
+import { FavouriteToggle } from "./FavouriteToggle"
 import { useDraggableCard } from "./use-draggable-card"
 
 type Props = {
@@ -50,12 +50,12 @@ export function ImageCard({
         onSelect?.()
       }}
       className={cn(
-        "group/card relative flex h-full w-full flex-col cursor-pointer",
+        "group/card relative flex h-full w-full cursor-pointer flex-col",
         "rounded-sm border bg-card p-1 shadow-sm",
         "transition-[box-shadow,border-color,background-color] duration-150 ease-out",
         selected
           ? "border-foreground/60 shadow"
-          : "border-border/70 hover:bg-muted hover:shadow",
+          : "border-border/70 hover:bg-muted hover:shadow"
       )}
     >
       <div className="relative aspect-square w-full overflow-hidden bg-muted/30">

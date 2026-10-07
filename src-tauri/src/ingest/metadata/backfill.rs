@@ -35,11 +35,12 @@ pub fn run(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
              WHERE i.deleted_at IS NULL
                AND (m.image_id IS NULL OR m.stage_version <> ?)",
         )?;
-        let rows = stmt.query_map(params![STAGE_VERSION], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })?
-        .filter_map(Result::ok)
-        .collect();
+        let rows = stmt
+            .query_map(params![STAGE_VERSION], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?
+            .filter_map(Result::ok)
+            .collect();
         rows
     };
 
@@ -50,7 +51,11 @@ pub fn run(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
 
     let _ = app.emit(
         "metadata://backfill-start",
-        BackfillProgress { done: 0, total, failed: 0 },
+        BackfillProgress {
+            done: 0,
+            total,
+            failed: 0,
+        },
     );
 
     let mut done = 0usize;
@@ -65,13 +70,21 @@ pub fn run(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
         done += 1;
         let _ = app.emit(
             "metadata://backfill-progress",
-            BackfillProgress { done, total, failed },
+            BackfillProgress {
+                done,
+                total,
+                failed,
+            },
         );
     }
 
     let _ = app.emit(
         "metadata://backfill-done",
-        BackfillProgress { done, total, failed },
+        BackfillProgress {
+            done,
+            total,
+            failed,
+        },
     );
     Ok(())
 }

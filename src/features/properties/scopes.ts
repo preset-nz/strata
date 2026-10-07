@@ -1,4 +1,9 @@
-import { registerScope, type PropertySchema, type Scope, type ScopeContext } from "@preset.nz/facets"
+import {
+  type PropertySchema,
+  registerScope,
+  type Scope,
+  type ScopeContext,
+} from "@preset.nz/facets"
 import type { ImageDetails } from "@/features/contact-sheet/api"
 import type { BatchSummary } from "@/features/library/api"
 
@@ -12,14 +17,39 @@ const IMAGE_SCHEMA: PropertySchema = {
       id: "file",
       title: "File",
       rows: [
-        { kind: "text", id: "displayTitle", label: "Title", path: "displayTitle" },
-        { kind: "text", id: "filename", label: "Source filename", path: "filename" },
-        { kind: "text", id: "originalPath", label: "Source path", path: "originalPath" },
+        {
+          kind: "text",
+          id: "displayTitle",
+          label: "Title",
+          path: "displayTitle",
+        },
+        {
+          kind: "text",
+          id: "filename",
+          label: "Source filename",
+          path: "filename",
+        },
+        {
+          kind: "text",
+          id: "originalPath",
+          label: "Source path",
+          path: "originalPath",
+        },
         [
-          { kind: "file-size", id: "byteSize", label: "Size", path: "byteSize" },
+          {
+            kind: "file-size",
+            id: "byteSize",
+            label: "Size",
+            path: "byteSize",
+          },
           { kind: "text", id: "mime", label: "Type", path: "mime" },
         ],
-        { kind: "date", id: "importedAt", label: "Imported", path: "importedAt" },
+        {
+          kind: "date",
+          id: "importedAt",
+          label: "Imported",
+          path: "importedAt",
+        },
         {
           kind: "status-pill",
           id: "status",
@@ -33,12 +63,29 @@ const IMAGE_SCHEMA: PropertySchema = {
       title: "Generation",
       description: "How the image was made, read from the file.",
       rows: [
-        { kind: "textarea", id: "prompt", label: "Prompt", path: "prompt", rows: 5 },
-        { kind: "textarea", id: "negative", label: "Negative", path: "negative", rows: 2 },
+        {
+          kind: "textarea",
+          id: "prompt",
+          label: "Prompt",
+          path: "prompt",
+          rows: 5,
+        },
+        {
+          kind: "textarea",
+          id: "negative",
+          label: "Negative",
+          path: "negative",
+          rows: 2,
+        },
         { kind: "text", id: "model", label: "Model", path: "model" },
         [
           { kind: "text", id: "seed", label: "Seed", path: "seed" },
-          { kind: "text", id: "producer", label: "Made with", path: "producer" },
+          {
+            kind: "text",
+            id: "producer",
+            label: "Made with",
+            path: "producer",
+          },
         ],
       ],
     },
@@ -54,7 +101,12 @@ const IMAGE_SCHEMA: PropertySchema = {
         ],
         [
           { kind: "text", id: "guidance", label: "Guidance", path: "guidance" },
-          { kind: "text", id: "generatedSize", label: "Size", path: "generatedSize" },
+          {
+            kind: "text",
+            id: "generatedSize",
+            label: "Size",
+            path: "generatedSize",
+          },
         ],
         [
           { kind: "text", id: "strength", label: "Strength", path: "strength" },
@@ -86,7 +138,12 @@ const IMAGE_SCHEMA: PropertySchema = {
       title: "Camera",
       rows: [
         { kind: "text", id: "cameraMake", label: "Make", path: "cameraMake" },
-        { kind: "text", id: "cameraModel", label: "Model", path: "cameraModel" },
+        {
+          kind: "text",
+          id: "cameraModel",
+          label: "Model",
+          path: "cameraModel",
+        },
         { kind: "text", id: "lens", label: "Lens", path: "lens" },
       ],
     },
@@ -100,14 +157,34 @@ const IMAGE_SCHEMA: PropertySchema = {
         ],
         [
           { kind: "text", id: "shutter", label: "Shutter", path: "shutter" },
-          { kind: "text", id: "focalLength", label: "Focal", path: "focalLength" },
+          {
+            kind: "text",
+            id: "focalLength",
+            label: "Focal",
+            path: "focalLength",
+          },
         ],
         [
-          { kind: "text", id: "exposureBias", label: "Bias", path: "exposureBias" },
-          { kind: "text", id: "exposureProgram", label: "Program", path: "exposureProgram" },
+          {
+            kind: "text",
+            id: "exposureBias",
+            label: "Bias",
+            path: "exposureBias",
+          },
+          {
+            kind: "text",
+            id: "exposureProgram",
+            label: "Program",
+            path: "exposureProgram",
+          },
         ],
         [
-          { kind: "text", id: "meteringMode", label: "Metering", path: "meteringMode" },
+          {
+            kind: "text",
+            id: "meteringMode",
+            label: "Metering",
+            path: "meteringMode",
+          },
           { kind: "text", id: "flash", label: "Flash", path: "flash" },
         ],
       ],
@@ -125,8 +202,18 @@ const IMAGE_SCHEMA: PropertySchema = {
           components: [{ label: "W" }, { label: "H" }],
         },
         [
-          { kind: "text", id: "orientation", label: "Orientation", path: "orientation" },
-          { kind: "text", id: "colorSpace", label: "Colour space", path: "colorSpace" },
+          {
+            kind: "text",
+            id: "orientation",
+            label: "Orientation",
+            path: "orientation",
+          },
+          {
+            kind: "text",
+            id: "colorSpace",
+            label: "Colour space",
+            path: "colorSpace",
+          },
         ],
       ],
     },
@@ -145,7 +232,12 @@ const IMAGE_SCHEMA: PropertySchema = {
             { label: "Lon", suffix: "°" },
           ],
         },
-        { kind: "text", id: "gpsAltitude", label: "Altitude", path: "gpsAltitude" },
+        {
+          kind: "text",
+          id: "gpsAltitude",
+          label: "Altitude",
+          path: "gpsAltitude",
+        },
         [
           { kind: "text", id: "city", label: "City", path: "city" },
           { kind: "text", id: "state", label: "State", path: "state" },
@@ -158,7 +250,12 @@ const IMAGE_SCHEMA: PropertySchema = {
       title: "Rights",
       rows: [
         { kind: "text", id: "byline", label: "Creator", path: "byline" },
-        { kind: "text", id: "copyright", label: "Copyright", path: "copyright" },
+        {
+          kind: "text",
+          id: "copyright",
+          label: "Copyright",
+          path: "copyright",
+        },
         { kind: "text", id: "title", label: "Title", path: "title" },
       ],
     },
@@ -166,8 +263,19 @@ const IMAGE_SCHEMA: PropertySchema = {
       id: "description",
       title: "Description",
       rows: [
-        { kind: "textarea", id: "caption", label: "Caption", path: "caption", rows: 3 },
-        { kind: "keyword-chips", id: "keywords", label: "Keywords", path: "keywords" },
+        {
+          kind: "textarea",
+          id: "caption",
+          label: "Caption",
+          path: "caption",
+          rows: 3,
+        },
+        {
+          kind: "keyword-chips",
+          id: "keywords",
+          label: "Keywords",
+          path: "keywords",
+        },
       ],
     },
     {
@@ -201,7 +309,9 @@ const IMAGE_SCHEMA: PropertySchema = {
       description: "Extracted on request, at 4, 8 or 16 colours. Not stored.",
       collapsible: true,
       defaultCollapsed: true,
-      rows: [{ kind: "palette-extract", id: "paletteExtract", path: "imageId" }],
+      rows: [
+        { kind: "palette-extract", id: "paletteExtract", path: "imageId" },
+      ],
     },
   ],
 }
@@ -260,10 +370,14 @@ type ImageValues = {
 const PRODUCERS: Record<string, string> = { drawthings: "Draw Things" }
 
 /** A scalar from the producer's settings, as display text. */
-function setting(settings: Record<string, unknown> | null | undefined, key: string): string | null {
+function setting(
+  settings: Record<string, unknown> | null | undefined,
+  key: string
+): string | null {
   const v = settings?.[key]
   if (v == null || typeof v === "object") return null
-  if (typeof v === "number") return Number.isInteger(v) ? String(v) : String(Number(v.toFixed(3)))
+  if (typeof v === "number")
+    return Number.isInteger(v) ? String(v) : String(Number(v.toFixed(3)))
   return String(v)
 }
 
@@ -281,11 +395,12 @@ function formatAperture(f: number | null | undefined): string | null {
 
 function formatFocalLength(
   mm: number | null | undefined,
-  mm35: number | null | undefined,
+  mm35: number | null | undefined
 ): string | null {
   if (mm == null && mm35 == null) return null
   const main = mm != null ? `${mm.toFixed(0)} mm` : null
-  const equiv = mm35 != null && mm35 !== mm ? ` (${mm35.toFixed(0)} mm eq.)` : ""
+  const equiv =
+    mm35 != null && mm35 !== mm ? ` (${mm35.toFixed(0)} mm eq.)` : ""
   return main ? main + equiv : mm35 != null ? `${mm35.toFixed(0)} mm eq.` : null
 }
 
@@ -345,7 +460,8 @@ const imageScope: Scope<ImageSelection, ImageValues> = {
       exposureBias: formatBias(d?.exposure_bias),
       exposureProgram: d?.exposure_program ?? null,
       meteringMode: d?.metering_mode ?? null,
-      flash: d?.flash_fired == null ? null : d.flash_fired ? "Fired" : "No flash",
+      flash:
+        d?.flash_fired == null ? null : d.flash_fired ? "Fired" : "No flash",
       dimensions: [d?.pixel_width ?? null, d?.pixel_height ?? null],
       orientation: d?.orientation != null ? String(d.orientation) : null,
       colorSpace: d?.color_space ?? null,
@@ -360,7 +476,9 @@ const imageScope: Scope<ImageSelection, ImageValues> = {
       caption: d?.iptc_caption ?? null,
       keywords: d?.keywords ?? [],
       dominantBucket: d?.dominant_bucket ?? null,
-      dominantLCh: d ? [d.dominant_l, d.dominant_c, d.dominant_h] : [null, null, null],
+      dominantLCh: d
+        ? [d.dominant_l, d.dominant_c, d.dominant_h]
+        : [null, null, null],
     }
   },
 }

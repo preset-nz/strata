@@ -25,7 +25,13 @@ pub fn list(conn: &Connection) -> Result<Vec<Collection>> {
            FROM collection c ORDER BY c.name COLLATE NOCASE, c.created_at",
     )?;
     let rows = stmt
-        .query_map([], |r| Ok(Collection { id: r.get(0)?, name: r.get(1)?, count: r.get(2)? }))?
+        .query_map([], |r| {
+            Ok(Collection {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                count: r.get(2)?,
+            })
+        })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(rows)
 }
@@ -39,9 +45,13 @@ fn clean(name: &str) -> Result<String> {
 }
 
 fn name_of(conn: &Connection, id: &str) -> Result<String> {
-    conn.query_row("SELECT name FROM collection WHERE id = ?", params![id], |r| r.get(0))
-        .optional()?
-        .ok_or_else(|| anyhow::anyhow!("no collection {id}"))
+    conn.query_row(
+        "SELECT name FROM collection WHERE id = ?",
+        params![id],
+        |r| r.get(0),
+    )
+    .optional()?
+    .ok_or_else(|| anyhow::anyhow!("no collection {id}"))
 }
 
 /// A row as it was, for putting back.
@@ -63,7 +73,12 @@ fn save(conn: &Connection, id: &str) -> Result<Saved> {
         .prepare("SELECT image_id, added_at FROM collection_member WHERE collection_id = ? ORDER BY added_at")?
         .query_map(params![id], |r| Ok((r.get(0)?, r.get(1)?)))?
         .collect::<rusqlite::Result<Vec<_>>>()?;
-    Ok(Saved { id: id.to_string(), name, created_at, members })
+    Ok(Saved {
+        id: id.to_string(),
+        name,
+        created_at,
+        members,
+    })
 }
 
 fn restore(conn: &Connection, s: &Saved) -> Result<()> {
@@ -84,7 +99,10 @@ fn restore(conn: &Connection, s: &Saved) -> Result<()> {
 
 fn drop_collection(conn: &Connection, id: &str) -> Result<()> {
     let tx = conn.unchecked_transaction()?;
-    tx.execute("DELETE FROM collection_member WHERE collection_id = ?", params![id])?;
+    tx.execute(
+        "DELETE FROM collection_member WHERE collection_id = ?",
+        params![id],
+    )?;
     tx.execute("DELETE FROM collection WHERE id = ?", params![id])?;
     tx.commit()?;
     Ok(())
@@ -171,7 +189,8 @@ fn take_members(conn: &Connection, id: &str, images: &[String]) -> Result<()> {
 }
 
 fn members_among(conn: &Connection, id: &str, images: &[String]) -> Result<Vec<String>> {
-    let mut stmt = conn.prepare("SELECT 1 FROM collection_member WHERE collection_id = ? AND image_id = ?")?;
+    let mut stmt =
+        conn.prepare("SELECT 1 FROM collection_member WHERE collection_id = ? AND image_id = ?")?;
     let mut found = Vec::new();
     for image in images {
         if stmt.exists(params![id, image])? {
@@ -185,7 +204,11 @@ fn members_among(conn: &Connection, id: &str, images: &[String]) -> Result<Vec<S
 pub fn add(conn: &Connection, id: &str, images: &[String]) -> Result<Option<Step>> {
     let name = name_of(conn, id)?;
     let already = members_among(conn, id, images)?;
-    let new: Vec<String> = images.iter().filter(|i| !already.contains(i)).cloned().collect();
+    let new: Vec<String> = images
+        .iter()
+        .filter(|i| !already.contains(i))
+        .cloned()
+        .collect();
     if new.is_empty() {
         return Ok(None);
     }
@@ -210,14 +233,21 @@ pub fn remove(conn: &Connection, id: &str, images: &[String]) -> Result<Option<S
     let (a, b) = (id.to_string(), id.to_string());
     let (p1, p2) = (present.clone(), present.clone());
     Ok(Some(Step {
-        label: format!("Remove {} from \u{201c}{name}\u{201d}", images_word(present.len())),
+        label: format!(
+            "Remove {} from \u{201c}{name}\u{201d}",
+            images_word(present.len())
+        ),
         undo: Box::new(move |conn| put_members(conn, &a, &p1)),
         redo: Box::new(move |conn| take_members(conn, &b, &p2)),
     }))
 }
 
 fn images_word(n: usize) -> String {
-    if n == 1 { "Image".into() } else { format!("{n} Images") }
+    if n == 1 {
+        "Image".into()
+    } else {
+        format!("{n} Images")
+    }
 }
 
 #[cfg(test)]
@@ -231,12 +261,14 @@ mod tests {
     }
 
     fn members(conn: &Connection, id: &str) -> Vec<String> {
-        conn.prepare("SELECT image_id FROM collection_member WHERE collection_id = ? ORDER BY image_id")
-            .unwrap()
-            .query_map(params![id], |r| r.get(0))
-            .unwrap()
-            .collect::<rusqlite::Result<Vec<String>>>()
-            .unwrap()
+        conn.prepare(
+            "SELECT image_id FROM collection_member WHERE collection_id = ? ORDER BY image_id",
+        )
+        .unwrap()
+        .query_map(params![id], |r| r.get(0))
+        .unwrap()
+        .collect::<rusqlite::Result<Vec<String>>>()
+        .unwrap()
     }
 
     fn v(ids: &[&str]) -> Vec<String> {
@@ -256,7 +288,11 @@ mod tests {
         assert_eq!(added.label, "Add 2 Images to \u{201c}Bark\u{201d}");
         assert_eq!(members(&conn, &id), v(&["a", "b", "c"]));
         (added.undo)(&conn).unwrap();
-        assert_eq!(members(&conn, &id), v(&["a"]), "undo takes back only what it added");
+        assert_eq!(
+            members(&conn, &id),
+            v(&["a"]),
+            "undo takes back only what it added"
+        );
         (added.redo)(&conn).unwrap();
         assert!(add(&conn, &id, &v(&["a"])).unwrap().is_none());
 
@@ -274,7 +310,11 @@ mod tests {
         let deleted = delete(&conn, &id).unwrap();
         assert!(list(&conn).unwrap().is_empty());
         (deleted.undo)(&conn).unwrap();
-        assert_eq!(members(&conn, &id), v(&["a", "b", "c"]), "members come back with it");
+        assert_eq!(
+            members(&conn, &id),
+            v(&["a", "b", "c"]),
+            "members come back with it"
+        );
         (deleted.redo)(&conn).unwrap();
         assert!(list(&conn).unwrap().is_empty());
 

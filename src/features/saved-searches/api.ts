@@ -17,8 +17,15 @@ export function listSavedSearches(): Promise<SavedSearch[]> {
 }
 
 /** Saved while a project is the filter, the search belongs to that project. */
-export function saveSearch(name: string, query: SavedQuery): Promise<SavedSearch> {
-  return invoke<SavedSearch>("saved_search_put", { name, query, projectKey: query.projectKey })
+export function saveSearch(
+  name: string,
+  query: SavedQuery
+): Promise<SavedSearch> {
+  return invoke<SavedSearch>("saved_search_put", {
+    name,
+    query,
+    projectKey: query.projectKey,
+  })
 }
 
 /** Puts a deleted search back as it was, for Undo. */

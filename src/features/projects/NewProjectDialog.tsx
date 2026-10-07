@@ -43,18 +43,31 @@ export function NewProjectDialog({ root, onCreate, onCancel }: Props) {
         }}
         className="flex w-96 flex-col gap-3 rounded-md border border-border bg-card p-4 shadow-xl"
       >
-        <h2 className="text-sm font-semibold">New Project</h2>
+        <h2 className="font-semibold text-sm">New Project</h2>
         <label className="flex flex-col gap-1 text-xs">
           Name
-          <Input ref={nameRef} value={name} onChange={(e) => setName(e.target.value)} placeholder="Night Drive" />
+          <Input
+            ref={nameRef}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Night Drive"
+          />
         </label>
         <label className="flex flex-col gap-1 text-xs">
           Description
-          <Input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Optional" />
+          <Input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Optional"
+          />
         </label>
         <p className="text-[10px] text-muted-foreground">
-          Makes <span className="select-text">{root}/{name.trim() || "…"}</span> with its project.preset. The apps add
-          their folders when they first save into it.
+          Makes{" "}
+          <span className="select-text">
+            {root}/{name.trim() || "…"}
+          </span>{" "}
+          with its project.preset. The apps add their folders when they first
+          save into it.
         </p>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" size="sm" onClick={onCancel}>

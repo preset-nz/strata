@@ -24,7 +24,8 @@ export const useMarks = create<MarksStore>()((set) => ({
   put: (rows) =>
     set((s) => {
       const marks = { ...s.marks }
-      for (const r of rows) marks[r.id] = { favourite: r.favourite, label: r.label }
+      for (const r of rows)
+        marks[r.id] = { favourite: r.favourite, label: r.label }
       return { marks }
     }),
 }))
@@ -34,14 +35,20 @@ export function useMark(id: string | null): Mark {
 }
 
 /** Hearts or un-hearts; one undo step. Resolves with the images that changed. */
-export async function setFavourite(ids: string[], on: boolean): Promise<Marked[]> {
+export async function setFavourite(
+  ids: string[],
+  on: boolean
+): Promise<Marked[]> {
   const changed = await invoke<Marked[]>("set_favourite", { ids, on })
   useMarks.getState().put(changed)
   return changed
 }
 
 /** Sets or clears the colour label; one undo step. */
-export async function setColourLabel(ids: string[], label: ColourLabel | null): Promise<Marked[]> {
+export async function setColourLabel(
+  ids: string[],
+  label: ColourLabel | null
+): Promise<Marked[]> {
   const changed = await invoke<Marked[]>("set_colour_label", { ids, label })
   useMarks.getState().put(changed)
   return changed
@@ -54,8 +61,18 @@ export async function loadMarks(ids: string[]): Promise<void> {
 }
 
 /** Rows from a list query carry their marks; keep them in the store. */
-export function putRows(rows: { id: string; favourite: boolean; label: string | null }[]): void {
-  useMarks.getState().put(rows.map((r) => ({ id: r.id, favourite: r.favourite, label: r.label as ColourLabel | null })))
+export function putRows(
+  rows: { id: string; favourite: boolean; label: string | null }[]
+): void {
+  useMarks
+    .getState()
+    .put(
+      rows.map((r) => ({
+        id: r.id,
+        favourite: r.favourite,
+        label: r.label as ColourLabel | null,
+      }))
+    )
 }
 
 /** The rail's Label section counts. */

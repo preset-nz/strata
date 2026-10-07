@@ -65,7 +65,12 @@ fn apply_exif_rotation(w: u32, h: u32, exif_orientation: Option<i32>) -> (u32, u
 }
 
 /// Probe the stored binary and record width, height and bucket on the row.
-pub fn run(db: &Db, image_id: &str, stored_path: &Path, exif_orientation: Option<i32>) -> Result<()> {
+pub fn run(
+    db: &Db,
+    image_id: &str,
+    stored_path: &Path,
+    exif_orientation: Option<i32>,
+) -> Result<()> {
     let (w, h) = displayed_dimensions(stored_path, exif_orientation)?;
     let bucket = classify(w, h);
     let conn = db.0.lock().unwrap();
@@ -103,15 +108,16 @@ fn backfill(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
              LEFT JOIN image_metadata m ON m.image_id = i.id
              WHERE i.orientation IS NULL AND i.deleted_at IS NULL",
         )?;
-        let rows = stmt.query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, Option<i32>>(2)?,
-            ))
-        })?
-        .filter_map(Result::ok)
-        .collect();
+        let rows = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<i32>>(2)?,
+                ))
+            })?
+            .filter_map(Result::ok)
+            .collect();
         rows
     };
 
@@ -121,7 +127,11 @@ fn backfill(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
     }
     let _ = app.emit(
         "orientation://backfill-start",
-        BackfillProgress { done: 0, total, failed: 0 },
+        BackfillProgress {
+            done: 0,
+            total,
+            failed: 0,
+        },
     );
 
     let mut done = 0usize;
@@ -137,7 +147,11 @@ fn backfill(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
 
     let _ = app.emit(
         "orientation://backfill-done",
-        BackfillProgress { done, total, failed },
+        BackfillProgress {
+            done,
+            total,
+            failed,
+        },
     );
     Ok(())
 }

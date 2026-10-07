@@ -68,7 +68,10 @@ pub fn discover(roots: &[PathBuf]) -> Vec<(Marker, PathBuf)> {
 }
 
 pub fn folder_of(roots: &[PathBuf], key: &str) -> Option<PathBuf> {
-    discover(roots).into_iter().find(|(m, _)| m.key == key).map(|(_, p)| p)
+    discover(roots)
+        .into_iter()
+        .find(|(m, _)| m.key == key)
+        .map(|(_, p)| p)
 }
 
 /// A project key from a name: lowercase ASCII, accents folded, `-` between words.
@@ -94,7 +97,10 @@ pub fn create_on_disk(root: &Path, name: &str, description: &str) -> Result<(Mar
     if name.contains('/') || name.starts_with('.') {
         bail!("a project name can't contain / or start with a dot");
     }
-    if discover(&[root.to_path_buf()]).iter().any(|(m, _)| m.key == key) {
+    if discover(&[root.to_path_buf()])
+        .iter()
+        .any(|(m, _)| m.key == key)
+    {
         bail!("a project with the key {key:?} already exists");
     }
     let folder = root.join(name);
@@ -102,18 +108,25 @@ pub fn create_on_disk(root: &Path, name: &str, description: &str) -> Result<(Mar
         bail!("{} already exists", folder.display());
     }
     std::fs::create_dir_all(&folder).with_context(|| format!("creating {}", folder.display()))?;
-    let marker = Marker { key, name: name.to_string(), description: description.trim().to_string() };
+    let marker = Marker {
+        key,
+        name: name.to_string(),
+        description: description.trim().to_string(),
+    };
     std::fs::write(folder.join(MARKER), toml::to_string(&marker)?)?;
     Ok((marker, folder))
 }
 
 /// The catalog side of every discovered project.
 pub fn list(conn: &Connection, roots: &[PathBuf]) -> Result<Vec<Project>> {
-    let mut stmt = conn.prepare("SELECT favourite, archived_at IS NOT NULL FROM project_curation WHERE key = ?")?;
+    let mut stmt = conn
+        .prepare("SELECT favourite, archived_at IS NOT NULL FROM project_curation WHERE key = ?")?;
     let mut out = Vec::new();
     for (marker, folder) in discover(roots) {
         let (favourite, archived) = stmt
-            .query_row(params![marker.key], |r| Ok((r.get::<_, bool>(0)?, r.get::<_, bool>(1)?)))
+            .query_row(params![marker.key], |r| {
+                Ok((r.get::<_, bool>(0)?, r.get::<_, bool>(1)?))
+            })
             .optional()?
             .unwrap_or((false, false));
         let (clause, bound) = membership(&marker.key, Some(&folder));
@@ -171,10 +184,18 @@ fn flags(conn: &Connection, key: &str) -> Result<Flags> {
         .query_row(
             "SELECT favourite, archived_at IS NOT NULL FROM project_curation WHERE key = ?",
             params![key],
-            |r| Ok(Flags { favourite: r.get(0)?, archived: r.get(1)? }),
+            |r| {
+                Ok(Flags {
+                    favourite: r.get(0)?,
+                    archived: r.get(1)?,
+                })
+            },
         )
         .optional()?
-        .unwrap_or(Flags { favourite: false, archived: false }))
+        .unwrap_or(Flags {
+            favourite: false,
+            archived: false,
+        }))
 }
 
 fn set_flags(conn: &Connection, key: &str, f: Flags) -> Result<()> {
@@ -188,7 +209,12 @@ fn set_flags(conn: &Connection, key: &str, f: Flags) -> Result<()> {
     Ok(())
 }
 
-fn flag_step(conn: &Connection, key: &str, label: String, change: impl Fn(Flags) -> Flags) -> Result<Option<Step>> {
+fn flag_step(
+    conn: &Connection,
+    key: &str,
+    label: String,
+    change: impl Fn(Flags) -> Flags,
+) -> Result<Option<Step>> {
     let before = flags(conn, key)?;
     let after = change(before);
     if (before.favourite, before.archived) == (after.favourite, after.archived) {
@@ -205,12 +231,22 @@ fn flag_step(conn: &Connection, key: &str, label: String, change: impl Fn(Flags)
 
 pub fn set_favourite(conn: &Connection, key: &str, name: &str, on: bool) -> Result<Option<Step>> {
     let verb = if on { "Favourite" } else { "Unfavourite" };
-    flag_step(conn, key, format!("{verb} Project \u{201c}{name}\u{201d}"), |f| Flags { favourite: on, ..f })
+    flag_step(
+        conn,
+        key,
+        format!("{verb} Project \u{201c}{name}\u{201d}"),
+        |f| Flags { favourite: on, ..f },
+    )
 }
 
 pub fn set_archived(conn: &Connection, key: &str, name: &str, on: bool) -> Result<Option<Step>> {
     let verb = if on { "Archive" } else { "Unarchive" };
-    flag_step(conn, key, format!("{verb} Project \u{201c}{name}\u{201d}"), |f| Flags { archived: on, ..f })
+    flag_step(
+        conn,
+        key,
+        format!("{verb} Project \u{201c}{name}\u{201d}"),
+        |f| Flags { archived: on, ..f },
+    )
 }
 
 fn put(conn: &Connection, key: &str, images: &[String]) -> Result<()> {
@@ -229,7 +265,10 @@ fn put(conn: &Connection, key: &str, images: &[String]) -> Result<()> {
 fn take(conn: &Connection, key: &str, images: &[String]) -> Result<()> {
     let tx = conn.unchecked_transaction()?;
     for image in images {
-        tx.execute("DELETE FROM project_member WHERE key = ? AND image_id = ?", params![key, image])?;
+        tx.execute(
+            "DELETE FROM project_member WHERE key = ? AND image_id = ?",
+            params![key, image],
+        )?;
     }
     tx.commit()?;
     Ok(())
@@ -247,20 +286,31 @@ fn added_among(conn: &Connection, key: &str, images: &[String]) -> Result<Vec<St
 }
 
 fn images_word(n: usize) -> String {
-    if n == 1 { "Image".into() } else { format!("{n} Images") }
+    if n == 1 {
+        "Image".into()
+    } else {
+        format!("{n} Images")
+    }
 }
 
 /// Adds images by hand. Images already added are skipped; `None` if all were.
 pub fn add(conn: &Connection, key: &str, name: &str, images: &[String]) -> Result<Option<Step>> {
     let already = added_among(conn, key, images)?;
-    let new: Vec<String> = images.iter().filter(|i| !already.contains(i)).cloned().collect();
+    let new: Vec<String> = images
+        .iter()
+        .filter(|i| !already.contains(i))
+        .cloned()
+        .collect();
     if new.is_empty() {
         return Ok(None);
     }
     put(conn, key, &new)?;
     let (k1, k2, n1, n2) = (key.to_string(), key.to_string(), new.clone(), new.clone());
     Ok(Some(Step {
-        label: format!("Add {} to Project \u{201c}{name}\u{201d}", images_word(new.len())),
+        label: format!(
+            "Add {} to Project \u{201c}{name}\u{201d}",
+            images_word(new.len())
+        ),
         undo: Box::new(move |conn| take(conn, &k1, &n1)),
         redo: Box::new(move |conn| put(conn, &k2, &n2)),
     }))
@@ -274,9 +324,17 @@ pub fn remove(conn: &Connection, key: &str, name: &str, images: &[String]) -> Re
         return Ok(None);
     }
     take(conn, key, &present)?;
-    let (k1, k2, p1, p2) = (key.to_string(), key.to_string(), present.clone(), present.clone());
+    let (k1, k2, p1, p2) = (
+        key.to_string(),
+        key.to_string(),
+        present.clone(),
+        present.clone(),
+    );
     Ok(Some(Step {
-        label: format!("Remove {} from Project \u{201c}{name}\u{201d}", images_word(present.len())),
+        label: format!(
+            "Remove {} from Project \u{201c}{name}\u{201d}",
+            images_word(present.len())
+        ),
         undo: Box::new(move |conn| put(conn, &k1, &p1)),
         redo: Box::new(move |conn| take(conn, &k2, &p2)),
     }))
@@ -306,9 +364,16 @@ mod tests {
         let (marker, folder) = create_on_disk(&root, "Night Drive", " A song ").unwrap();
         assert_eq!(marker.key, "night-drive");
         assert!(folder.join(MARKER).exists());
-        assert_eq!(std::fs::read_dir(&folder).unwrap().count(), 1, "only the marker");
+        assert_eq!(
+            std::fs::read_dir(&folder).unwrap().count(),
+            1,
+            "only the marker"
+        );
         assert!(create_on_disk(&root, "Night Drive", "").is_err());
-        assert!(create_on_disk(&root, "night drive", "").is_err(), "same key");
+        assert!(
+            create_on_disk(&root, "night drive", "").is_err(),
+            "same key"
+        );
         assert!(create_on_disk(&root, "a/b", "").is_err());
 
         // A project made by another app, with keys Strata doesn't know.
@@ -318,7 +383,11 @@ mod tests {
         std::fs::create_dir_all(root.join("Not a project")).unwrap();
         let found = discover(&[root.clone()]);
         let names: Vec<&str> = found.iter().map(|(m, _)| m.name.as_str()).collect();
-        assert_eq!(names, ["Elsewhere", "Night Drive"], "name falls back to the folder");
+        assert_eq!(
+            names,
+            ["Elsewhere", "Night Drive"],
+            "name falls back to the folder"
+        );
         assert_eq!(folder_of(&[root.clone()], "night-drive"), Some(folder));
         std::fs::remove_dir_all(root).ok();
     }
@@ -337,7 +406,10 @@ mod tests {
             )
             .unwrap();
         };
-        insert("under", &format!("{}/Shard/Exports/a.png", folder.display()));
+        insert(
+            "under",
+            &format!("{}/Shard/Exports/a.png", folder.display()),
+        );
         insert("sibling", &format!("{} Two/a.png", folder.display()));
         insert("loose", "/elsewhere/b.png");
 
@@ -345,13 +417,20 @@ mod tests {
         let count = |conn: &Connection| list(conn, &roots).unwrap()[0].count;
         assert_eq!(count(&conn), 1, "under the folder only, not the sibling");
 
-        let add_step = add(&conn, "bark", "Bark", &["loose".into(), "under".into()]).unwrap().unwrap();
-        assert_eq!(add_step.label, "Add 2 Images to Project \u{201c}Bark\u{201d}");
+        let add_step = add(&conn, "bark", "Bark", &["loose".into(), "under".into()])
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            add_step.label,
+            "Add 2 Images to Project \u{201c}Bark\u{201d}"
+        );
         assert_eq!(count(&conn), 2);
         (add_step.undo)(&conn).unwrap();
         assert_eq!(count(&conn), 1);
         (add_step.redo)(&conn).unwrap();
-        assert!(remove(&conn, "bark", "Bark", &["sibling".into()]).unwrap().is_none());
+        assert!(remove(&conn, "bark", "Bark", &["sibling".into()])
+            .unwrap()
+            .is_none());
 
         let fav = set_favourite(&conn, "bark", "Bark", true).unwrap().unwrap();
         let arch = set_archived(&conn, "bark", "Bark", true).unwrap().unwrap();
@@ -361,7 +440,9 @@ mod tests {
         (fav.undo)(&conn).unwrap();
         let p = &list(&conn, &roots).unwrap()[0];
         assert!(!p.favourite && !p.archived);
-        assert!(set_archived(&conn, "bark", "Bark", false).unwrap().is_none());
+        assert!(set_archived(&conn, "bark", "Bark", false)
+            .unwrap()
+            .is_none());
         drop(conn);
         std::fs::remove_dir_all(root).ok();
     }

@@ -28,6 +28,6 @@ export function usePaletteMarkers(): State {
       subscribers.add(cb)
       return () => subscribers.delete(cb)
     },
-    () => state,
+    () => state
   )
 }

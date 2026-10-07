@@ -16,7 +16,11 @@ export function allFolders(rows: FolderRow[]): Set<string> {
  * unchecked when none of it is, mixed otherwise. The folder's own files
  * follow its own entry in `kept`.
  */
-export function boxState(rows: FolderRow[], kept: Set<string>, path: string): BoxState {
+export function boxState(
+  rows: FolderRow[],
+  kept: Set<string>,
+  path: string
+): BoxState {
   let some = false
   let all = true
   for (const r of rows) {
@@ -32,7 +36,11 @@ export function boxState(rows: FolderRow[], kept: Set<string>, path: string): Bo
  * Clicking a box sets the folder and its subfolders together: a checked box
  * clears the subtree, an unchecked or mixed one fills it.
  */
-export function toggleFolder(rows: FolderRow[], kept: Set<string>, path: string): Set<string> {
+export function toggleFolder(
+  rows: FolderRow[],
+  kept: Set<string>,
+  path: string
+): Set<string> {
   const on = boxState(rows, kept, path) !== "checked"
   const next = new Set(kept)
   for (const r of rows) {
@@ -44,7 +52,10 @@ export function toggleFolder(rows: FolderRow[], kept: Set<string>, path: string)
 }
 
 /** "N images from M folders": only folders that contribute files count. */
-export function selectionTotals(rows: FolderRow[], kept: Set<string>): { images: number; folders: number } {
+export function selectionTotals(
+  rows: FolderRow[],
+  kept: Set<string>
+): { images: number; folders: number } {
   let images = 0
   let folders = 0
   for (const r of rows) {

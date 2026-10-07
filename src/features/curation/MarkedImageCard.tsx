@@ -21,8 +21,12 @@ export function MarkedImageCard({ id, onMarked, ...props }: Props) {
       id={id}
       isFavourite={mark.favourite}
       colourLabel={mark.label}
-      onFavouriteToggle={() => void setFavourite([id], !mark.favourite).then(onMarked)}
-      onColourLabelChange={(label) => void setColourLabel([id], label).then(onMarked)}
+      onFavouriteToggle={() =>
+        void setFavourite([id], !mark.favourite).then(onMarked)
+      }
+      onColourLabelChange={(label) =>
+        void setColourLabel([id], label).then(onMarked)
+      }
     />
   )
 }

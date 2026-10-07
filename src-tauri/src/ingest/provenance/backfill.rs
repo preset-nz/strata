@@ -27,24 +27,41 @@ pub fn run(app: &AppHandle, db: &Db, store: &StoreRoot) -> Result<()> {
     }
     let _ = app.emit(
         "provenance://backfill-start",
-        BackfillProgress { done: 0, total, failed: 0 },
+        BackfillProgress {
+            done: 0,
+            total,
+            failed: 0,
+        },
     );
     let mut done = 0usize;
     let mut failed = 0usize;
     for (image_id, content_hash, store_path) in pending {
-        if let Err(e) = provenance::run(db, &image_id, &content_hash, &store.root().join(&store_path)) {
+        if let Err(e) = provenance::run(
+            db,
+            &image_id,
+            &content_hash,
+            &store.root().join(&store_path),
+        ) {
             failed += 1;
             eprintln!("provenance backfill: {image_id} failed: {e}");
         }
         done += 1;
         let _ = app.emit(
             "provenance://backfill-progress",
-            BackfillProgress { done, total, failed },
+            BackfillProgress {
+                done,
+                total,
+                failed,
+            },
         );
     }
     let _ = app.emit(
         "provenance://backfill-done",
-        BackfillProgress { done, total, failed },
+        BackfillProgress {
+            done,
+            total,
+            failed,
+        },
     );
     Ok(())
 }
@@ -59,7 +76,9 @@ fn pending(db: &Db) -> Result<Vec<(String, String, String)>> {
            AND (c.image_id IS NULL OR c.stage_version <> ?)",
     )?;
     let rows = stmt
-        .query_map(params![STAGE_VERSION], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
+        .query_map(params![STAGE_VERSION], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })?
         .collect::<rusqlite::Result<Vec<_>>>()?;
     Ok(rows)
 }

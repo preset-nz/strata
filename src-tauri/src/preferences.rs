@@ -128,9 +128,15 @@ mod tests {
         .unwrap();
         let (store, db) = (Path::new("/new/store"), Path::new("/new/catalog.sqlite"));
         let prefs = Preferences::open(schema(store, db), &file);
-        assert_eq!(prefs.get_text(DB_PATH).as_deref(), Some("/old/strata.duckdb"));
+        assert_eq!(
+            prefs.get_text(DB_PATH).as_deref(),
+            Some("/old/strata.duckdb")
+        );
         restate_catalog_paths(&prefs, store, db);
-        assert_eq!(prefs.get_text(DB_PATH).as_deref(), Some("/new/catalog.sqlite"));
+        assert_eq!(
+            prefs.get_text(DB_PATH).as_deref(),
+            Some("/new/catalog.sqlite")
+        );
         assert_eq!(prefs.get_text(STORE_ROOT).as_deref(), Some("/new/store"));
         std::fs::remove_dir_all(dir).ok();
     }

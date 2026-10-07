@@ -2,8 +2,8 @@ use std::path::Path;
 
 use anyhow::{anyhow, Result};
 use chrono::Utc;
-use rusqlite::params;
 use image::imageops::FilterType;
+use rusqlite::params;
 use serde::Serialize;
 
 use crate::db::Db;
@@ -34,8 +34,8 @@ pub fn run(store: &StoreRoot, target: &Path, hash: &str, image_id: &str, db: &Db
     } else {
         target.to_path_buf()
     };
-    let img = image::open(&source_for_decode)?
-        .resize(RESAMPLE_SIZE, RESAMPLE_SIZE, FilterType::Triangle);
+    let img =
+        image::open(&source_for_decode)?.resize(RESAMPLE_SIZE, RESAMPLE_SIZE, FilterType::Triangle);
     let rgb = img.to_rgb8();
 
     let pixels: Vec<Lab> = rgb

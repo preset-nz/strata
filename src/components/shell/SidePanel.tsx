@@ -1,11 +1,10 @@
-import { useCallback, useRef, type ReactNode } from "react"
-
-import { cn } from "@/lib/utils"
+import { type ReactNode, useCallback, useRef } from "react"
 import {
-  clampWidth,
   COLLAPSED_WIDTH,
+  clampWidth,
   type PanelSide,
 } from "@/components/shell/panel-geometry"
+import { cn } from "@/lib/utils"
 
 type Props = {
   side: PanelSide
@@ -44,7 +43,7 @@ export function SidePanel({
       drag.current = { startX: e.clientX, startWidth: width }
       e.currentTarget.setPointerCapture(e.pointerId)
     },
-    [width],
+    [width]
   )
 
   const onPointerMove = useCallback(
@@ -57,7 +56,7 @@ export function SidePanel({
       const raw = side === "left" ? d.startWidth + dx : d.startWidth - dx
       onWidthChange(clampWidth(raw, minWidth, maxWidth))
     },
-    [side, onWidthChange, minWidth, maxWidth],
+    [side, onWidthChange, minWidth, maxWidth]
   )
 
   const endDrag = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
@@ -86,10 +85,10 @@ export function SidePanel({
           "flex h-full shrink-0 cursor-pointer items-center justify-center",
           "bg-card/40 text-muted-foreground hover:bg-accent hover:text-foreground",
           "border-border",
-          edge,
+          edge
         )}
       >
-        <span className="text-[10px] font-semibold uppercase tracking-wider [writing-mode:vertical-rl] rotate-180">
+        <span className="rotate-180 font-semibold text-[10px] uppercase tracking-wider [writing-mode:vertical-rl]">
           {title}
         </span>
       </button>
@@ -101,10 +100,12 @@ export function SidePanel({
       style={{ width }}
       className={cn(
         "relative flex h-full shrink-0 flex-col border-border bg-card/40",
-        edge,
+        edge
       )}
     >
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {children}
+      </div>
       <div
         role="separator"
         aria-orientation="vertical"
@@ -118,7 +119,7 @@ export function SidePanel({
         className={cn(
           "absolute inset-y-0 z-10 w-1.5 cursor-col-resize touch-none",
           "hover:bg-primary/40 active:bg-primary/60",
-          side === "left" ? "-right-px" : "-left-px",
+          side === "left" ? "-right-px" : "-left-px"
         )}
       />
     </div>

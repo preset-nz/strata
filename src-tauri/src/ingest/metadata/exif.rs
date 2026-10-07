@@ -59,7 +59,8 @@ pub fn read(path: &Path) -> Option<ExifData> {
     data.exposure_time_sec = rational_f32(&exif, Tag::ExposureTime);
     data.exposure_bias = signed_rational_f32(&exif, Tag::ExposureBiasValue);
 
-    data.exposure_program = short_or_long_i32(&exif, Tag::ExposureProgram).map(exposure_program_name);
+    data.exposure_program =
+        short_or_long_i32(&exif, Tag::ExposureProgram).map(exposure_program_name);
     data.metering_mode = short_or_long_i32(&exif, Tag::MeteringMode).map(metering_mode_name);
     data.flash_fired = short_or_long_i32(&exif, Tag::Flash).map(|v| v & 0x01 != 0);
 

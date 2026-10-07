@@ -112,7 +112,12 @@ impl StrataResolver {
 
     /// Walks the levels from the project folder, matching folder names
     /// case-insensitively, since a reference is lowercase.
-    fn folder(&self, root: &Path, tokens: &Tokens, reference: &str) -> Result<PathBuf, ResolveError> {
+    fn folder(
+        &self,
+        root: &Path,
+        tokens: &Tokens,
+        reference: &str,
+    ) -> Result<PathBuf, ResolveError> {
         let mut dir = root.to_path_buf();
         for level in self.schema.levels() {
             let wanted = &tokens[&level.name];
@@ -182,7 +187,12 @@ impl Resolver for StrataResolver {
 fn child_dir_ignoring_case(dir: &Path, name: &str) -> std::io::Result<Option<PathBuf>> {
     for entry in std::fs::read_dir(dir)? {
         let entry = entry?;
-        if entry.file_type()?.is_dir() && entry.file_name().to_string_lossy().eq_ignore_ascii_case(name) {
+        if entry.file_type()?.is_dir()
+            && entry
+                .file_name()
+                .to_string_lossy()
+                .eq_ignore_ascii_case(name)
+        {
             return Ok(Some(entry.path()));
         }
     }
@@ -199,7 +209,8 @@ mod tests {
 
     impl Project {
         fn new() -> Self {
-            let base = std::env::temp_dir().join(format!("strata-resolver-{}", uuid::Uuid::new_v4()));
+            let base =
+                std::env::temp_dir().join(format!("strata-resolver-{}", uuid::Uuid::new_v4()));
             let dir = base.join("Night Drive");
             std::fs::create_dir_all(dir.join("base/Shard/Patches")).unwrap();
             std::fs::write(dir.join(PROJECT_MARKER), "key = \"night-drive\"\n").unwrap();
@@ -229,14 +240,19 @@ mod tests {
     }
 
     fn write(ext: &str) -> Access {
-        Access::Write { ext: ext.to_string() }
+        Access::Write {
+            ext: ext.to_string(),
+        }
     }
 
     #[test]
     fn plain_paths_pass_through() {
         let resolvers = Resolvers::default();
         let path = "/Users/someone/Pictures/cover.png";
-        assert_eq!(resolvers.resolve_path(path, &Access::Read).unwrap(), Path::new(path));
+        assert_eq!(
+            resolvers.resolve_path(path, &Access::Read).unwrap(),
+            Path::new(path)
+        );
     }
 
     #[test]
@@ -258,12 +274,18 @@ mod tests {
         let patches = project.dir.join("base/Shard/Patches");
 
         let pinned = resolvers
-            .resolve_path("strata://night-drive/base/shard/patches/drums_kick@1", &Access::Read)
+            .resolve_path(
+                "strata://night-drive/base/shard/patches/drums_kick@1",
+                &Access::Read,
+            )
             .unwrap();
         assert_eq!(pinned, patches.join("drums_kick.v001.shard"));
 
         let latest = resolvers
-            .resolve_path("strata://night-drive/base/shard/patches/drums_kick", &Access::Read)
+            .resolve_path(
+                "strata://night-drive/base/shard/patches/drums_kick",
+                &Access::Read,
+            )
             .unwrap();
         assert_eq!(latest, patches.join("drums_kick.v003.shard"));
     }
@@ -276,12 +298,18 @@ mod tests {
         let patches = project.dir.join("base/Shard/Patches");
 
         let next = resolvers
-            .resolve_path("strata://night-drive/base/shard/patches/drums_kick", &write("shard"))
+            .resolve_path(
+                "strata://night-drive/base/shard/patches/drums_kick",
+                &write("shard"),
+            )
             .unwrap();
         assert_eq!(next, patches.join("Drums_Kick.v003.shard"));
 
         let first = resolvers
-            .resolve_path("strata://night-drive/base/shard/patches/snare", &write("shard"))
+            .resolve_path(
+                "strata://night-drive/base/shard/patches/snare",
+                &write("shard"),
+            )
             .unwrap();
         assert_eq!(first, patches.join("snare.v001.shard"));
     }
@@ -295,7 +323,10 @@ mod tests {
         let resolve = |s: &str, mode: &Access| resolvers.resolve_path(s, mode);
 
         assert!(matches!(
-            resolve("strata://night-drive/base/shard/patches/drums@published", &Access::Read),
+            resolve(
+                "strata://night-drive/base/shard/patches/drums@published",
+                &Access::Read
+            ),
             Err(ResolveError::NeedsCatalog(_))
         ));
         assert!(matches!(
@@ -303,11 +334,17 @@ mod tests {
             Err(ResolveError::UnknownProject(_))
         ));
         assert!(matches!(
-            resolve("strata://night-drive/base/shard/patches/hats", &Access::Read),
+            resolve(
+                "strata://night-drive/base/shard/patches/hats",
+                &Access::Read
+            ),
             Err(ResolveError::NotFound(_))
         ));
         assert!(matches!(
-            resolve("strata://night-drive/base/oblique/exports/cover", &Access::Read),
+            resolve(
+                "strata://night-drive/base/oblique/exports/cover",
+                &Access::Read
+            ),
             Err(ResolveError::NotFound(_))
         ));
         assert!(matches!(
@@ -315,7 +352,10 @@ mod tests {
             Err(ResolveError::Ambiguous(_, paths)) if paths.len() == 2
         ));
         assert!(matches!(
-            resolve("strata://night-drive/base/shard/patches/drums@1", &write("shard")),
+            resolve(
+                "strata://night-drive/base/shard/patches/drums@1",
+                &write("shard")
+            ),
             Err(ResolveError::VersionPinned(_))
         ));
     }

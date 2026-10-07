@@ -1,5 +1,10 @@
+import {
+  ArrowLeft,
+  MagnifyingGlass,
+  Plus,
+  SidebarSimple,
+} from "@phosphor-icons/react"
 import type { RefObject } from "react"
-import { Plus, ArrowLeft, SidebarSimple, MagnifyingGlass } from "@phosphor-icons/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
@@ -43,7 +48,7 @@ export function AppHeader({
   })()
 
   return (
-    <header className="flex h-10 shrink-0 items-center gap-3 border-b border-border px-3">
+    <header className="flex h-10 shrink-0 items-center gap-3 border-border border-b px-3">
       <Button
         size="icon-sm"
         variant="ghost"
@@ -55,17 +60,22 @@ export function AppHeader({
         <SidebarSimple weight="bold" />
       </Button>
       {onBack && (
-        <Button size="sm" variant="ghost" onClick={onBack} aria-label="Back to library">
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onBack}
+          aria-label="Back to library"
+        >
           <ArrowLeft weight="bold" />
           Library
         </Button>
       )}
-      <h1 className="font-heading text-base font-semibold tracking-[0.04em] uppercase">
+      <h1 className="font-heading font-semibold text-base uppercase tracking-[0.04em]">
         Strata
       </h1>
-      <span className="text-xs text-muted-foreground">{summary}</span>
+      <span className="text-muted-foreground text-xs">{summary}</span>
       {activeFilterCount > 0 && (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-muted-foreground text-xs">
           · {activeFilterCount} active{" "}
           {activeFilterCount === 1 ? "filter" : "filters"}
         </span>
@@ -108,7 +118,9 @@ export function AppHeader({
           variant="ghost"
           onClick={onToggleRight}
           aria-pressed={!rightCollapsed}
-          aria-label={rightCollapsed ? "Show properties panel" : "Hide properties panel"}
+          aria-label={
+            rightCollapsed ? "Show properties panel" : "Hide properties panel"
+          }
           title={`${rightCollapsed ? "Show" : "Hide"} properties panel  ]`}
         >
           <SidebarSimple weight="bold" className="scale-x-[-1]" />

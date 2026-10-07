@@ -45,14 +45,22 @@ impl Curation {
     }
 
     fn step<R: Runtime>(&self, app: &AppHandle<R>, back: bool) -> Result<(), String> {
-        let (from, to) = if back { (&self.undo, &self.redo) } else { (&self.redo, &self.undo) };
+        let (from, to) = if back {
+            (&self.undo, &self.redo)
+        } else {
+            (&self.redo, &self.undo)
+        };
         let Some(step) = from.lock().unwrap().pop() else {
             return Ok(());
         };
         let result = {
             let state = app.state::<AppState>();
             let conn = state.db.0.lock().unwrap();
-            if back { (step.undo)(&conn) } else { (step.redo)(&conn) }
+            if back {
+                (step.undo)(&conn)
+            } else {
+                (step.redo)(&conn)
+            }
         };
         match result {
             Ok(()) => {
@@ -74,10 +82,21 @@ impl History for Curation {
         self.redo.lock().unwrap().last().map(|s| s.label.clone())
     }
     fn undo_labels(&self) -> Vec<String> {
-        self.undo.lock().unwrap().iter().map(|s| s.label.clone()).collect()
+        self.undo
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|s| s.label.clone())
+            .collect()
     }
     fn redo_labels(&self) -> Vec<String> {
-        self.redo.lock().unwrap().iter().rev().map(|s| s.label.clone()).collect()
+        self.redo
+            .lock()
+            .unwrap()
+            .iter()
+            .rev()
+            .map(|s| s.label.clone())
+            .collect()
     }
     fn undo<R: Runtime>(&self, app: &AppHandle<R>) -> Result<(), String> {
         self.step(app, true)
@@ -92,7 +111,11 @@ mod tests {
     use super::*;
 
     fn step(label: &str) -> Step {
-        Step { label: label.into(), undo: Box::new(|_| Ok(())), redo: Box::new(|_| Ok(())) }
+        Step {
+            label: label.into(),
+            undo: Box::new(|_| Ok(())),
+            redo: Box::new(|_| Ok(())),
+        }
     }
 
     #[test]

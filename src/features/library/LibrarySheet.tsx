@@ -1,18 +1,21 @@
-import { useCallback, useEffect, useRef, useState } from "react"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
-import { CardContextMenu, type GroupMenu } from "@/components/image-card/CardContextMenu"
-import { Quickview } from "@/features/quickview/Quickview"
+import { useCallback, useEffect, useRef, useState } from "react"
+import {
+  CardContextMenu,
+  type GroupMenu,
+} from "@/components/image-card/CardContextMenu"
+import type { SortKey } from "@/components/shell/sort-keys"
+import { SnackbarViewport } from "@/components/ui/snackbar"
 import { MarkedImageCard } from "@/features/curation/MarkedImageCard"
 import { putRows } from "@/features/curation/marks"
-import { ThumbGrid } from "../contact-sheet/ThumbGrid"
+import { Quickview } from "@/features/quickview/Quickview"
+import type { Orientation } from "@/lib/orientation"
+import type { Vga16Bucket } from "@/lib/vga16"
+import { useSelection } from "@/stores/selection"
 import type { ImportedRow } from "../contact-sheet/api"
+import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import { listImages, type SortDirection } from "./api"
 import { useMoveToTrash } from "./use-move-to-trash"
-import type { Vga16Bucket } from "@/lib/vga16"
-import type { Orientation } from "@/lib/orientation"
-import type { SortKey } from "@/components/shell/sort-keys"
-import { useSelection } from "@/stores/selection"
-import { SnackbarViewport } from "@/components/ui/snackbar"
 
 type Cell = {
   key: string
@@ -76,13 +79,22 @@ export function LibrarySheet({
   const [quickviewIndex, setQuickviewIndex] = useState<number | null>(null)
   const loadingRef = useRef(false)
   const offsetRef = useRef(0)
-  const queryRef = useRef({ sort, direction, buckets, orientations, batchId, labels, collectionId, projectKey, query })
+  const queryRef = useRef({
+    sort,
+    direction,
+    buckets,
+    orientations,
+    batchId,
+    labels,
+    collectionId,
+    projectKey,
+    query,
+  })
   const pendingUndoRef = useRef<Map<string, { cell: Cell; idx: number }>>(
-    new Map(),
+    new Map()
   )
   const { selection, selectImage } = useSelection()
-  const selectedImageId =
-    selection.kind === "image" ? selection.id : null
+  const selectedImageId = selection.kind === "image" ? selection.id : null
   const moveToTrash = useMoveToTrash()
 
   const loadNext = useCallback(async () => {
@@ -126,14 +138,36 @@ export function LibrarySheet({
   }, [])
 
   useEffect(() => {
-    queryRef.current = { sort, direction, buckets, orientations, batchId, labels, collectionId, projectKey, query }
+    queryRef.current = {
+      sort,
+      direction,
+      buckets,
+      orientations,
+      batchId,
+      labels,
+      collectionId,
+      projectKey,
+      query,
+    }
     // The clears inside `reset` must land in the same commit that kicks off the
     // fetch: they also zero `offsetRef`/`loadingRef`, and deferring them past an
     // await lets a scroll-driven `loadNext` page against the old offset and
     // concat stale-order rows onto the new query.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void reset()
-  }, [reset, sort, direction, buckets, orientations, batchId, labels, collectionId, projectKey, query, reloadToken])
+  }, [
+    reset,
+    sort,
+    direction,
+    buckets,
+    orientations,
+    batchId,
+    labels,
+    collectionId,
+    projectKey,
+    query,
+    reloadToken,
+  ])
 
   useEffect(() => {
     let off: UnlistenFn | undefined
@@ -163,7 +197,10 @@ export function LibrarySheet({
                 next.push(cell)
               }
             })
-            offsetRef.current = Math.max(0, offsetRef.current - (prev.length - next.length))
+            offsetRef.current = Math.max(
+              0,
+              offsetRef.current - (prev.length - next.length)
+            )
             return next
           })
           const sel = useSelection.getState().selection
@@ -171,7 +208,7 @@ export function LibrarySheet({
             useSelection.getState().clear()
           }
           onLibraryChanged?.()
-        }),
+        })
       )
       offs.push(
         await listen<string[]>("library://images-restored", (e) => {
@@ -181,9 +218,7 @@ export function LibrarySheet({
             const next = [...prev]
             const captured = ids
               .map((id) => pendingUndoRef.current.get(id))
-              .filter(
-                (x): x is { cell: Cell; idx: number } => x !== undefined,
-              )
+              .filter((x): x is { cell: Cell; idx: number } => x !== undefined)
               .sort((a, b) => a.idx - b.idx)
             let added = 0
             captured.forEach(({ cell, idx }) => {
@@ -196,7 +231,7 @@ export function LibrarySheet({
             return next
           })
           onLibraryChanged?.()
-        }),
+        })
       )
       if (cancelled) offs.forEach((o) => o())
     })()
@@ -209,7 +244,7 @@ export function LibrarySheet({
   return (
     <section className="relative flex min-h-0 flex-1 flex-col gap-2">
       {error && (
-        <p className="text-xs text-destructive">
+        <p className="text-destructive text-xs">
           Error: <span className="select-text">{error}</span>
         </p>
       )}

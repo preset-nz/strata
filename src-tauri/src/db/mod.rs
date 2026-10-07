@@ -35,9 +35,10 @@ fn configure(conn: &Connection) -> Result<()> {
 // timestamp must come through that encoder, never from SQL's own clock.
 // Side tables carry no foreign keys: the hard-delete cascade is explicit in
 // Rust (`purge_one`).
-const MIGRATIONS: &[(i64, &str)] = &[(
-    1,
-    r#"
+const MIGRATIONS: &[(i64, &str)] = &[
+    (
+        1,
+        r#"
     CREATE TABLE images (
         id TEXT PRIMARY KEY,
         content_hash TEXT NOT NULL UNIQUE,
@@ -145,15 +146,15 @@ const MIGRATIONS: &[(i64, &str)] = &[(
 
     CREATE INDEX idx_image_keyword_keyword ON image_keyword(keyword);
     "#,
-),
-// v2 — provenance (guidance `design/provenance-and-evals.md`). A prompt is
-// its own entity, deduplicated by a hash of text and negative; a generation
-// keeps the producer's settings as JSON; generation_output links it to the
-// image. provenance_checked records which images have been read, found or
-// not, so the backfill is idempotent.
-(
-    2,
-    r#"
+    ),
+    // v2 — provenance (guidance `design/provenance-and-evals.md`). A prompt is
+    // its own entity, deduplicated by a hash of text and negative; a generation
+    // keeps the producer's settings as JSON; generation_output links it to the
+    // image. provenance_checked records which images have been read, found or
+    // not, so the backfill is idempotent.
+    (
+        2,
+        r#"
     CREATE TABLE prompt (
         prompt_id TEXT PRIMARY KEY,
         text TEXT NOT NULL,
@@ -188,14 +189,14 @@ const MIGRATIONS: &[(i64, &str)] = &[(
         checked_at TEXT NOT NULL
     );
     "#,
-),
-// v3 — keyword search (`search.rs`). One row per image over its prompt,
-// keywords, caption and filename; rebuilt from those tables on change.
-// unicode61 splits on everything that isn't a letter or digit, which covers
-// prompt-style commas, underscores and colons, and folds accents.
-(
-    3,
-    r#"
+    ),
+    // v3 — keyword search (`search.rs`). One row per image over its prompt,
+    // keywords, caption and filename; rebuilt from those tables on change.
+    // unicode61 splits on everything that isn't a letter or digit, which covers
+    // prompt-style commas, underscores and colons, and folds accents.
+    (
+        3,
+        r#"
     CREATE VIRTUAL TABLE image_search USING fts5(
         image_id UNINDEXED,
         prompt,
@@ -205,12 +206,12 @@ const MIGRATIONS: &[(i64, &str)] = &[(
         tokenize = 'unicode61 remove_diacritics 2'
     );
     "#,
-),
-// v4 — saved searches (`saved_search.rs`). The query is the frontend's
-// versioned JSON, stored as text and never interpreted here.
-(
-    4,
-    r#"
+    ),
+    // v4 — saved searches (`saved_search.rs`). The query is the frontend's
+    // versioned JSON, stored as text and never interpreted here.
+    (
+        4,
+        r#"
     CREATE TABLE saved_search (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -219,12 +220,12 @@ const MIGRATIONS: &[(i64, &str)] = &[(
         updated_at TEXT NOT NULL
     );
     "#,
-),
-// v5 — favourites and colour labels (`curation.rs`). A row only while an
-// image has a heart or a label.
-(
-    5,
-    r#"
+    ),
+    // v5 — favourites and colour labels (`curation.rs`). A row only while an
+    // image has a heart or a label.
+    (
+        5,
+        r#"
     CREATE TABLE image_mark (
         image_id TEXT PRIMARY KEY,
         favourite INTEGER NOT NULL DEFAULT 0,
@@ -234,11 +235,11 @@ const MIGRATIONS: &[(i64, &str)] = &[(
 
     CREATE INDEX idx_image_mark_label ON image_mark(label);
     "#,
-),
-// v6 — collections (`collection.rs`): a name and members, an image in many.
-(
-    6,
-    r#"
+    ),
+    // v6 — collections (`collection.rs`): a name and members, an image in many.
+    (
+        6,
+        r#"
     CREATE TABLE collection (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -255,12 +256,12 @@ const MIGRATIONS: &[(i64, &str)] = &[(
 
     CREATE INDEX idx_collection_member_image ON collection_member(image_id);
     "#,
-),
-// v7 — projects (`project.rs`). The project itself is a folder with
-// project.preset; the catalog keeps only Strata's curation per key.
-(
-    7,
-    r#"
+    ),
+    // v7 — projects (`project.rs`). The project itself is a folder with
+    // project.preset; the catalog keeps only Strata's curation per key.
+    (
+        7,
+        r#"
     CREATE TABLE project_curation (
         key TEXT PRIMARY KEY,
         favourite INTEGER NOT NULL DEFAULT 0,
@@ -280,7 +281,8 @@ const MIGRATIONS: &[(i64, &str)] = &[(
     -- A saved search can belong to a project; NULL is global.
     ALTER TABLE saved_search ADD COLUMN project_key TEXT;
     "#,
-)];
+    ),
+];
 
 fn apply_migrations(conn: &Connection) -> Result<()> {
     conn.execute_batch(
@@ -321,7 +323,9 @@ mod tests {
         drop(Db::open(&path).unwrap());
         let db = Db::open(&path).unwrap();
         let conn = db.0.lock().unwrap();
-        let mode: String = conn.query_row("PRAGMA journal_mode", [], |r| r.get(0)).unwrap();
+        let mode: String = conn
+            .query_row("PRAGMA journal_mode", [], |r| r.get(0))
+            .unwrap();
         assert_eq!(mode, "wal");
         let applied: i64 = conn
             .query_row("SELECT COUNT(*) FROM schema_version", [], |r| r.get(0))

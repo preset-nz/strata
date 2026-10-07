@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
 import { invoke } from "@tauri-apps/api/core"
+import { useEffect, useState } from "react"
 
 import { VGA16_LABEL, type Vga16Bucket } from "@/lib/vga16"
 
@@ -21,9 +21,18 @@ function lchText([l, c, h]: [number, number, number]): string {
  * Click copies the hex; Option-click copies the LCh. Positioned in
  * fractions of the image box, so it sits over the image at any size.
  */
-export function MarkerOverlay({ imageId, count }: { imageId: string; count: number }) {
+export function MarkerOverlay({
+  imageId,
+  count,
+}: {
+  imageId: string
+  count: number
+}) {
   const key = `${imageId}:${count}`
-  const [result, setResult] = useState<{ key: string; markers: Marker[] } | null>(null)
+  const [result, setResult] = useState<{
+    key: string
+    markers: Marker[]
+  } | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
 
   useEffect(() => {
@@ -49,14 +58,24 @@ export function MarkerOverlay({ imageId, count }: { imageId: string; count: numb
             key={i}
             type="button"
             aria-label={`Copy ${label}`}
-            title={copied === m.hex ? "Copied" : `${label}\nClick: copy hex · Option-click: copy LCh`}
+            title={
+              copied === m.hex
+                ? "Copied"
+                : `${label}\nClick: copy hex · Option-click: copy LCh`
+            }
             onClick={(e) => {
               e.stopPropagation()
               const text = e.altKey ? lchText(m.lch) : m.hex
-              void navigator.clipboard.writeText(text).then(() => setCopied(m.hex))
+              void navigator.clipboard
+                .writeText(text)
+                .then(() => setCopied(m.hex))
             }}
             className="pointer-events-auto absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.7),0_1px_3px_rgba(0,0,0,0.5)] transition-transform hover:scale-125 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            style={{ left: `${m.x * 100}%`, top: `${m.y * 100}%`, backgroundColor: m.hex }}
+            style={{
+              left: `${m.x * 100}%`,
+              top: `${m.y * 100}%`,
+              backgroundColor: m.hex,
+            }}
           />
         )
       })}

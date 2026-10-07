@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
+import { useEffect, useMemo, useState } from "react"
 import { ImageCard } from "@/components/image-card"
 import { MarkedImageCard } from "@/features/curation/MarkedImageCard"
 import { loadMarks, putRows } from "@/features/curation/marks"
-import { ThumbGrid } from "./ThumbGrid"
 import { batchImported, type ImportedRow } from "./api"
+import { ThumbGrid } from "./ThumbGrid"
 
 type FileState =
   | "queued"
@@ -126,17 +126,20 @@ export function ContactSheet({ batchId, cellSize }: Props) {
           })
         }
       })
-      off2 = await listen<BatchDoneEvent>("ingest://batch-done", async (event) => {
-        if (event.payload.batch_id !== batchId) return
-        setDone(event.payload)
-        try {
-          const rows = await batchImported(batchId)
-          putRows(rows)
-          setImported((prev) => mergeRows(prev, rows))
-        } catch {
-          // ignore
+      off2 = await listen<BatchDoneEvent>(
+        "ingest://batch-done",
+        async (event) => {
+          if (event.payload.batch_id !== batchId) return
+          setDone(event.payload)
+          try {
+            const rows = await batchImported(batchId)
+            putRows(rows)
+            setImported((prev) => mergeRows(prev, rows))
+          } catch {
+            // ignore
+          }
         }
-      })
+      )
     })()
     return () => {
       off1?.()
@@ -146,25 +149,22 @@ export function ContactSheet({ batchId, cellSize }: Props) {
 
   const skippedIds = useMemo(
     () => Array.from(skipped.values(), (c) => c.existingId).filter(Boolean),
-    [skipped],
+    [skipped]
   )
   useEffect(() => {
     void loadMarks(skippedIds)
   }, [skippedIds])
 
-  const importedList = useMemo(
-    () => Array.from(imported.values()),
-    [imported],
-  )
+  const importedList = useMemo(() => Array.from(imported.values()), [imported])
   const skippedList = useMemo(() => Array.from(skipped.values()), [skipped])
   const failedList = useMemo(() => Array.from(failed.values()), [failed])
 
   return (
     <section className="mt-4">
-      <h2 className="my-2 flex items-baseline gap-2 font-heading text-base font-medium">
+      <h2 className="my-2 flex items-baseline gap-2 font-heading font-medium text-base">
         Last import
         {done && (
-          <span className="text-sm font-normal text-muted-foreground">
+          <span className="font-normal text-muted-foreground text-sm">
             Imported {done.imported} · Skipped {done.skipped} · Failed{" "}
             {done.failed}
           </span>
@@ -193,7 +193,12 @@ export function ContactSheet({ batchId, cellSize }: Props) {
           renderCell={(it) =>
             // A duplicate is the catalog's existing image: its marks are that image's.
             it.existingId ? (
-              <MarkedImageCard id={it.existingId} hash={it.hash} filename={it.filename} status="ready" />
+              <MarkedImageCard
+                id={it.existingId}
+                hash={it.hash}
+                filename={it.filename}
+                status="ready"
+              />
             ) : (
               <ImageCard hash={it.hash} filename={it.filename} status="ready" />
             )
@@ -241,7 +246,7 @@ function Section({
 }) {
   return (
     <div className="mb-6">
-      <h3 className="my-2 font-heading text-[11px] font-semibold tracking-[0.08em] uppercase text-muted-foreground">
+      <h3 className="my-2 font-heading font-semibold text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
         {label}
       </h3>
       {children}

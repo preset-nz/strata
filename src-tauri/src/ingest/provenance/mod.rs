@@ -23,7 +23,12 @@ const TITLE_WORDS: usize = 5;
 /// Reads whatever record the file carries and stores it, then marks the
 /// image checked so the backfill doesn't read it again.
 pub fn run(db: &Db, image_id: &str, content_hash: &str, stored_path: &Path) -> Result<()> {
-    store(db, image_id, content_hash, drawthings::read(stored_path).as_ref())
+    store(
+        db,
+        image_id,
+        content_hash,
+        drawthings::read(stored_path).as_ref(),
+    )
 }
 
 /// Stores a record (if any) and marks the image checked, in one transaction.

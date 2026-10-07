@@ -16,7 +16,10 @@ pub const BM25_WEIGHTS: &str = "0.0, 10.0, 5.0, 3.0, 1.0";
 
 /// Rebuilds one image's row from the catalog.
 pub fn reindex(conn: &Connection, image_id: &str) -> Result<()> {
-    conn.execute("DELETE FROM image_search WHERE image_id = ?", params![image_id])?;
+    conn.execute(
+        "DELETE FROM image_search WHERE image_id = ?",
+        params![image_id],
+    )?;
     let source: Option<(String, Option<String>, Option<String>, Option<String>)> = conn
         .query_row(
             "SELECT i.original_filename,
@@ -103,7 +106,8 @@ pub fn strip_weights(prompt: &str) -> String {
 /// A filename's words, extension included so a pasted filename matches.
 /// Long digit runs (a Draw Things seed like `2736034274`) go: nobody types them.
 fn filename_words(filename: &str) -> String {
-    filename.split(|c: char| !c.is_alphanumeric())
+    filename
+        .split(|c: char| !c.is_alphanumeric())
         .filter(|w| !w.is_empty() && !(w.len() > 6 && w.bytes().all(|b| b.is_ascii_digit())))
         .collect::<Vec<_>>()
         .join(" ")
@@ -115,14 +119,20 @@ mod tests {
 
     #[test]
     fn weights_are_stripped_and_other_colons_kept() {
-        assert_eq!(strip_weights("(mist:1.3) over (bark:0.8), ratio 3:2"), "(mist) over (bark), ratio 3:2");
+        assert_eq!(
+            strip_weights("(mist:1.3) over (bark:0.8), ratio 3:2"),
+            "(mist) over (bark), ratio 3:2"
+        );
         assert_eq!(strip_weights("no weights here"), "no weights here");
         assert_eq!(strip_weights("trailing:"), "trailing:");
     }
 
     #[test]
     fn queries_need_every_word_and_prefix_the_last() {
-        assert_eq!(match_query("Fungal  bar").as_deref(), Some("\"fungal\" \"bar\"*"));
+        assert_eq!(
+            match_query("Fungal  bar").as_deref(),
+            Some("\"fungal\" \"bar\"*")
+        );
         assert_eq!(match_query("\"(mist)\"").as_deref(), Some("\"mist\"*"));
         assert_eq!(match_query("  -- "), None);
     }

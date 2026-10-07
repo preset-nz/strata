@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react"
 import { useVirtualizer } from "@tanstack/react-virtual"
+import { useEffect, useRef, useState } from "react"
 
 const AFFORDANCE_ROW = 24
 const GAP = 6
@@ -67,7 +67,7 @@ export function ThumbGrid<T extends { key: string }>({
       className="min-h-[60px] flex-1 overflow-y-auto rounded-sm border border-border"
     >
       {items.length === 0 ? (
-        <div className="p-2 text-xs text-muted-foreground/70">{emptyLabel}</div>
+        <div className="p-2 text-muted-foreground/70 text-xs">{emptyLabel}</div>
       ) : (
         <div
           style={{ height: rowVirtualizer.getTotalSize() }}

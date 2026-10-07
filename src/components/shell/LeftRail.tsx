@@ -1,4 +1,3 @@
-import { useState } from "react"
 import {
   ArrowDown,
   ArrowUp,
@@ -7,31 +6,28 @@ import {
   Images,
   Trash,
 } from "@phosphor-icons/react"
+import { usePersistedState } from "@preset.nz/preferences"
+import { useState } from "react"
 import {
-  ORIENTATIONS,
+  COLOUR_LABELS,
+  COLOUR_SWATCH,
+  type ColourLabel,
+} from "@/components/image-card/colour-label"
+import { readStrataImagePayload } from "@/components/image-card/use-draggable-card"
+import type { BatchSummary } from "@/features/library/api"
+import {
   ORIENTATION_LABEL,
+  ORIENTATIONS,
   type Orientation,
 } from "@/lib/orientation"
 import { cn } from "@/lib/utils"
-import { readStrataImagePayload } from "@/components/image-card/use-draggable-card"
-import { usePersistedState } from "@preset.nz/preferences"
 import {
   VGA16_BUCKETS,
   VGA16_HEX,
   VGA16_LABEL,
   type Vga16Bucket,
 } from "@/lib/vga16"
-import {
-  COLOUR_LABELS,
-  COLOUR_SWATCH,
-  type ColourLabel,
-} from "@/components/image-card/colour-label"
-import type { BatchSummary } from "@/features/library/api"
-import {
-  SORT_LABEL,
-  type SortDirection,
-  type SortKey,
-} from "./sort-keys"
+import { SORT_LABEL, type SortDirection, type SortKey } from "./sort-keys"
 
 type SectionId =
   | "searches"
@@ -125,20 +121,19 @@ export function LeftRail({
   projects,
   projectCount,
 }: Props) {
-  const [collapsed, setCollapsed] = usePersistedState<Record<SectionId, boolean>>(
-    "strata.rail.collapsed",
-    {
-      searches: false,
-      collections: false,
-      projects: false,
-      sort: false,
-      orientation: false,
-      content_colour: false,
-      label: false,
-      imports: false,
-      system: false,
-    },
-  )
+  const [collapsed, setCollapsed] = usePersistedState<
+    Record<SectionId, boolean>
+  >("strata.rail.collapsed", {
+    searches: false,
+    collections: false,
+    projects: false,
+    sort: false,
+    orientation: false,
+    content_colour: false,
+    label: false,
+    imports: false,
+    system: false,
+  })
   const toggle = (id: SectionId) =>
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }))
 
@@ -150,7 +145,7 @@ export function LeftRail({
             weight="bold"
             className={cn(
               "size-3 shrink-0",
-              libraryActive ? "text-foreground" : "text-muted-foreground",
+              libraryActive ? "text-foreground" : "text-muted-foreground"
             )}
           />
         }
@@ -201,7 +196,7 @@ export function LeftRail({
             className={cn(
               "h-7 flex-1 rounded-sm border border-border bg-background px-2 text-xs",
               "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:cursor-default disabled:opacity-80",
+              "disabled:cursor-default disabled:opacity-80"
             )}
           >
             {sortOptions.map((k) => (
@@ -221,8 +216,8 @@ export function LeftRail({
             title={direction === "asc" ? "Ascending" : "Descending"}
             className={cn(
               "inline-flex size-7 shrink-0 items-center justify-center rounded-sm border border-border bg-background text-muted-foreground",
-              "hover:text-foreground hover:bg-muted/60",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+              "hover:bg-muted/60 hover:text-foreground",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             )}
           >
             {direction === "asc" ? (
@@ -286,7 +281,8 @@ export function LeftRail({
                       : empty
                         ? "text-muted-foreground/40"
                         : "text-foreground hover:bg-muted/60",
-                    filtersDisabled && "opacity-60 cursor-default hover:bg-transparent",
+                    filtersDisabled &&
+                      "cursor-default opacity-60 hover:bg-transparent"
                   )}
                 >
                   <span
@@ -294,7 +290,7 @@ export function LeftRail({
                       "inline-flex size-3 shrink-0 items-center justify-center rounded-[2px] border",
                       selected
                         ? "border-foreground/60 bg-foreground/10"
-                        : "border-border",
+                        : "border-border"
                     )}
                   >
                     {selected && (
@@ -306,7 +302,7 @@ export function LeftRail({
                     style={{ backgroundColor: VGA16_HEX[b] }}
                   />
                   <span className="flex-1 truncate">{VGA16_LABEL[b]}</span>
-                  <span className="tabular-nums text-[10px] text-muted-foreground">
+                  <span className="text-[10px] text-muted-foreground tabular-nums">
                     {count.toLocaleString()}
                   </span>
                 </button>
@@ -332,10 +328,7 @@ export function LeftRail({
             disabled={filtersDisabled}
             onClick={() => onToggleLabel("favourite")}
             swatch={
-              <Heart
-                weight="fill"
-                className="size-3 shrink-0 text-red-500"
-              />
+              <Heart weight="fill" className="size-3 shrink-0 text-red-500" />
             }
           />
           {COLOUR_LABELS.map((c) => (
@@ -351,7 +344,7 @@ export function LeftRail({
                 <span
                   className={cn(
                     "inline-block size-3 shrink-0 rounded-full",
-                    COLOUR_SWATCH[c],
+                    COLOUR_SWATCH[c]
                   )}
                 />
               }
@@ -368,7 +361,7 @@ export function LeftRail({
         summary={selectedBatchId ? 1 : undefined}
       >
         {batches.length === 0 ? (
-          <p className="text-muted-foreground/70 px-1">(none yet)</p>
+          <p className="px-1 text-muted-foreground/70">(none yet)</p>
         ) : (
           <ul className="flex flex-col">
             {batches.map((b) => (
@@ -454,17 +447,17 @@ function TrashRow({
           "transition-[background-color,color,box-shadow,transform] duration-100",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           over
-            ? "scale-[1.03] bg-destructive/25 text-destructive ring-2 ring-destructive shadow-sm"
+            ? "scale-[1.03] bg-destructive/25 text-destructive shadow-sm ring-2 ring-destructive"
             : active
               ? "bg-muted text-foreground"
-              : "text-foreground hover:bg-muted/60",
+              : "text-foreground hover:bg-muted/60"
         )}
       >
         <Trash
           weight={over ? "fill" : "bold"}
           className={cn(
             "size-3 shrink-0",
-            over ? "text-destructive" : "text-muted-foreground",
+            over ? "text-destructive" : "text-muted-foreground"
           )}
         />
         <span className="flex-1 truncate">
@@ -472,8 +465,8 @@ function TrashRow({
         </span>
         <span
           className={cn(
-            "tabular-nums text-[10px]",
-            over ? "text-destructive" : "text-muted-foreground",
+            "text-[10px] tabular-nums",
+            over ? "text-destructive" : "text-muted-foreground"
           )}
         >
           {count.toLocaleString()}
@@ -518,12 +511,12 @@ function BatchRow({
           selected
             ? "bg-muted text-foreground"
             : "text-foreground hover:bg-muted/60",
-          disabled && "opacity-60 cursor-default hover:bg-transparent",
+          disabled && "cursor-default opacity-60 hover:bg-transparent"
         )}
       >
         <span className="flex items-center justify-between gap-2">
           <span className="truncate">{label}</span>
-          <span className="tabular-nums text-[10px] text-muted-foreground">
+          <span className="text-[10px] text-muted-foreground tabular-nums">
             {batch.image_count.toLocaleString()}
           </span>
         </span>
@@ -563,17 +556,17 @@ function Section({
         className={cn(
           "-mx-1 flex items-center gap-1 rounded-sm px-1 py-0.5 text-left",
           "hover:bg-muted/60",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         )}
       >
         <CaretRight
           weight="bold"
           className={cn(
             "size-3 shrink-0 text-muted-foreground transition-transform",
-            !collapsed && "rotate-90",
+            !collapsed && "rotate-90"
           )}
         />
-        <h2 className="font-heading flex-1 truncate text-[11px] font-semibold tracking-[0.08em] text-muted-foreground uppercase">
+        <h2 className="flex-1 truncate font-heading font-semibold text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
           {title}
         </h2>
         {collapsed && summary !== undefined && summary !== null && (
@@ -601,12 +594,7 @@ function OrientationGlyph({ orientation }: { orientation: Orientation }) {
         : "size-2.5"
   return (
     <span className="inline-flex size-3 shrink-0 items-center justify-center">
-      <span
-        className={cn(
-          "rounded-[1px] border border-foreground/60",
-          size,
-        )}
-      />
+      <span className={cn("rounded-[1px] border border-foreground/60", size)} />
     </span>
   )
 }
@@ -643,12 +631,12 @@ function LabelRow({
             : empty
               ? "text-muted-foreground/40"
               : "text-foreground hover:bg-muted/60",
-          disabled && "opacity-60 cursor-default hover:bg-transparent",
+          disabled && "cursor-default opacity-60 hover:bg-transparent"
         )}
       >
         {swatch}
         <span className="flex-1 truncate">{label}</span>
-        <span className="tabular-nums text-[10px] text-muted-foreground">
+        <span className="text-[10px] text-muted-foreground tabular-nums">
           {count.toLocaleString()}
         </span>
       </button>
@@ -679,12 +667,12 @@ function NavRow({
         "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
         active
           ? "bg-muted text-foreground"
-          : "text-foreground hover:bg-muted/60",
+          : "text-foreground hover:bg-muted/60"
       )}
     >
       {icon}
       <span className="flex-1 truncate font-medium">{label}</span>
-      <span className="tabular-nums text-[10px] text-muted-foreground">
+      <span className="text-[10px] text-muted-foreground tabular-nums">
         {count.toLocaleString()}
       </span>
     </button>

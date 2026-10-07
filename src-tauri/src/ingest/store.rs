@@ -22,7 +22,9 @@ pub fn copy_and_verify(
     let target = store.target_path(hash_hex, ext);
 
     if target.exists() {
-        return Ok(StoredCopy { target_path: target });
+        return Ok(StoredCopy {
+            target_path: target,
+        });
     }
 
     let partial = target.with_extension(format!("{ext}.partial"));
@@ -45,7 +47,9 @@ pub fn copy_and_verify(
         ));
     }
 
-    Ok(StoredCopy { target_path: target })
+    Ok(StoredCopy {
+        target_path: target,
+    })
 }
 
 fn atomic_rename(from: &Path, to: &Path) -> io::Result<()> {
