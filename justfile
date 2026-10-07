@@ -60,3 +60,14 @@ build:
 [group('quality')]
 licences:
     preset-compliance licences check
+
+# Version, changelog, commit and tag from the conventional commits since the last
+# tag (knope.toml). Pushing stays by hand.
+[group('build')]
+release:
+    knope release
+
+# What `release` would do, without touching anything.
+[group('build')]
+release-preview:
+    knope release --dry-run
