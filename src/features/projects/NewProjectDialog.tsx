@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,6 +15,8 @@ type Props = {
 export function NewProjectDialog({ root, onCreate, onCancel }: Props) {
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
+  const nameId = useId()
+  const descriptionId = useId()
   const nameRef = useRef<HTMLInputElement>(null)
   useEffect(() => registerOverlay(), [])
   useEffect(() => nameRef.current?.focus(), [])
@@ -27,7 +29,10 @@ export function NewProjectDialog({ root, onCreate, onCancel }: Props) {
       aria-modal="true"
       aria-label="New Project"
       className="fixed inset-0 z-50 flex items-start justify-center bg-background/60 pt-24 backdrop-blur-sm"
-      onClick={onCancel}
+      onClick={(e) => {
+        // Only the backdrop itself, not clicks that bubble up from the form.
+        if (e.target === e.currentTarget) onCancel()
+      }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           e.stopPropagation()
@@ -36,7 +41,6 @@ export function NewProjectDialog({ root, onCreate, onCancel }: Props) {
       }}
     >
       <form
-        onClick={(e) => e.stopPropagation()}
         onSubmit={(e) => {
           e.preventDefault()
           submit()
@@ -44,23 +48,25 @@ export function NewProjectDialog({ root, onCreate, onCancel }: Props) {
         className="flex w-96 flex-col gap-3 rounded-md border border-border bg-card p-4 shadow-xl"
       >
         <h2 className="font-semibold text-sm">New Project</h2>
-        <label className="flex flex-col gap-1 text-xs">
-          Name
+        <div className="flex flex-col gap-1 text-xs">
+          <label htmlFor={nameId}>Name</label>
           <Input
+            id={nameId}
             ref={nameRef}
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Night Drive"
           />
-        </label>
-        <label className="flex flex-col gap-1 text-xs">
-          Description
+        </div>
+        <div className="flex flex-col gap-1 text-xs">
+          <label htmlFor={descriptionId}>Description</label>
           <Input
+            id={descriptionId}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional"
           />
-        </label>
+        </div>
         <p className="text-[10px] text-muted-foreground">
           Makes{" "}
           <span className="select-text">

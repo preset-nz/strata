@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useId, useMemo, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -22,6 +22,7 @@ function plural(n: number, one: string, many: string): string {
 }
 
 export function ImportConfirmation({ scan, onConfirm, onCancel, busy }: Props) {
+  const idPrefix = useId()
   const [kept, setKept] = useState(() => allFolders(scan.folders))
   const { images, folders } = useMemo(
     () => selectionTotals(scan.folders, kept),
@@ -49,13 +50,16 @@ export function ImportConfirmation({ scan, onConfirm, onCancel, busy }: Props) {
         <ul className="mt-3 max-h-72 overflow-y-auto rounded-sm border border-border py-1 text-sm">
           {scan.folders.map((row) => {
             const state = boxState(scan.folders, kept, row.path)
+            const boxId = `${idPrefix}-${row.path}`
             return (
               <li key={row.path}>
                 <label
+                  htmlFor={boxId}
                   className="flex cursor-default items-center gap-2 px-2 py-0.5 hover:bg-muted"
                   style={{ paddingLeft: `${0.5 + row.depth * 1.25}rem` }}
                 >
                   <Checkbox
+                    id={boxId}
                     checked={state === "checked"}
                     indeterminate={state === "mixed"}
                     onCheckedChange={() =>

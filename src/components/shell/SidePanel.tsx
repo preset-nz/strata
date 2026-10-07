@@ -106,8 +106,7 @@ export function SidePanel({
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         {children}
       </div>
-      <div
-        role="separator"
+      <hr
         aria-orientation="vertical"
         aria-label={`Resize ${title.toLowerCase()} panel`}
         onPointerDown={onPointerDown}
@@ -117,7 +116,7 @@ export function SidePanel({
         onDoubleClick={onDoubleClick}
         // Straddles the panel's inner edge: a 1px border is not a hit target.
         className={cn(
-          "absolute inset-y-0 z-10 w-1.5 cursor-col-resize touch-none",
+          "absolute inset-y-0 z-10 m-0 h-auto w-1.5 cursor-col-resize touch-none border-0",
           "hover:bg-primary/40 active:bg-primary/60",
           side === "left" ? "-right-px" : "-left-px"
         )}

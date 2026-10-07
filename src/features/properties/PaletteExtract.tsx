@@ -39,9 +39,10 @@ export function PaletteExtract({ imageId }: { imageId: string }) {
 
   useEffect(() => {
     if (key === null || k === null) return
-    if (cache.has(key)) {
+    const cached = cache.get(key)
+    if (cached) {
       // cached result for a new key
-      setResult({ key, swatches: cache.get(key)!, error: null })
+      setResult({ key, swatches: cached, error: null })
       return
     }
     let cancelled = false
@@ -66,17 +67,13 @@ export function PaletteExtract({ imageId }: { imageId: string }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div
-        role="radiogroup"
-        aria-label="Number of colours"
-        className="flex gap-1"
-      >
+      <fieldset className="m-0 flex min-w-0 gap-1 border-0 p-0">
+        <legend className="sr-only">Number of colours</legend>
         {KS.map((n) => (
           <button
             key={n}
             type="button"
-            role="radio"
-            aria-checked={k === n}
+            aria-pressed={k === n}
             onClick={() => setK(n)}
             className={cn(
               "rounded-sm border px-2 py-0.5 text-xs tabular-nums",
@@ -88,7 +85,7 @@ export function PaletteExtract({ imageId }: { imageId: string }) {
             {n}
           </button>
         ))}
-      </div>
+      </fieldset>
       {k === null ? (
         <p className="text-muted-foreground text-xs">
           Pick how many colours to extract.
@@ -103,16 +100,19 @@ export function PaletteExtract({ imageId }: { imageId: string }) {
             className="flex h-4 w-full overflow-hidden border border-border"
             aria-hidden
           >
-            {current.swatches.map((s, i) => (
+            {current.swatches.map((s) => (
               <span
-                key={i}
+                key={`${s.hex}-${s.weight}`}
                 style={{ backgroundColor: s.hex, flexGrow: s.weight }}
               />
             ))}
           </div>
           <ul className="flex flex-col gap-0.5">
-            {current.swatches.map((s, i) => (
-              <li key={i} className="flex items-center gap-2 text-xs">
+            {current.swatches.map((s) => (
+              <li
+                key={`${s.hex}-${s.weight}`}
+                className="flex items-center gap-2 text-xs"
+              >
                 <span
                   aria-hidden
                   className="inline-block size-4 shrink-0 border border-border"

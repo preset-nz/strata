@@ -44,11 +44,6 @@ export function ImageCard({
     <div
       ref={pressRef}
       {...(dragHandlers ?? {})}
-      onClick={(e) => {
-        const target = e.target as Element | null
-        if (target?.closest("button, [role='button'], input, select")) return
-        onSelect?.()
-      }}
       className={cn(
         "group/card relative flex h-full w-full cursor-pointer flex-col",
         "rounded-sm border bg-card p-1 shadow-sm",
@@ -60,6 +55,15 @@ export function ImageCard({
     >
       <div className="relative aspect-square w-full overflow-hidden bg-muted/30">
         <Thumbnail hash={hash} filename={filename} status={status} />
+        {onSelect && (
+          <button
+            type="button"
+            aria-label={filename}
+            aria-pressed={selected}
+            onClick={onSelect}
+            className="absolute inset-0 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          />
+        )}
         {badge && (
           <div className="pointer-events-none absolute top-1 right-1">
             {badge}

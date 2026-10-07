@@ -60,13 +60,9 @@ export function Quickview({ items, index, onClose, onIndexChange }: Props) {
     <div
       role="dialog"
       aria-modal="true"
-      onClick={onClose}
       className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-sm"
     >
-      <header
-        className="flex h-10 shrink-0 items-center gap-3 border-border/60 border-b px-3"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <header className="flex h-10 shrink-0 items-center gap-3 border-border/60 border-b px-3">
         <span className="select-text truncate text-muted-foreground text-xs">
           {item.filename}
         </span>
@@ -120,17 +116,19 @@ export function Quickview({ items, index, onClose, onIndexChange }: Props) {
         </button>
       </header>
 
-      <div
-        className="relative flex min-h-0 flex-1 items-center justify-center p-6"
-        onClick={onClose}
-      >
+      <div className="relative flex min-h-0 flex-1 items-center justify-center p-6">
+        {/* Click anywhere outside the picture and the arrows to close. */}
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label="Click outside the picture to close"
+          onClick={onClose}
+          className="absolute inset-0 cursor-default"
+        />
         {item.status === "ready" ? (
           // The wrapper shrinks to the image, so markers placed in fractions
           // of it land on the picture, not on letterbox space.
-          <div
-            className="relative max-h-full max-w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative max-h-full max-w-full">
             <img
               src={`thumb://${item.hash}/1024.jpg`}
               alt={item.filename}
@@ -145,22 +143,10 @@ export function Quickview({ items, index, onClose, onIndexChange }: Props) {
         )}
 
         {canPrev && (
-          <NavButton
-            side="left"
-            onClick={(e) => {
-              e.stopPropagation()
-              onIndexChange(index - 1)
-            }}
-          />
+          <NavButton side="left" onClick={() => onIndexChange(index - 1)} />
         )}
         {canNext && (
-          <NavButton
-            side="right"
-            onClick={(e) => {
-              e.stopPropagation()
-              onIndexChange(index + 1)
-            }}
-          />
+          <NavButton side="right" onClick={() => onIndexChange(index + 1)} />
         )}
       </div>
     </div>
@@ -172,7 +158,7 @@ function NavButton({
   onClick,
 }: {
   side: "left" | "right"
-  onClick: (e: React.MouseEvent) => void
+  onClick: () => void
 }) {
   return (
     <button

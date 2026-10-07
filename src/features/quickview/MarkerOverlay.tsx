@@ -51,11 +51,11 @@ export function MarkerOverlay({
 
   return (
     <div className="pointer-events-none absolute inset-0">
-      {result.markers.map((m, i) => {
+      {result.markers.map((m) => {
         const label = `${VGA16_LABEL[m.bucket] ?? m.bucket} · ${m.hex} · ${lchText(m.lch)} · ${(m.weight * 100).toFixed(0)}%`
         return (
           <button
-            key={i}
+            key={`${m.hex}-${m.x}-${m.y}`}
             type="button"
             aria-label={`Copy ${label}`}
             title={
