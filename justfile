@@ -12,6 +12,7 @@ prep:
     @echo "pnpm:   $(pnpm --version 2>/dev/null || echo MISSING)"
     @echo "rustc:  $(rustc --version 2>/dev/null || echo MISSING)"
     @echo "cargo:  $(cargo --version 2>/dev/null || echo MISSING)"
+    @echo "preset-compliance: $(preset-compliance --version 2>/dev/null || echo 'MISSING (cargo binstall preset-compliance)')"
     @echo "tauri:  $(./node_modules/.bin/tauri --version 2>/dev/null || echo 'not installed (run: just install)')"
 
 # Install frontend + Rust dependencies.
@@ -41,6 +42,7 @@ check:
     cd src-tauri && cargo fmt --check
     cd src-tauri && cargo clippy --all-targets -- -D warnings
     cd src-tauri && cargo test
+    just licences
 
 # Writes the formatters' fixes (Biome, cargo fmt).
 [group('quality')]
@@ -52,3 +54,9 @@ fmt:
 [group('build')]
 build:
     pnpm tauri build
+
+# Licence check against the committed lock. Reads files only, no network.
+# Re-resolve with `preset-compliance licences scan` after changing dependencies.
+[group('quality')]
+licences:
+    preset-compliance licences check
