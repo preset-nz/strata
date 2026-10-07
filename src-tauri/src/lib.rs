@@ -467,6 +467,7 @@ fn build_where(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 fn list_images(
     state: State<'_, AppState>,
     offset: i64,
@@ -555,7 +556,7 @@ fn batch_imported(
         ))
         .map_err(|e| e.to_string())?;
     let rows = stmt
-        .query_map(params![batch_id], |row| row_from(row))
+        .query_map(params![batch_id], row_from)
         .map_err(|e| e.to_string())?
         .filter_map(Result::ok)
         .collect();
@@ -760,6 +761,7 @@ fn list_orientation_counts(state: State<'_, AppState>) -> Result<Vec<Orientation
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 fn library_count(
     state: State<'_, AppState>,
     buckets: Option<Vec<String>>,
@@ -1734,6 +1736,7 @@ mod catalog_round_trip {
             .unwrap();
         assert_eq!((w, h, bucket.as_str()), (4, 2, "landscape"));
 
+        #[allow(clippy::type_complexity)]
         let (iso, f_number, flash, lat, created): (Option<i32>, Option<f32>, Option<bool>, Option<f32>, Option<chrono::DateTime<Utc>>) = conn
             .query_row(
                 "SELECT iso, f_number, flash_fired, gps_latitude, iptc_date_created FROM image_metadata WHERE image_id = ?",

@@ -108,7 +108,7 @@ fn parse_app13(payload: &[u8]) -> Option<Iptc> {
         pos += 1;
         pos += name_len;
         // Round up to even total (length-byte + content).
-        if (1 + name_len) % 2 != 0 {
+        if !(1 + name_len).is_multiple_of(2) {
             pos += 1;
         }
 
@@ -239,10 +239,8 @@ fn parse_iim(data: &[u8]) -> Iptc {
                     date_raw = Some(decode_str(field));
                 }
             }
-            (2, DS_TIME_CREATED) => {
-                if field.len() == 11 {
-                    time_raw = Some(decode_str(field));
-                }
+            (2, DS_TIME_CREATED) if field.len() == 11 => {
+                time_raw = Some(decode_str(field));
             }
             _ => {}
         }
@@ -326,6 +324,7 @@ mod tests {
     // Photoshop IRB carrying IIM records.
     //
     // `records` is a slice of (record_number, dataset_number, data).
+    #[allow(clippy::vec_init_then_push)]
     fn build_jpeg_with_iptc(records: &[(u8, u8, &[u8])]) -> Vec<u8> {
         // Build the IIM payload.
         let mut iim: Vec<u8> = Vec::new();
@@ -352,7 +351,7 @@ mod tests {
         irb.push((data_size >> 8) as u8);
         irb.push(data_size as u8);
         irb.extend_from_slice(&iim);
-        if iim.len() % 2 != 0 {
+        if !iim.len().is_multiple_of(2) {
             irb.push(0x00); // data pad
         }
 

@@ -20,6 +20,7 @@ pub fn reindex(conn: &Connection, image_id: &str) -> Result<()> {
         "DELETE FROM image_search WHERE image_id = ?",
         params![image_id],
     )?;
+    #[allow(clippy::type_complexity)]
     let source: Option<(String, Option<String>, Option<String>, Option<String>)> = conn
         .query_row(
             "SELECT i.original_filename,

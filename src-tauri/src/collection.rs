@@ -134,6 +134,7 @@ pub fn rename(conn: &Connection, id: &str, name: &str) -> Result<Option<Step>> {
     if new == old {
         return Ok(None);
     }
+    #[allow(clippy::type_complexity)]
     let set = |id: String, name: String| -> Box<dyn Fn(&Connection) -> Result<()> + Send + Sync> {
         Box::new(move |conn| {
             conn.execute(

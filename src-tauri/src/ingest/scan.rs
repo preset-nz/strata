@@ -116,7 +116,7 @@ impl PrescanResult {
             .iter()
             .filter(|f| {
                 let folder = relative_parts(root, f.parent().unwrap_or(root)).join("/");
-                kept.iter().any(|k| *k == folder)
+                kept.contains(&folder)
             })
             .cloned()
             .collect()

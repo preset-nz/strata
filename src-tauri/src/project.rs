@@ -63,7 +63,7 @@ pub fn discover(roots: &[PathBuf]) -> Vec<(Marker, PathBuf)> {
         .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
         .filter_map(|e| read_marker(&e.path()).map(|m| (m, e.path())))
         .collect();
-    found.sort_by(|a, b| a.0.name.to_lowercase().cmp(&b.0.name.to_lowercase()));
+    found.sort_by_key(|a| a.0.name.to_lowercase());
     found
 }
 
@@ -381,14 +381,17 @@ mod tests {
         std::fs::create_dir_all(&other).unwrap();
         std::fs::write(other.join(MARKER), "key = \"else\"\napps = [\"shard\"]\n").unwrap();
         std::fs::create_dir_all(root.join("Not a project")).unwrap();
-        let found = discover(&[root.clone()]);
+        let found = discover(std::slice::from_ref(&root));
         let names: Vec<&str> = found.iter().map(|(m, _)| m.name.as_str()).collect();
         assert_eq!(
             names,
             ["Elsewhere", "Night Drive"],
             "name falls back to the folder"
         );
-        assert_eq!(folder_of(&[root.clone()], "night-drive"), Some(folder));
+        assert_eq!(
+            folder_of(std::slice::from_ref(&root), "night-drive"),
+            Some(folder)
+        );
         std::fs::remove_dir_all(root).ok();
     }
 

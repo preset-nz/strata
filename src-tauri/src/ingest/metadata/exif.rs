@@ -36,6 +36,7 @@ pub struct ExifData {
     pub date_time_original: Option<DateTime<Utc>>,
 }
 
+#[allow(clippy::field_reassign_with_default)]
 pub fn read(path: &Path) -> Option<ExifData> {
     let file = File::open(path).ok()?;
     let mut reader = BufReader::new(file);
