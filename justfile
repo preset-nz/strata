@@ -18,6 +18,7 @@ prep:
 [group('setup')]
 install:
     pnpm install
+    ./node_modules/.bin/lefthook install
     cd src-tauri && cargo fetch
 
 # Run the app. Targets: `desktop` (Tauri shell, default), `web` (Vite only — frontend hot-reload without the Rust rebuild).
@@ -31,15 +32,21 @@ run target="desktop":
         *) echo "unknown target: {{target}} (expected: desktop, web)" >&2; exit 1 ;;
     esac
 
-# All quality gates: Rust check + tests, TypeScript type-check, lint.
-# eslint fails on errors only; the one standing warning is TanStack Virtual's
-# `incompatible-library`, which no local change can clear.
+# All quality gates. Checks only, never writes; `just fmt` fixes.
 [group('quality')]
 check:
-    cd src-tauri && cargo check
-    cd src-tauri && cargo test
     ./node_modules/.bin/tsc -b --noEmit
-    ./node_modules/.bin/eslint .
+    ./node_modules/.bin/biome check .
+    ./node_modules/.bin/vite build --logLevel warn
+    cd src-tauri && cargo fmt --check
+    cd src-tauri && cargo clippy --all-targets -- -D warnings
+    cd src-tauri && cargo test
+
+# Writes the formatters' fixes (Biome, cargo fmt).
+[group('quality')]
+fmt:
+    ./node_modules/.bin/biome check --write .
+    cd src-tauri && cargo fmt
 
 # Production bundle (Tauri installer artifacts).
 [group('build')]
