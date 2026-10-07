@@ -40,7 +40,7 @@ export function PaletteExtract({ imageId }: { imageId: string }) {
   useEffect(() => {
     if (key === null || k === null) return
     if (cache.has(key)) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- cached result for a new key
+      // cached result for a new key
       setResult({ key, swatches: cache.get(key)!, error: null })
       return
     }

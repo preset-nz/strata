@@ -34,7 +34,7 @@ export function useCollections(changed: () => void) {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial load
+    // initial load
     void reload()
     const off = listen(HISTORY_CHANGED, () => void reload())
     return () => void off.then((u) => u())

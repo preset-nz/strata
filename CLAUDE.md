@@ -41,6 +41,8 @@ Use `just <recipe>` rather than calling `pnpm` / `cargo` directly. Run `just` (n
 
 Standard verbs (present in every preset.nz project): `prep`, `install`, `run [target]`, `check`, `build`. Convention spec: [`guidance/runbooks/justfile-conventions.md`](../../guidance/runbooks/justfile-conventions.md). Strata's `run` takes a target — `desktop` (default, Tauri shell) or `web` (Vite-only, frontend hot-reload without rebuilding Rust).
 
+Formatting and linting are Biome (TypeScript) and `cargo fmt` / `cargo clippy -D warnings` (Rust). `just fmt` writes the fixes; `just check` only checks (tsc, Biome, `vite build`, rustfmt, clippy, cargo test). lefthook runs Biome and rustfmt on staged files at pre-commit and `just check` at pre-push; `just install` registers the hooks.
+
 Annotate any new recipes with `[group('setup'|'dev'|'quality'|'build'|'eval')]`.
 
 ## When in doubt

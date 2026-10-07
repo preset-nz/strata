@@ -64,15 +64,13 @@ export async function loadMarks(ids: string[]): Promise<void> {
 export function putRows(
   rows: { id: string; favourite: boolean; label: string | null }[]
 ): void {
-  useMarks
-    .getState()
-    .put(
-      rows.map((r) => ({
-        id: r.id,
-        favourite: r.favourite,
-        label: r.label as ColourLabel | null,
-      }))
-    )
+  useMarks.getState().put(
+    rows.map((r) => ({
+      id: r.id,
+      favourite: r.favourite,
+      label: r.label as ColourLabel | null,
+    }))
+  )
 }
 
 /** The rail's Label section counts. */

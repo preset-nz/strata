@@ -48,6 +48,7 @@ export function ThumbGrid<T extends { key: string }>({
     overscan: 6,
   })
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: cellSize changes the layout, so re-measure
   useEffect(() => {
     rowVirtualizer.measure()
   }, [cellSize, rowVirtualizer])

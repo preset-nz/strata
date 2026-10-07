@@ -169,6 +169,7 @@ function AppShell() {
   const [freshSort] = useState(() => !hadStoredSort())
   const defaultSort = usePreference<string>("library.default_sort", "imported")
   const prefsLoaded = usePreferences() !== null
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once, when preferences first arrive
   useEffect(() => {
     if (!freshSort || !prefsLoaded) return
     const key = defaultSort as SortKey
@@ -177,7 +178,6 @@ function AppShell() {
       prev.key === key ? prev : { key, direction: DEFAULT_DIRECTION[key] }
     )
     // Runs once, when preferences first arrive on a fresh install.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefsLoaded])
 
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -417,11 +417,11 @@ function AppShell() {
           void refreshCounts()
         })
       )
-      if (cancelled) offs.forEach((o) => o())
+      if (cancelled) for (const o of offs) o()
     })()
     return () => {
       cancelled = true
-      offs.forEach((o) => o())
+      for (const o of offs) o()
     }
   }, [refreshCounts])
 
@@ -483,7 +483,7 @@ function AppShell() {
       selectedCollectionId &&
       !coll.collections.some((c) => c.id === selectedCollectionId)
     ) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- follows the list
+      // follows the list
       setSelectedCollectionId(null)
     }
   }, [coll.collections, selectedCollectionId])
@@ -495,7 +495,7 @@ function AppShell() {
       proj.projects.length > 0 &&
       !proj.projects.some((p) => p.key === selectedProjectKey)
     ) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- follows the list
+      // follows the list
       setSelectedProjectKey(null)
     }
   }, [proj.projects, selectedProjectKey])
@@ -616,6 +616,7 @@ function AppShell() {
     selectedCollectionId !== null ||
     selectedProjectKey !== null
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadToken re-runs the count when membership changes
   useEffect(() => {
     if (!hasActiveQuery) return
     let cancelled = false

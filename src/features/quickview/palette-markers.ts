@@ -11,7 +11,7 @@ const subscribers = new Set<() => void>()
 
 function set(next: Partial<State>) {
   state = { ...state, ...next }
-  subscribers.forEach((s) => s())
+  for (const s of subscribers) s()
 }
 
 export const paletteMarkers = {

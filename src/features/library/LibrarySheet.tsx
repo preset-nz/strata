@@ -137,6 +137,7 @@ export function LibrarySheet({
     }
   }, [])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadToken re-runs the query when membership changes under the same filter
   useEffect(() => {
     queryRef.current = {
       sort,
@@ -153,7 +154,6 @@ export function LibrarySheet({
     // fetch: they also zero `offsetRef`/`loadingRef`, and deferring them past an
     // await lets a scroll-driven `loadNext` page against the old offset and
     // concat stale-order rows onto the new query.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void reset()
   }, [
     reset,
@@ -233,11 +233,11 @@ export function LibrarySheet({
           onLibraryChanged?.()
         })
       )
-      if (cancelled) offs.forEach((o) => o())
+      if (cancelled) for (const o of offs) o()
     })()
     return () => {
       cancelled = true
-      offs.forEach((o) => o())
+      for (const o of offs) o()
     }
   }, [onLibraryChanged])
 

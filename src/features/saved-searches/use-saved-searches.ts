@@ -38,7 +38,7 @@ export function useSavedSearches(
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial load
+    // initial load
     void reload()
   }, [reload])
 

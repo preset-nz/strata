@@ -118,7 +118,6 @@ export function TrashSheet({ direction, cellSize, onLibraryChanged }: Props) {
     // See LibrarySheet: the clears in `reset` also zero `offsetRef`/`loadingRef`
     // and must commit alongside the fetch kickoff, or a scroll-driven `loadNext`
     // races the offset.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void reset()
   }, [reset, direction])
 
@@ -162,11 +161,11 @@ export function TrashSheet({ direction, cellSize, onLibraryChanged }: Props) {
           void reset()
         })
       )
-      if (cancelled) offs.forEach((o) => o())
+      if (cancelled) for (const o of offs) o()
     })()
     return () => {
       cancelled = true
-      offs.forEach((o) => o())
+      for (const o of offs) o()
     }
   }, [reset, onLibraryChanged])
 

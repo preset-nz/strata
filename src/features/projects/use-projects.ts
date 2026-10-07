@@ -33,7 +33,7 @@ export function useProjects(changed: () => void) {
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial load
+    // initial load
     void reload()
     const off = listen(HISTORY_CHANGED, () => void reload())
     const onFocus = () => void reload()

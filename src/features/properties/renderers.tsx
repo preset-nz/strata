@@ -1,5 +1,4 @@
-/* eslint-disable react-refresh/only-export-components --
- * Renderers + the registration entry point are colocated by design. */
+// Renderers + the registration entry point are colocated by design.
 
 import type { FieldRenderer } from "@preset.nz/facets"
 import {
