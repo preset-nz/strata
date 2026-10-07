@@ -37,7 +37,7 @@ See [`guidance/projects/strata/tech-stack.md`](../../guidance/projects/strata/te
 
 ## Tooling
 
-Use `just <recipe>` rather than calling `npm` / `cargo` directly. Run `just` (no args) for the recipe list.
+Use `just <recipe>` rather than calling `pnpm` / `cargo` directly. Run `just` (no args) for the recipe list.
 
 Standard verbs (present in every preset.nz project): `prep`, `install`, `run [target]`, `check`, `build`. Convention spec: [`guidance/runbooks/justfile-conventions.md`](../../guidance/runbooks/justfile-conventions.md). Strata's `run` takes a target — `desktop` (default, Tauri shell) or `web` (Vite-only, frontend hot-reload without rebuilding Rust).
 

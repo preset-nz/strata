@@ -9,15 +9,15 @@ default:
 [group('setup')]
 prep:
     @echo "node:   $(node --version 2>/dev/null || echo MISSING)"
-    @echo "npm:    $(npm --version 2>/dev/null || echo MISSING)"
+    @echo "pnpm:   $(pnpm --version 2>/dev/null || echo MISSING)"
     @echo "rustc:  $(rustc --version 2>/dev/null || echo MISSING)"
     @echo "cargo:  $(cargo --version 2>/dev/null || echo MISSING)"
-    @echo "tauri:  $(npx --no-install tauri --version 2>/dev/null || echo 'not installed (run: just install)')"
+    @echo "tauri:  $(./node_modules/.bin/tauri --version 2>/dev/null || echo 'not installed (run: just install)')"
 
 # Install frontend + Rust dependencies.
 [group('setup')]
 install:
-    npm install
+    pnpm install
     cd src-tauri && cargo fetch
 
 # Run the app. Targets: `desktop` (Tauri shell, default), `web` (Vite only — frontend hot-reload without the Rust rebuild).
@@ -26,8 +26,8 @@ run target="desktop":
     #!/usr/bin/env bash
     set -euo pipefail
     case "{{target}}" in
-        desktop) npm run tauri dev ;;
-        web)     npm run dev ;;
+        desktop) pnpm tauri dev ;;
+        web)     pnpm dev ;;
         *) echo "unknown target: {{target}} (expected: desktop, web)" >&2; exit 1 ;;
     esac
 
@@ -38,10 +38,10 @@ run target="desktop":
 check:
     cd src-tauri && cargo check
     cd src-tauri && cargo test
-    npx tsc -b --noEmit
-    npx eslint .
+    ./node_modules/.bin/tsc -b --noEmit
+    ./node_modules/.bin/eslint .
 
 # Production bundle (Tauri installer artifacts).
 [group('build')]
 build:
-    npm run tauri build
+    pnpm tauri build
