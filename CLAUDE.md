@@ -36,7 +36,7 @@ Family rules are in `../CLAUDE.md`.
 
 ## Tooling
 
-The family verbs and tooling are in `../CLAUDE.md`. Strata's `run` takes a target — `desktop` (default, Tauri shell) or `web` (Vite-only, frontend hot-reload without rebuilding Rust).
+The family verbs and tooling are in `../CLAUDE.md`. `just run` opens the app in its Tauri window; there is no browser-only mode.
 
 ## When in doubt
 
