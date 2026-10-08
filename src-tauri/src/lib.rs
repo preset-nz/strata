@@ -1460,6 +1460,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(preset_app_kit::window_state())
         .setup(|app| {
             let pictures_dir = app
                 .path()
