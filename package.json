@@ -17,7 +17,7 @@
     "@phosphor-icons/react": "^2.1.10",
     "@preset.nz/app-kit": "^0.1.1",
     "@preset.nz/facets": "^0.2.0",
-    "@preset.nz/preferences": "^0.1.1",
+    "@preset.nz/preferences": "^0.1.2",
     "@preset.nz/ux-kit": "^0.1.0",
     "@tanstack/react-query": "^5.101.0",
     "@tanstack/react-virtual": "^3.14.3",
@@ -41,10 +41,5 @@
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.3",
     "vite": "^7.3.5"
-  },
-  "overrides": {
-    "@preset.nz/preferences": {
-      "@preset.nz/facets": "$@preset.nz/facets"
-    }
   }
 }

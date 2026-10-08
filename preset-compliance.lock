@@ -6,16 +6,16 @@ version = 1
 [[inputs]]
 path = "pnpm-lock.yaml"
 ecosystem = "pnpm"
-sha256 = "ae9f648fbe0490536e588aabf49c4e3e8107c3f95da43f900c4307a41f9ad018"
+sha256 = "cd2234610489e2b07178c8144c8ab33cdfb5c48018c655c882390ca682abfcf1"
 
 [[inputs]]
 path = "src-tauri/Cargo.lock"
 ecosystem = "cargo"
-sha256 = "9b4d84224af135f052e825caf19ff8a8ec44269586e408da3a6ae354d7b72c54"
+sha256 = "64ceb1d308783f6e473226a530a99f1bd8b942c43292e9838d93076168837a09"
 
 [[inputs]]
 path = "src-tauri/Cargo.toml"
-sha256 = "308e8c96f67d66f59d9347aa5e28d76f75baa4b3074a00e38173a30129cfccae"
+sha256 = "e120895ff72a61641b60bb43588b71b5620aa10c86a61bc77cf38bda0ed4f444"
 
 [[packages]]
 ecosystem = "cargo"
@@ -2180,7 +2180,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "cargo"
 name = "preset-preferences"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
@@ -4980,7 +4980,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "pnpm"
 name = "@preset.nz/preferences"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
