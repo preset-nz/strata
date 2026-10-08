@@ -109,9 +109,13 @@ pub fn strip_weights(prompt: &str) -> String {
 fn filename_words(filename: &str) -> String {
     filename
         .split(|c: char| !c.is_alphanumeric())
-        .filter(|w| !w.is_empty() && !(w.len() > 6 && w.bytes().all(|b| b.is_ascii_digit())))
+        .filter(|w| !w.is_empty() && !is_long_digit_run(w))
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+fn is_long_digit_run(word: &str) -> bool {
+    word.len() > 6 && word.bytes().all(|b| b.is_ascii_digit())
 }
 
 #[cfg(test)]
