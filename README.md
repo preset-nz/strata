@@ -3,8 +3,8 @@
 A catalogue for large image folders.
 
 A desktop app for macOS. Strata takes in folders of images and reads what each
-picture holds: its metadata, its colours, and the prompt behind it when Draw
-Things made it. Search, sort and gather from there.
+picture holds: its metadata, its colours, and the prompt behind it when an
+image generator made it. Search, sort and gather from there.
 
 ---
 
@@ -15,7 +15,7 @@ There is no download. Build it from source, below.
 Add a folder with **Add** and choose which of its folders to take in. Each
 import shows up in the left rail as a batch, beside the library as a whole.
 
-Search runs over file names, keywords, captions and Draw Things prompts. A
+Search runs over file names, keywords, captions and prompts. A
 search can be saved to the rail. Favourites, colour labels and collections
 gather images without copying them. Most changes can be undone with `Cmd-Z`.
 
