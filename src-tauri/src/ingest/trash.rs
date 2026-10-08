@@ -7,6 +7,7 @@ use trash::TrashContext;
 use trash::macos::{DeleteMethod, TrashContextExtMacos};
 
 pub fn move_to_trash(path: &Path) -> Result<()> {
+    #[cfg_attr(not(target_os = "macos"), allow(unused_mut))]
     let mut ctx = TrashContext::default();
     // Default on macOS is DeleteMethod::Finder, which routes through
     // `osascript` + Finder.app — plays the trash sound per file and
