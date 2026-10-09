@@ -6,7 +6,7 @@ version = 1
 [[inputs]]
 path = "pnpm-lock.yaml"
 ecosystem = "pnpm"
-sha256 = "1e2274c010545565a03ea1cfc70c43e0821d3450f92dc7ef304f400e80358714"
+sha256 = "db3a26b7f4fa4c264e638e9665ea0adf35a6838494341b1fe6880f187921aeb2"
 
 [[inputs]]
 path = "src-tauri/Cargo.lock"
@@ -4587,214 +4587,6 @@ scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
-name = "@esbuild/aix-ppc64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/android-arm"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/android-arm64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/android-x64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/darwin-arm64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/darwin-x64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/freebsd-arm64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/freebsd-x64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/linux-arm"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/linux-arm64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/linux-ia32"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/linux-loong64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/linux-mips64el"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/linux-ppc64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/linux-riscv64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/linux-s390x"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/linux-x64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/netbsd-arm64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/netbsd-x64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/openbsd-arm64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/openbsd-x64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/openharmony-arm64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/sunos-x64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/win32-arm64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/win32-ia32"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@esbuild/win32-x64"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
 name = "@floating-ui/core"
 version = "1.7.5"
 source = "registry"
@@ -4947,6 +4739,14 @@ scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "@oxc-project/types"
+version = "0.153.0"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "@phosphor-icons/react"
 version = "2.1.10"
 source = "registry"
@@ -4995,6 +4795,126 @@ scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "@rolldown/binding-android-arm-eabi"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-android-arm64"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-darwin-arm64"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-darwin-x64"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-freebsd-x64"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-linux-arm-gnueabihf"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-linux-arm64-gnu"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-linux-arm64-musl"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-linux-ppc64-gnu"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-linux-s390x-gnu"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-linux-x64-gnu"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-linux-x64-musl"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-openharmony-arm64"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-win32-arm64-msvc"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@rolldown/binding-win32-x64-msvc"
+version = "1.2.13"
+source = "registry"
+declared = "MIT"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "@rolldown/pluginutils"
 version = "1.0.0-rc.3"
 source = "registry"
@@ -5003,200 +4923,8 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
-name = "@rollup/rollup-android-arm-eabi"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-android-arm64"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-darwin-arm64"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-darwin-x64"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-freebsd-arm64"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-freebsd-x64"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-arm-gnueabihf"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-arm-musleabihf"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-arm64-gnu"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-arm64-musl"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-loong64-gnu"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-loong64-musl"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-ppc64-gnu"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-ppc64-musl"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-riscv64-gnu"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-riscv64-musl"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-s390x-gnu"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-x64-gnu"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-linux-x64-musl"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-openbsd-x64"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-openharmony-arm64"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-win32-arm64-msvc"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-win32-ia32-msvc"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-win32-x64-gnu"
-version = "4.62.2"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@rollup/rollup-win32-x64-msvc"
-version = "4.62.2"
+name = "@rolldown/pluginutils"
+version = "1.0.1"
 source = "registry"
 declared = "MIT"
 scope = "dev"
@@ -5541,14 +5269,6 @@ scope = "dev"
 ecosystem = "pnpm"
 name = "@types/babel__traverse"
 version = "7.28.0"
-source = "registry"
-declared = "MIT"
-scope = "dev"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@types/estree"
-version = "1.0.9"
 source = "registry"
 declared = "MIT"
 scope = "dev"
@@ -6152,14 +5872,6 @@ version = "1.1.2"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "esbuild"
-version = "0.27.7"
-source = "registry"
-declared = "MIT"
-scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -6939,8 +6651,24 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "lightningcss"
+version = "1.33.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "lightningcss-android-arm64"
 version = "1.32.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "lightningcss-android-arm64"
+version = "1.33.0"
 source = "registry"
 declared = "MPL-2.0"
 scope = "dev"
@@ -6955,8 +6683,24 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "lightningcss-darwin-arm64"
+version = "1.33.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "lightningcss-darwin-x64"
 version = "1.32.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "lightningcss-darwin-x64"
+version = "1.33.0"
 source = "registry"
 declared = "MPL-2.0"
 scope = "dev"
@@ -6971,8 +6715,24 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "lightningcss-freebsd-x64"
+version = "1.33.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "lightningcss-linux-arm-gnueabihf"
 version = "1.32.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "lightningcss-linux-arm-gnueabihf"
+version = "1.33.0"
 source = "registry"
 declared = "MPL-2.0"
 scope = "dev"
@@ -6987,8 +6747,24 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "lightningcss-linux-arm64-gnu"
+version = "1.33.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "lightningcss-linux-arm64-musl"
 version = "1.32.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "lightningcss-linux-arm64-musl"
+version = "1.33.0"
 source = "registry"
 declared = "MPL-2.0"
 scope = "dev"
@@ -7003,8 +6779,24 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "lightningcss-linux-x64-gnu"
+version = "1.33.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "lightningcss-linux-x64-musl"
 version = "1.32.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "lightningcss-linux-x64-musl"
+version = "1.33.0"
 source = "registry"
 declared = "MPL-2.0"
 scope = "dev"
@@ -7019,8 +6811,24 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "lightningcss-win32-arm64-msvc"
+version = "1.33.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "lightningcss-win32-x64-msvc"
 version = "1.32.0"
+source = "registry"
+declared = "MPL-2.0"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "lightningcss-win32-x64-msvc"
+version = "1.33.0"
 source = "registry"
 declared = "MPL-2.0"
 scope = "dev"
@@ -7180,7 +6988,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "pnpm"
 name = "nanoid"
-version = "3.3.13"
+version = "3.3.20"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
@@ -7428,7 +7236,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "pnpm"
 name = "picomatch"
-version = "4.0.4"
+version = "4.0.7"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
@@ -7452,7 +7260,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "pnpm"
 name = "postcss"
-version = "8.5.15"
+version = "8.5.29"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
@@ -7603,8 +7411,8 @@ scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
-name = "rollup"
-version = "4.62.2"
+name = "rolldown"
+version = "1.2.13"
 source = "registry"
 declared = "MIT"
 scope = "dev"
@@ -7781,6 +7589,14 @@ scope = "shipped"
 ecosystem = "pnpm"
 name = "source-map-js"
 version = "1.2.1"
+source = "registry"
+declared = "BSD-3-Clause"
+scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "source-map-js"
+version = "1.2.2"
 source = "registry"
 declared = "BSD-3-Clause"
 scope = "shipped"
@@ -8052,7 +7868,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "pnpm"
 name = "vite"
-version = "7.3.5"
+version = "8.3.2"
 source = "registry"
 declared = "MIT"
 scope = "dev"
