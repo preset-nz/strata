@@ -6,7 +6,7 @@ version = 1
 [[inputs]]
 path = "pnpm-lock.yaml"
 ecosystem = "pnpm"
-sha256 = "1e2274c010545565a03ea1cfc70c43e0821d3450f92dc7ef304f400e80358714"
+sha256 = "5efd6b545adf3c40df7571a1e4a5a88796783775fbf481468ec069bffb6409ad"
 
 [[inputs]]
 path = "src-tauri/Cargo.lock"
@@ -5556,7 +5556,7 @@ scope = "dev"
 [[packages]]
 ecosystem = "pnpm"
 name = "@types/node"
-version = "24.13.2"
+version = "26.6.4"
 source = "registry"
 declared = "MIT"
 scope = "dev"
@@ -7980,7 +7980,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "pnpm"
 name = "undici-types"
-version = "7.18.2"
+version = "8.9.0"
 source = "registry"
 declared = "MIT"
 scope = "dev"
