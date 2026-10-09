@@ -6,7 +6,7 @@ version = 1
 [[inputs]]
 path = "pnpm-lock.yaml"
 ecosystem = "pnpm"
-sha256 = "1e2274c010545565a03ea1cfc70c43e0821d3450f92dc7ef304f400e80358714"
+sha256 = "eeb995b1f866c325945643f2e61e4a23213fc93a2b058d16e79eda1e7c42eeac"
 
 [[inputs]]
 path = "src-tauri/Cargo.lock"
@@ -5372,14 +5372,6 @@ scope = "shipped"
 [[packages]]
 ecosystem = "pnpm"
 name = "@tauri-apps/api"
-version = "2.11.1"
-source = "registry"
-declared = "Apache-2.0 OR MIT"
-scope = "shipped"
-
-[[packages]]
-ecosystem = "pnpm"
-name = "@tauri-apps/api"
 version = "2.12.1"
 source = "registry"
 declared = "Apache-2.0 OR MIT"
@@ -5484,7 +5476,7 @@ scope = "dev"
 [[packages]]
 ecosystem = "pnpm"
 name = "@tauri-apps/plugin-dialog"
-version = "2.7.1"
+version = "2.8.1"
 source = "registry"
 declared = "MIT OR Apache-2.0"
 scope = "shipped"
@@ -5492,7 +5484,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "pnpm"
 name = "@tauri-apps/plugin-fs"
-version = "2.5.1"
+version = "2.6.0"
 source = "registry"
 declared = "MIT OR Apache-2.0"
 scope = "shipped"
@@ -5500,7 +5492,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "pnpm"
 name = "@tauri-apps/plugin-opener"
-version = "2.5.4"
+version = "2.7.0"
 source = "registry"
 declared = "MIT OR Apache-2.0"
 scope = "shipped"
