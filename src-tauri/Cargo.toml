@@ -33,7 +33,7 @@ uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = "1"
 thiserror = "2"
-toml = "0.9"
+toml = "1.1"
 unicode-normalization = "0.1"
 tokio = { version = "1", features = ["sync", "rt-multi-thread", "macros", "fs"] }
 num_cpus = "1"
