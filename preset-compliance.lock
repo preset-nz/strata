@@ -11,7 +11,7 @@ sha256 = "1a04df7901ad902b7b1e19acf418a9f33476377565dc2d81834ab1ec0f840f0e"
 [[inputs]]
 path = "src-tauri/Cargo.lock"
 ecosystem = "cargo"
-sha256 = "52d4ddd3eacd06604dd518f048df50c9530d164e5a10276bff98b34e85e98955"
+sha256 = "c8671042c0f5ce570c54582e6ea6fff14365deea72e0b2ade73a66bbaa79fc58"
 
 [[inputs]]
 path = "src-tauri/Cargo.toml"
@@ -548,7 +548,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "cargo"
 name = "darling"
-version = "0.23.0"
+version = "0.24.1"
 source = "registry"
 declared = "MIT"
 scope = "build"
@@ -556,7 +556,7 @@ scope = "build"
 [[packages]]
 ecosystem = "cargo"
 name = "darling_core"
-version = "0.23.0"
+version = "0.24.1"
 source = "registry"
 declared = "MIT"
 scope = "build"
@@ -564,7 +564,7 @@ scope = "build"
 [[packages]]
 ecosystem = "cargo"
 name = "darling_macro"
-version = "0.23.0"
+version = "0.24.1"
 source = "registry"
 declared = "MIT"
 scope = "build"
@@ -576,6 +576,30 @@ version = "0.9.11"
 source = "registry"
 declared = "Apache-2.0/MIT"
 scope = "shipped"
+
+[[packages]]
+ecosystem = "cargo"
+name = "defmt"
+version = "1.1.1"
+source = "registry"
+declared = "MIT OR Apache-2.0"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "cargo"
+name = "defmt-macros"
+version = "1.1.1"
+source = "registry"
+declared = "MIT OR Apache-2.0"
+scope = "build"
+
+[[packages]]
+ecosystem = "cargo"
+name = "defmt-parser"
+version = "1.0.0"
+source = "registry"
+declared = "MIT OR Apache-2.0"
+scope = "build"
 
 [[packages]]
 ecosystem = "cargo"
@@ -1459,6 +1483,46 @@ scope = "shipped"
 
 [[packages]]
 ecosystem = "cargo"
+name = "jiff"
+version = "0.2.38"
+source = "registry"
+declared = "Unlicense OR MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "cargo"
+name = "jiff-core"
+version = "0.1.1"
+source = "registry"
+declared = "Unlicense OR MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "cargo"
+name = "jiff-static"
+version = "0.2.38"
+source = "registry"
+declared = "Unlicense OR MIT"
+scope = "build"
+
+[[packages]]
+ecosystem = "cargo"
+name = "jiff-tzdb"
+version = "0.1.9"
+source = "registry"
+declared = "Unlicense OR MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "cargo"
+name = "jiff-tzdb-platform"
+version = "0.1.3"
+source = "registry"
+declared = "Unlicense OR MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "cargo"
 name = "jni"
 version = "0.21.1"
 source = "registry"
@@ -2155,6 +2219,22 @@ scope = "shipped"
 
 [[packages]]
 ecosystem = "cargo"
+name = "portable-atomic"
+version = "1.15.0"
+source = "registry"
+declared = "Apache-2.0 OR MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "cargo"
+name = "portable-atomic-util"
+version = "0.2.8"
+source = "registry"
+declared = "Apache-2.0 OR MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "cargo"
 name = "potential_utf"
 version = "0.1.5"
 source = "registry"
@@ -2524,7 +2604,7 @@ scope = "build"
 [[packages]]
 ecosystem = "cargo"
 name = "serde_json"
-version = "1.0.150"
+version = "1.0.151"
 source = "registry"
 declared = "MIT OR Apache-2.0"
 scope = "shipped"
@@ -2556,7 +2636,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "cargo"
 name = "serde_with"
-version = "3.20.0"
+version = "3.24.0"
 source = "registry"
 declared = "MIT OR Apache-2.0"
 scope = "shipped"
@@ -2564,7 +2644,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "cargo"
 name = "serde_with_macros"
-version = "3.20.0"
+version = "3.24.0"
 source = "registry"
 declared = "MIT OR Apache-2.0"
 scope = "build"
@@ -2744,6 +2824,14 @@ version = "2.0.117"
 source = "registry"
 declared = "MIT OR Apache-2.0"
 scope = "shipped"
+
+[[packages]]
+ecosystem = "cargo"
+name = "syn"
+version = "3.0.6"
+source = "registry"
+declared = "MIT OR Apache-2.0"
+scope = "build"
 
 [[packages]]
 ecosystem = "cargo"
