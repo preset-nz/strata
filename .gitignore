@@ -25,3 +25,7 @@ dist-ssr
 
 # Claude Code — transient worktrees from background sessions
 .claude/worktrees/
+
+# Friends build
+/THIRD-PARTY-LICENSES
+/dist-friends-build/
