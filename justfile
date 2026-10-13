@@ -86,10 +86,27 @@ package: build
 licences:
     preset-compliance licences check
 
+# Take every dependency update the version ranges allow into the lockfiles,
+# and rescan the licence lock. `release` runs it first.
+[group('build')]
+update:
+    pnpm update --no-save
+    cargo update --manifest-path src-tauri/Cargo.toml
+    preset-compliance licences scan
+
 # Version, changelog, commit and tag from the conventional commits since the last
 # tag (knope.toml). Pushing stays by hand.
+# Runs `update` first, and stops if that moved anything.
 [group('build')]
 release:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just update
+    if [ -n "$(git status --porcelain)" ]; then
+        git status --short
+        echo 'Release stopped: commit the dependency updates first (just check, then chore(deps)).' >&2
+        exit 1
+    fi
     knope release
 
 # What `release` would do, without touching anything.
