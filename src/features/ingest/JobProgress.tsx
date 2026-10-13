@@ -1,26 +1,13 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 import { useEffect, useState } from "react"
 
-type FileState =
-  | "queued"
-  | "hashing"
-  | "copying"
-  | "verifying"
-  | "indexing"
-  | "thumbnailing"
-  | "trashing"
-  | "done"
-  | "skipped_duplicate"
-  | "failed"
-
-type FileEvent = {
+type ProgressEvent = {
   batch_id: string
-  source_path: string
-  original_filename: string
-  state: FileState
-  content_hash?: string
-  image_id?: string
-  error?: string
+  total: number
+  processed: number
+  imported: number
+  skipped: number
+  failed: number
 }
 
 type BatchDoneEvent = {
@@ -32,62 +19,42 @@ type BatchDoneEvent = {
 
 type Props = {
   batchId: string
+  total: number
 }
 
-export function JobProgress({ batchId }: Props) {
-  const [counts, setCounts] = useState({
-    queued: 0,
-    inflight: 0,
-    done: 0,
-    skipped: 0,
-    failed: 0,
-  })
+export function JobProgress({ batchId, total }: Props) {
+  // Each event carries the running totals, so one missed while this mounted
+  // costs nothing: the next one corrects the count.
+  const [progress, setProgress] = useState<ProgressEvent | null>(null)
   const [doneEvent, setDoneEvent] = useState<BatchDoneEvent | null>(null)
 
   useEffect(() => {
     let off1: UnlistenFn | undefined
     let off2: UnlistenFn | undefined
+    let cancelled = false
     ;(async () => {
-      off1 = await listen<FileEvent>("ingest://file", (event) => {
-        const ev = event.payload
-        if (ev.batch_id !== batchId) return
-        setCounts((c) => {
-          const next = { ...c }
-          switch (ev.state) {
-            case "queued":
-              next.queued += 1
-              break
-            case "hashing":
-              next.queued -= 1
-              next.inflight += 1
-              break
-            case "done":
-              next.inflight -= 1
-              next.done += 1
-              break
-            case "skipped_duplicate":
-              next.skipped += 1
-              break
-            case "failed":
-              next.inflight -= 1
-              next.failed += 1
-              break
-            default:
-              break
-          }
-          return next
-        })
+      const a = await listen<ProgressEvent>("ingest://progress", (event) => {
+        if (event.payload.batch_id === batchId) setProgress(event.payload)
       })
-      off2 = await listen<BatchDoneEvent>("ingest://batch-done", (event) => {
-        if (event.payload.batch_id !== batchId) return
-        setDoneEvent(event.payload)
+      const b = await listen<BatchDoneEvent>("ingest://batch-done", (event) => {
+        if (event.payload.batch_id === batchId) setDoneEvent(event.payload)
       })
+      if (cancelled) {
+        a()
+        b()
+        return
+      }
+      off1 = a
+      off2 = b
     })()
     return () => {
+      cancelled = true
       off1?.()
       off2?.()
     }
   }, [batchId])
+
+  const processed = progress?.processed ?? 0
 
   return (
     <section className="mt-4">
@@ -101,8 +68,8 @@ export function JobProgress({ batchId }: Props) {
         </p>
       ) : (
         <p className="text-muted-foreground text-sm">
-          Queued {counts.queued} · In-flight {counts.inflight} · Done{" "}
-          {counts.done} · Skipped {counts.skipped} · Failed {counts.failed}
+          {processed} of {total} · Imported {progress?.imported ?? 0} · Skipped{" "}
+          {progress?.skipped ?? 0} · Failed {progress?.failed ?? 0}
         </p>
       )}
     </section>

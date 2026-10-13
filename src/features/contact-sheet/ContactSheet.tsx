@@ -26,6 +26,7 @@ type FileEvent = {
   content_hash?: string
   image_id?: string
   error?: string
+  thumbnails_status?: string
 }
 
 type BatchDoneEvent = {
@@ -99,7 +100,8 @@ export function ContactSheet({ batchId, cellSize }: Props) {
               id: imageId,
               hash: contentHash,
               filename: ev.original_filename,
-              status: existing?.status === "ready" ? "ready" : "thumbnailing",
+              status:
+                ev.thumbnails_status ?? existing?.status ?? "thumbnailing",
             })
             return next
           })

@@ -9,7 +9,9 @@ use tauri::AppHandle;
 use uuid::Uuid;
 
 use crate::db::Db;
-use crate::ingest::events::{emit_batch_done, emit_file, BatchDoneEvent, FileEvent, FileState};
+use crate::ingest::events::{
+    emit_batch_done, emit_file, emit_progress, BatchDoneEvent, FileEvent, FileState, ProgressEvent,
+};
 use crate::ingest::{
     extension_for, hash::hash_file, metadata, mime_for_ext, store::copy_and_verify,
 };
@@ -78,10 +80,12 @@ pub async fn run_batch(
                     content_hash: None,
                     image_id: None,
                     error: None,
+                    thumbnails_status: None,
                 },
             );
         }
 
+        let total = files.len();
         let concurrency = options.concurrency.max(1);
         let keep_source_files = options.keep_source_files;
         let mut imported = 0usize;
@@ -110,6 +114,17 @@ pub async fn run_batch(
                     },
                     _ => failed += 1,
                 }
+                emit_progress(
+                    &app_clone,
+                    &ProgressEvent {
+                        batch_id: batch_id_str.clone(),
+                        total,
+                        processed: imported + skipped + failed,
+                        imported,
+                        skipped,
+                        failed,
+                    },
+                );
             }
         }
 
@@ -179,6 +194,7 @@ fn process_one(
                 content_hash: hash,
                 image_id,
                 error,
+                thumbnails_status: None,
             },
         );
     };
@@ -340,7 +356,19 @@ fn process_one(
         );
     }
 
-    send(FileState::Done, Some(hash_hex), Some(image_id), None);
+    emit_file(
+        &app,
+        &FileEvent {
+            batch_id: batch_id.clone(),
+            source_path: source_path.clone(),
+            original_filename: original_filename.clone(),
+            state: FileState::Done,
+            content_hash: Some(hash_hex),
+            image_id: Some(image_id),
+            error: None,
+            thumbnails_status: Some(thumb_status),
+        },
+    );
     release_source(source, keep_source_files);
     Ok(Outcome::Imported)
 }

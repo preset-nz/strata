@@ -82,7 +82,7 @@ type View =
   | { kind: "idle" }
   | { kind: "scanning"; path: string }
   | { kind: "scanned"; scan: PrescanSummary }
-  | { kind: "running"; batchId: string }
+  | { kind: "running"; batchId: string; total: number }
   | { kind: "error"; message: string }
 
 type LabelSelector = "favourite" | ColourLabel
@@ -668,7 +668,11 @@ function AppShell() {
       try {
         const result = await startIngest(scan.root, folders)
         setRunningBatchId(result.batch_id)
-        setView({ kind: "running", batchId: result.batch_id })
+        setView({
+          kind: "running",
+          batchId: result.batch_id,
+          total: result.total,
+        })
       } catch (e) {
         setView({ kind: "error", message: String(e) })
       }
@@ -787,7 +791,7 @@ function AppShell() {
     if (view.kind === "running") {
       return (
         <>
-          <JobProgress batchId={view.batchId} />
+          <JobProgress batchId={view.batchId} total={view.total} />
           <ContactSheet batchId={view.batchId} cellSize={cardSize} />
         </>
       )
