@@ -1,0 +1,87 @@
+## 0.1.1 (2026-10-13)
+
+### Features
+
+- initial commit
+- add tauri shell + rust ingest backend
+- transplant ingest + library feature logic
+- native desktop feel — suppress webview browser cues
+- image card primitive — slide frame + hover affordances
+- app shell — 220px left rail + [+ Add] header
+- schema migrations + EXIF/mtime capture at ingest
+- PaletteStage — k-means in Lab, VGA-16 bucket mapping
+- idempotent backfill on app start
+- listImages sort + bucket filter, bucket counts, library count
+- wire LeftRail to live counts + apply sort/filter to Library
+- status bar with card-size slider
+- keep source files in place (default behaviour)
+- back-to-library escape from import flow
+- import batches as a grouping/selection mechanism
+- split heading/body/mono faces — Barlow + Geist + JetBrains
+- apply heading face + soften button rounding
+- hard-press / long-press opens fullscreen overlay
+- subtle hover state on image cards
+- read-only inspector pane for image and batch selection
+- add vector field kind for compound scalars
+- name the CIELCh vector by its concept, not its components
+- surface full image details via get_image_details
+- EXIF + IPTC extraction into image_metadata side table
+- collapsible sections with active-filter summary
+- persist section collapse via localStorage
+- asc/desc direction toggle, persisted with the key
+- images.deleted_at + default-hide filter on list queries
+- right-click Move to Trash + 5s Undo snackbar
+- draggable cards + Trash drop target in a new System rail
+- hard-delete cascade + app-start expiry sweep
+- clickable Trash collection with days-remaining badge + restore/purge
+- Library row + dim filters while in Trash
+- stronger drop feedback + collapse day-badge to first card
+- native Force Touch bridge → force-touch Tauri event
+- resizable, collapsible left and right side panels
+- letterbox non-square thumbnails in the slide-frame card
+- hide empty import batches from the Imports section
+- landscape / square / portrait as rail filter and sort key (epic 14)
+- preferences via @preset.nz/preferences (epic 12)
+- SQLite catalog in ~/Pictures/Strata Library.strata, DuckDB gone
+- strata:// references resolved from the naming schema
+- choose which folders an import takes
+- read Draw Things' embedded record, title generated images
+- keyword search over prompts, keywords, captions and names
+- saved searches in the rail
+- extract 4, 8 or 16 colours on request
+- palette markers on the image in Quickview
+- menu and undo on app-kit (epic 08, story 1)
+- favourites and colour labels, undoable (epic 08, story 2)
+- collections (epic 08, story 3)
+- projects (epic 08, story 4), not yet driven live
+- adopt @preset.nz/ux-kit 0.1 and facets 0.2 (ux-kit epic 03)
+
+### Fixes
+
+- dedup skipped + failed cells
+- use webkitmouseforcedown, not webkitmouseforcechanged
+- re-apply metadata schema as migration v4 (recover stale v3)
+- migration v6 drops FK constraints from side tables
+- drop indexes explicitly before recreating tables in v6
+- paint Trash drop feedback in WebKit
+- disable Tauri interceptor so internal HTML5 DnD works
+- cancel long-press timer on dragstart
+- contain panics across the ObjC FFI boundary
+- monitor NSEventMaskPressure, not mouse-down
+- flip Y from Cocoa bottom-left to CSS top-left
+- select card on force-touch activate, not just on release
+- rail clicks always leave the in-progress ingest view
+- type-check via `tsc -b`, the gate was a no-op
+- stop writing refs during render in the shared hooks and TrashSheet
+- v8 drops the orientation index that invalidated the catalog on first backfill
+- restate the library paths the preferences file still has wrong
+- clippy -D warnings clean, autofixes and scoped allows for Tauri command arity and row tuples
+- Biome findings, forEach callbacks to loops, hook-dependency ignores carry their reasons, eslint directives gone; CLAUDE.md names the tooling
+- card selection, quickview backdrop, panel resizer and form labels use semantic elements; palette keys from content
+- non-null assertions narrowed, biome warn overrides removed so the rules are errors again
+- name the digit-run filter so clippy's nonminimal_bool passes
+- allow the unused mut on Linux, where the trash context is never set
+- take app-kit 0.1.2, which stops menu setters hanging the app
+- name the app Strata in the menu bar and window title
+- restore the window's size and position on relaunch
+- start on Untitled with app-kit 0.1.3
