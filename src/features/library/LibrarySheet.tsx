@@ -11,7 +11,7 @@ import { putRows } from "@/features/curation/marks"
 import { Quickview } from "@/features/quickview/Quickview"
 import type { Orientation } from "@/lib/orientation"
 import type { Vga16Bucket } from "@/lib/vga16"
-import { useSelection } from "@/stores/selection"
+import { selectedImageIds, useSelection } from "@/stores/selection"
 import type { ImportedRow } from "../contact-sheet/api"
 import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import { listImages, type SortDirection } from "./api"
@@ -50,8 +50,8 @@ type Props = {
   query?: string
   /** Change it to reload: membership changed, or Undo / Redo ran. */
   reloadToken?: number
-  /** The context menu's Add to … submenus for a card, given its image id. */
-  groupMenus?: (imageId: string) => GroupMenu[]
+  /** The context menu's Add to … submenus, given the images it acts on. */
+  groupMenus?: (imageIds: string[]) => GroupMenu[]
   /** Show only this project's images. */
   projectKey?: string | null
   cellSize?: number
@@ -93,8 +93,8 @@ export function LibrarySheet({
   const pendingUndoRef = useRef<Map<string, { cell: Cell; idx: number }>>(
     new Map()
   )
-  const { selection, selectImage } = useSelection()
-  const selectedImageId = selection.kind === "image" ? selection.id : null
+  const { selection, selectImage, toggleImage, selectImages } = useSelection()
+  const selectedIds = selectedImageIds(selection)
   const moveToTrash = useMoveToTrash()
 
   const loadNext = useCallback(async () => {
@@ -204,8 +204,9 @@ export function LibrarySheet({
             return next
           })
           const sel = useSelection.getState().selection
-          if (sel.kind === "image" && ids.has(sel.id)) {
-            useSelection.getState().clear()
+          const kept = selectedImageIds(sel).filter((id) => !ids.has(id))
+          if (kept.length !== selectedImageIds(sel).length) {
+            useSelection.getState().selectImages(kept)
           }
           onLibraryChanged?.()
         })
@@ -241,6 +242,26 @@ export function LibrarySheet({
     }
   }, [onLibraryChanged])
 
+  // Plain click selects one, Cmd+click toggles, Shift+click takes the range
+  // from the anchor in grid order.
+  const clickCard = (e: React.MouseEvent, idx: number, id: string) => {
+    const anchor = useSelection.getState().anchor
+    const from = anchor ? items.findIndex((c) => c.key === anchor) : -1
+    if (e.shiftKey && from >= 0) {
+      const [lo, hi] = from < idx ? [from, idx] : [idx, from]
+      selectImages(items.slice(lo, hi + 1).map((c) => c.key))
+    } else if (e.metaKey || e.ctrlKey) {
+      toggleImage(id)
+    } else {
+      selectImage(id)
+    }
+  }
+
+  // Right-click and the menu act on the selection when the card is part of it,
+  // otherwise on that card alone.
+  const targetsFor = (id: string) =>
+    selectedIds.includes(id) ? selectedIds : [id]
+
   return (
     <section className="relative flex min-h-0 flex-1 flex-col gap-2">
       {error && (
@@ -256,8 +277,11 @@ export function LibrarySheet({
         renderCell={(it, idx) => (
           <CardContextMenu
             mode="library"
-            onMoveToTrash={() => void moveToTrash([it.row.id])}
-            groups={groupMenus?.(it.row.id)}
+            onOpen={() => {
+              if (!selectedIds.includes(it.row.id)) selectImage(it.row.id)
+            }}
+            onMoveToTrash={() => void moveToTrash(targetsFor(it.row.id))}
+            groups={groupMenus?.(targetsFor(it.row.id))}
           >
             <MarkedImageCard
               id={it.row.id}
@@ -266,12 +290,12 @@ export function LibrarySheet({
               hash={it.hash}
               filename={it.filename}
               status={it.status}
-              selected={selectedImageId === it.key}
+              selected={selectedIds.includes(it.key)}
               onActivate={() => {
                 selectImage(it.row.id)
                 setQuickviewIndex(idx)
               }}
-              onSelect={() => selectImage(it.row.id)}
+              onSelect={(e) => clickCard(e, idx, it.row.id)}
             />
           </CardContextMenu>
         )}

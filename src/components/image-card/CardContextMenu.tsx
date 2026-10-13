@@ -20,6 +20,8 @@ type Props = {
   onRestore?: () => void
   onDeletePermanently?: () => void
   groups?: GroupMenu[]
+  /** The menu opened on this card: the host makes it the target. */
+  onOpen?: () => void
   children: React.ReactNode
   className?: string
 }
@@ -30,11 +32,12 @@ export function CardContextMenu({
   onRestore,
   onDeletePermanently,
   groups,
+  onOpen,
   children,
   className,
 }: Props) {
   return (
-    <ContextMenu.Root>
+    <ContextMenu.Root onOpenChange={(open) => open && onOpen?.()}>
       <ContextMenu.Trigger className={cn("contents", className)}>
         {children}
       </ContextMenu.Trigger>

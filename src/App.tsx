@@ -41,7 +41,7 @@ import {
   listLabelCounts,
   setColourLabel,
   setFavourite,
-  useMark,
+  useMarks,
 } from "./features/curation/marks"
 import {
   type PrescanSummary,
@@ -76,7 +76,7 @@ import { isTypingTarget } from "./lib/keyboard"
 import { ORIENTATIONS, type Orientation } from "./lib/orientation"
 import { isOverlayOpen, registerOverlay } from "./lib/overlay"
 import { VGA16_BUCKETS, type Vga16Bucket } from "./lib/vga16"
-import { useSelection } from "./stores/selection"
+import { selectedImageIds, useSelection } from "./stores/selection"
 
 type View =
   | { kind: "idle" }
@@ -500,14 +500,14 @@ function AppShell() {
     }
   }, [proj.projects, selectedProjectKey])
   const groupMenus = useCallback(
-    (imageId: string): GroupMenu[] => [
+    (imageIds: string[]): GroupMenu[] => [
       {
         title: "Collection",
         items: coll.collections,
-        onAdd: (id) => void coll.add(id, [imageId]),
-        onNew: () => coll.startNaming([imageId]),
+        onAdd: (id) => void coll.add(id, imageIds),
+        onNew: () => coll.startNaming(imageIds),
         onRemove: selectedCollectionId
-          ? () => void coll.removeImages(selectedCollectionId, [imageId])
+          ? () => void coll.removeImages(selectedCollectionId, imageIds)
           : undefined,
       },
       {
@@ -515,10 +515,10 @@ function AppShell() {
         items: proj.projects
           .filter((p) => !p.archived)
           .map((p) => ({ id: p.key, name: p.name })),
-        onAdd: (key) => void proj.add(key, [imageId]),
+        onAdd: (key) => void proj.add(key, imageIds),
         onNew: proj.startCreating,
         onRemove: selectedProjectKey
-          ? () => void proj.removeImages(selectedProjectKey, [imageId])
+          ? () => void proj.removeImages(selectedProjectKey, imageIds)
           : undefined,
       },
     ],
@@ -530,42 +530,48 @@ function AppShell() {
   // menu, and sends Cmd+Z to a focused text field.
   const markers = usePaletteMarkers()
   const { startNaming } = saved
-  // Image menu: acts on the selected image. Off while typing, so the bare
+  // Image menu: acts on every selected image. Off while typing, so the bare
   // F and 0-7 keys reach the text field instead.
   const textFocus = useTextFocus()
-  const selectedImage =
-    selection.kind === "image" && panel === "library" ? selection.id : null
-  const selectedMark = useMark(selectedImage)
-  const canMark = selectedImage !== null && !textFocus
+  const allSelectedIds = useMemo(() => selectedImageIds(selection), [selection])
+  const selectedImages = useMemo(
+    () => (panel === "library" ? allSelectedIds : []),
+    [panel, allSelectedIds]
+  )
+  const allFavourite = useMarks(
+    (s) =>
+      selectedImages.length > 0 &&
+      selectedImages.every((id) => s.marks[id]?.favourite)
+  )
+  const anyLabel = useMarks((s) =>
+    selectedImages.some((id) => s.marks[id]?.label)
+  )
+  const canMark = selectedImages.length > 0 && !textFocus
   const bindings = useMemo<Record<string, Binding>>(
     () => ({
       "image.favourite": {
         enabled: canMark,
-        pressed: selectedMark.favourite,
+        pressed: allFavourite,
         run: () => {
-          if (selectedImage)
-            void setFavourite([selectedImage], !selectedMark.favourite).then(
-              refreshCounts
-            )
+          void setFavourite(selectedImages, !allFavourite).then(refreshCounts)
         },
       },
       "file.new_project": { run: proj.startCreating },
       "image.new_collection": {
         enabled: !textFocus,
-        run: () => coll.startNaming(selectedImage ? [selectedImage] : []),
+        run: () => coll.startNaming(selectedImages),
       },
       "image.remove_from_collection": {
         enabled: canMark && selectedCollectionId !== null,
         run: () => {
-          if (selectedImage && selectedCollectionId)
-            void coll.removeImages(selectedCollectionId, [selectedImage])
+          if (selectedCollectionId)
+            void coll.removeImages(selectedCollectionId, selectedImages)
         },
       },
       "image.label.none": {
-        enabled: canMark && selectedMark.label !== null,
+        enabled: canMark && anyLabel,
         run: () => {
-          if (selectedImage)
-            void setColourLabel([selectedImage], null).then(refreshCounts)
+          void setColourLabel(selectedImages, null).then(refreshCounts)
         },
       },
       ...Object.fromEntries(
@@ -574,8 +580,7 @@ function AppShell() {
           {
             enabled: canMark,
             run: () => {
-              if (selectedImage)
-                void setColourLabel([selectedImage], c).then(refreshCounts)
+              void setColourLabel(selectedImages, c).then(refreshCounts)
             },
           },
         ])
@@ -596,8 +601,9 @@ function AppShell() {
       startNaming,
       markers.on,
       canMark,
-      selectedImage,
-      selectedMark,
+      selectedImages,
+      allFavourite,
+      anyLabel,
       refreshCounts,
       textFocus,
       coll,

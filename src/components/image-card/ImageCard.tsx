@@ -19,7 +19,7 @@ type Props = {
   onFavouriteToggle?: () => void
   onColourLabelChange?: (next: ColourLabel | null) => void
   onActivate?: () => void
-  onSelect?: () => void
+  onSelect?: (e: React.MouseEvent) => void
 }
 
 export function ImageCard({

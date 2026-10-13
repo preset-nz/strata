@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef } from "react"
-import { useSelection } from "@/stores/selection"
+import { selectedImageIds, useSelection } from "@/stores/selection"
 
 /**
  * Drag MIME type carried in dataTransfer when a card is dragged.
@@ -27,9 +27,7 @@ type Options = {
  * Selection semantics: if the dragged id is part of the current selection, the
  * drag carries every selected id. Otherwise it carries only `id` and clears
  * selection (so the user isn't left with a stale highlight on something they
- * weren't operating on). Multi-select is currently single-image only — the
- * primitive is shaped for the eventual multi-select store without depending on
- * it today.
+ * weren't operating on).
  */
 export function useDraggableCard({ id }: Options): DragProps {
   const draggingRef = useRef(false)
@@ -37,7 +35,7 @@ export function useDraggableCard({ id }: Options): DragProps {
   const onDragStart = useCallback(
     (e: React.DragEvent) => {
       const sel = useSelection.getState().selection
-      const selectedIds = sel.kind === "image" ? [sel.id] : []
+      const selectedIds = selectedImageIds(sel)
       const inSelection = selectedIds.includes(id)
       const ids = inSelection ? selectedIds : [id]
       if (!inSelection && selectedIds.length > 0) {

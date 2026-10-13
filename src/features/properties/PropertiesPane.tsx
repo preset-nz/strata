@@ -23,6 +23,7 @@ export function PropertiesPane() {
 
   const title = useMemo(() => {
     if (selection.kind === "image") return "Image"
+    if (selection.kind === "images") return "Images"
     if (selection.kind === "batch") return "Batch"
     return "Properties"
   }, [selection.kind])
@@ -44,7 +45,13 @@ export function PropertiesPane() {
         </h2>
       </header>
       <div className="flex-1 overflow-auto">
-        {selection.kind === "none" ? (
+        {selection.kind === "images" ? (
+          <div className="flex h-full items-center justify-center p-6 text-center">
+            <p className="text-muted-foreground text-xs">
+              {selection.ids.length} images selected.
+            </p>
+          </div>
+        ) : selection.kind === "none" ? (
           <div className="flex h-full items-center justify-center p-6 text-center">
             <p className="text-muted-foreground text-xs">
               Select an image or a batch to see its properties.
