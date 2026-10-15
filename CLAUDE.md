@@ -32,7 +32,6 @@ See [`guidance/projects/strata/tech-stack.md`](../../guidance/projects/strata/te
 Family rules are in `../CLAUDE.md`.
 
 - **No emojis** in code or docs.
-- **Don't auto-commit** — propose, then wait.
 
 ## Tooling
 
