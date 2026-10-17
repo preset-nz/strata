@@ -5,7 +5,7 @@ Tauri + Vite + React frontend, Rust orchestrator. Local-first image catalog with
 ## Where things live
 
 - **Design / planning docs:** [`~/rhizomatic-preset/guidance/projects/strata/`](../../guidance/projects/strata/) — product brief, tech stack, feature roadmap, epic READMEs. Read this first to understand what we're building and why.
-- **Source spec (immutable reference):** `~/Documents/obsidian.md/rdg/rdg/The List/Strata - Image Archeology/` — 21 .md notes capturing the originating thinking. Treat as the upstream source-of-truth; cite, don't restate.
+- **Originating notes:** the 21 design notes from the old Obsidian vault were merged into the guidance docs above on 2026-10-18; the vault no longer holds the spec. Do not look for them in `~/Documents/obsidian.md`.
 - **This repo:** the running code. Comments here explain shipped code to future readers — not planning, not roadmap. Planning artefacts belong in the guidance repo.
 
 ## Architect's working principles
