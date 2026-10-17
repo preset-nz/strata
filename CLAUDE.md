@@ -21,9 +21,9 @@ These shape every design call. Reference them when proposing structure, naming c
 
 - **Shell:** Tauri 2 (desktop) — Rust backend invoked from a React/TS frontend.
 - **Frontend:** Vite 7 + React 19 + TypeScript 5.8.
-- **Rust:** orchestrator-to-be; today only the Tauri scaffold. Planned crates: `tokio`, `rayon`, `duckdb`, `pyo3` (later), `image`.
+- **Rust:** orchestrator-to-be; today only the Tauri scaffold. Planned crates: `tokio`, `rayon`, `rusqlite`, `pyo3` (later), `image`.
 - **ML compute:** Python sidecar(s) for CLIP, SAM, Cellpose, optional BLIP. Subprocess dispatch (MVP) → PyO3 (later).
-- **Storage:** content-addressed filesystem for binaries; DuckDB for the feature store (embeddings, palettes, artifacts, runs).
+- **Storage:** content-addressed filesystem for binaries; SQLite (`rusqlite`) for the feature store (embeddings, palettes, artifacts, runs).
 
 See [`guidance/projects/strata/tech-stack.md`](../../guidance/projects/strata/tech-stack.md) for the full picture.
 
