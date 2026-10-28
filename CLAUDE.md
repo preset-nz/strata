@@ -32,6 +32,7 @@ See [`guidance/projects/strata/tech-stack.md`](../../guidance/projects/strata/te
 Family rules are in `../CLAUDE.md`.
 
 - **No emojis** in code or docs.
+- **Never read Draw Things' GPL source (`draw-things-community`) or its `.fbs` schemas.** Learn the formats from Georg's own files and the API server: [`drawthings-projects.md`](../../guidance/projects/strata/features/01-asset-ingest/drawthings-projects.md) (Georg, 2026-10-05).
 
 ## Tooling
 
