@@ -1,10 +1,10 @@
+import { CardGrid } from "@preset.nz/ux-kit"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 import { useEffect, useMemo, useState } from "react"
 import { ImageCard } from "@/components/image-card"
 import { MarkedImageCard } from "@/features/curation/MarkedImageCard"
 import { loadMarks, putRows } from "@/features/curation/marks"
 import { batchImported, type ImportedRow } from "./api"
-import { ThumbGrid } from "./ThumbGrid"
 
 type FileState =
   | "queued"
@@ -175,7 +175,7 @@ export function ContactSheet({ batchId, cellSize }: Props) {
       </h2>
 
       <Section label={`Imported (${importedList.length})`}>
-        <ThumbGrid
+        <CardGrid
           items={importedList}
           cellSize={cellSize}
           renderCell={(it) => (
@@ -190,7 +190,7 @@ export function ContactSheet({ batchId, cellSize }: Props) {
       </Section>
 
       <Section label={`Skipped — already in catalog (${skippedList.length})`}>
-        <ThumbGrid
+        <CardGrid
           items={skippedList}
           cellSize={cellSize}
           renderCell={(it) =>

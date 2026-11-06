@@ -1,7 +1,7 @@
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import path from "path"
-import { defineConfig } from "vite"
+import { defineConfig, searchForWorkspaceRoot } from "vite"
 
 const host = process.env.TAURI_DEV_HOST
 
@@ -31,6 +31,15 @@ export default defineConfig({
   server: {
     port: 1450,
     strictPort: true,
+    // ux-kit is a path dependency (link:../../packages/ux-kit) until its next
+    // release, so its source sits outside this workspace. Drop the second
+    // entry when the app is back on the registry version.
+    fs: {
+      allow: [
+        searchForWorkspaceRoot(process.cwd()),
+        path.resolve(__dirname, "../../packages"),
+      ],
+    },
     host: host || false,
     hmr: host
       ? {

@@ -11,6 +11,13 @@ import {
   usePreferences,
   usePreferencesBootstrap,
 } from "@preset.nz/preferences"
+import {
+  CARD_SIZE,
+  LibraryStatusBar,
+  type PanelState,
+  SidePanel,
+  usePanelState,
+} from "@preset.nz/ux-kit"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 import { open } from "@tauri-apps/plugin-dialog"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -21,9 +28,6 @@ import {
 } from "./components/image-card/colour-label"
 import { AppHeader } from "./components/shell/AppHeader"
 import { LeftRail } from "./components/shell/LeftRail"
-import { clampWidth, type PanelState } from "./components/shell/panel-geometry"
-import { SidePanel } from "./components/shell/SidePanel"
-import { CARD_SIZE_DEFAULT, StatusBar } from "./components/shell/StatusBar"
 import {
   DEFAULT_DIRECTION,
   LIBRARY_SORT_KEYS,
@@ -146,6 +150,8 @@ async function fetchLibraryCounts(): Promise<LibraryCounts> {
 // ellipsis; the properties pane needs room for a label/value row.
 const LEFT_PANEL = { default: 220, min: 180, max: 420 }
 const RIGHT_PANEL = { default: 320, min: 240, max: 520 }
+// The kit's SidePanel is the sidebar colour; Strata's panels sit on the card tone.
+const PANEL_LOOK = "border-border bg-card/40"
 
 // Whether a sort was remembered from a previous session, read before the
 // persisted hook writes one. Only a fresh install takes the preference.
@@ -203,48 +209,25 @@ function AppShell() {
       }))
     }
   }, [panel, setSortState, setTrashDirection])
-  const [leftPanel, setLeftPanel] = usePersistedState<PanelState>(
-    "strata.shell.panel.left",
-    { width: LEFT_PANEL.default, collapsed: false }
+  const leftPanel = usePanelState(
+    usePersistedState<PanelState>("strata.shell.panel.left", {
+      width: LEFT_PANEL.default,
+      collapsed: false,
+    }),
+    LEFT_PANEL
   )
-  const [rightPanel, setRightPanel] = usePersistedState<PanelState>(
-    "strata.shell.panel.right",
-    { width: RIGHT_PANEL.default, collapsed: false }
-  )
-  // A width persisted on a wider display must not escape this display's
-  // bounds, so clamp on read rather than trusting what was stored.
-  const leftWidth = clampWidth(leftPanel.width, LEFT_PANEL.min, LEFT_PANEL.max)
-  const rightWidth = clampWidth(
-    rightPanel.width,
-    RIGHT_PANEL.min,
-    RIGHT_PANEL.max
-  )
-  const setLeftWidth = useCallback(
-    (width: number) => setLeftPanel((p) => ({ ...p, width })),
-    [setLeftPanel]
-  )
-  const setRightWidth = useCallback(
-    (width: number) => setRightPanel((p) => ({ ...p, width })),
-    [setRightPanel]
-  )
-  const toggleLeftPanel = useCallback(
-    () => setLeftPanel((p) => ({ ...p, collapsed: !p.collapsed })),
-    [setLeftPanel]
-  )
-  const toggleRightPanel = useCallback(
-    () => setRightPanel((p) => ({ ...p, collapsed: !p.collapsed })),
-    [setRightPanel]
-  )
-  const expandLeftPanel = useCallback(
-    () => setLeftPanel((p) => ({ ...p, collapsed: false })),
-    [setLeftPanel]
-  )
-  const expandRightPanel = useCallback(
-    () => setRightPanel((p) => ({ ...p, collapsed: false })),
-    [setRightPanel]
+  const rightPanel = usePanelState(
+    usePersistedState<PanelState>("strata.shell.panel.right", {
+      width: RIGHT_PANEL.default,
+      collapsed: false,
+    }),
+    RIGHT_PANEL
   )
 
-  const [cardSize, setCardSize] = useState<number>(CARD_SIZE_DEFAULT)
+  const toggleLeft = leftPanel.toggle
+  const toggleRight = rightPanel.toggle
+
+  const [cardSize, setCardSize] = useState<number>(CARD_SIZE.default)
   const [runningBatchId, setRunningBatchId] = useState<string | null>(null)
   const [selectedBuckets, setSelectedBuckets] = useState<Set<Vga16Bucket>>(
     () => new Set()
@@ -702,12 +685,12 @@ function AppShell() {
       if (isOverlayOpen() || isTypingTarget(e.target)) return
       if (e.metaKey || e.ctrlKey || e.altKey) return
       e.preventDefault()
-      if (e.key === "[") toggleLeftPanel()
-      else toggleRightPanel()
+      if (e.key === "[") toggleLeft()
+      else toggleRight()
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [toggleLeftPanel, toggleRightPanel])
+  }, [toggleLeft, toggleRight])
 
   const handleAdd = useCallback(async () => {
     const picked = await open({ directory: true, multiple: false })
@@ -879,10 +862,10 @@ function AppShell() {
         onAdd={handleAdd}
         addDisabled={addDisabled}
         onBack={view.kind !== "idle" ? handleBack : undefined}
-        leftCollapsed={leftPanel.collapsed}
-        onToggleLeft={toggleLeftPanel}
-        rightCollapsed={rightPanel.collapsed}
-        onToggleRight={toggleRightPanel}
+        leftCollapsed={!leftPanel.open}
+        onToggleLeft={leftPanel.toggle}
+        rightCollapsed={!rightPanel.open}
+        onToggleRight={rightPanel.toggle}
         search={searchText}
         onSearchChange={setSearchText}
         searchRef={searchRef}
@@ -891,13 +874,10 @@ function AppShell() {
         <SidePanel
           side="left"
           title="Filters"
-          width={leftWidth}
-          onWidthChange={setLeftWidth}
-          collapsed={leftPanel.collapsed}
-          onExpand={expandLeftPanel}
-          defaultWidth={LEFT_PANEL.default}
-          minWidth={LEFT_PANEL.min}
-          maxWidth={LEFT_PANEL.max}
+          icon={null}
+          spine
+          className={PANEL_LOOK}
+          {...leftPanel.panelProps}
         >
           <LeftRail
             orientationCounts={orientationCounts}
@@ -984,18 +964,15 @@ function AppShell() {
         <SidePanel
           side="right"
           title="Properties"
-          width={rightWidth}
-          onWidthChange={setRightWidth}
-          collapsed={rightPanel.collapsed}
-          onExpand={expandRightPanel}
-          defaultWidth={RIGHT_PANEL.default}
-          minWidth={RIGHT_PANEL.min}
-          maxWidth={RIGHT_PANEL.max}
+          icon={null}
+          spine
+          className={PANEL_LOOK}
+          {...rightPanel.panelProps}
         >
           <PropertiesPane />
         </SidePanel>
       </div>
-      <StatusBar cardSize={cardSize} onCardSizeChange={setCardSize} />
+      <LibraryStatusBar cardSize={cardSize} onCardSizeChange={setCardSize} />
     </div>
   )
 }

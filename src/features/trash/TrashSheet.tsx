@@ -1,3 +1,4 @@
+import { CardGrid } from "@preset.nz/ux-kit"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { ImageCard } from "@/components/image-card"
@@ -6,7 +7,6 @@ import { SnackbarViewport } from "@/components/ui/snackbar"
 import { cn } from "@/lib/utils"
 import { useSelection } from "@/stores/selection"
 import type { ImportedRow } from "../contact-sheet/api"
-import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import {
   listImages,
   purgeImages,
@@ -176,7 +176,7 @@ export function TrashSheet({ direction, cellSize, onLibraryChanged }: Props) {
           Error: <span className="select-text">{error}</span>
         </p>
       )}
-      <ThumbGrid
+      <CardGrid
         items={items}
         cellSize={cellSize}
         emptyLabel="Trash is empty."

@@ -1,12 +1,7 @@
-import {
-  ArrowLeft,
-  MagnifyingGlass,
-  Plus,
-  SidebarSimple,
-} from "@phosphor-icons/react"
+import { Plus } from "@phosphor-icons/react"
+import { LibraryHeader } from "@preset.nz/ux-kit"
 import type { RefObject } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 
 type Props = {
   total: number
@@ -24,6 +19,8 @@ type Props = {
   searchRef: RefObject<HTMLInputElement | null>
 }
 
+// Strata's header: the library shell's strip, with Strata's summary line, its
+// search wording and its Add button.
 export function AppHeader({
   total,
   filtered,
@@ -48,84 +45,50 @@ export function AppHeader({
   })()
 
   return (
-    <header className="flex h-10 shrink-0 items-center gap-3 border-border border-b px-3">
+    <LibraryHeader
+      title="Strata"
+      summary={
+        <>
+          <span className="text-muted-foreground text-xs">{summary}</span>
+          {activeFilterCount > 0 && (
+            <span className="text-muted-foreground text-xs">
+              · {activeFilterCount} active{" "}
+              {activeFilterCount === 1 ? "filter" : "filters"}
+            </span>
+          )}
+        </>
+      }
+      left={{
+        collapsed: leftCollapsed,
+        onToggle: onToggleLeft,
+        label: "filters panel",
+        shortcut: "[",
+      }}
+      right={{
+        collapsed: rightCollapsed,
+        onToggle: onToggleRight,
+        label: "properties panel",
+        shortcut: "]",
+      }}
+      onBack={onBack}
+      search={{
+        value: search,
+        onChange: onSearchChange,
+        inputRef: searchRef,
+        placeholder: "Search prompts, keywords, names",
+        label: "Search the library",
+        shortcut: "⌘F",
+      }}
+    >
       <Button
-        size="icon-sm"
-        variant="ghost"
-        onClick={onToggleLeft}
-        aria-pressed={!leftCollapsed}
-        aria-label={leftCollapsed ? "Show filters panel" : "Hide filters panel"}
-        title={`${leftCollapsed ? "Show" : "Hide"} filters panel  [`}
+        size="sm"
+        variant="outline"
+        onClick={onAdd}
+        disabled={addDisabled}
       >
-        <SidebarSimple weight="bold" />
+        <Plus weight="bold" />
+        Add
       </Button>
-      {onBack && (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={onBack}
-          aria-label="Back to library"
-        >
-          <ArrowLeft weight="bold" />
-          Library
-        </Button>
-      )}
-      <h1 className="font-heading font-semibold text-base uppercase tracking-[0.04em]">
-        Strata
-      </h1>
-      <span className="text-muted-foreground text-xs">{summary}</span>
-      {activeFilterCount > 0 && (
-        <span className="text-muted-foreground text-xs">
-          · {activeFilterCount} active{" "}
-          {activeFilterCount === 1 ? "filter" : "filters"}
-        </span>
-      )}
-      <div className="ml-auto flex items-center gap-2">
-        <div className="relative w-56">
-          <MagnifyingGlass
-            weight="bold"
-            className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground"
-          />
-          <Input
-            ref={searchRef}
-            type="search"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.stopPropagation()
-                onSearchChange("")
-                e.currentTarget.blur()
-              }
-            }}
-            placeholder="Search prompts, keywords, names"
-            aria-label="Search the library"
-            title="Search the library  ⌘F"
-            className="pl-7"
-          />
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onAdd}
-          disabled={addDisabled}
-        >
-          <Plus weight="bold" />
-          Add
-        </Button>
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          onClick={onToggleRight}
-          aria-pressed={!rightCollapsed}
-          aria-label={
-            rightCollapsed ? "Show properties panel" : "Hide properties panel"
-          }
-          title={`${rightCollapsed ? "Show" : "Hide"} properties panel  ]`}
-        >
-          <SidebarSimple weight="bold" className="scale-x-[-1]" />
-        </Button>
-      </div>
-    </header>
+    </LibraryHeader>
   )
 }

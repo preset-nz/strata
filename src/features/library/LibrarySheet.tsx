@@ -1,3 +1,4 @@
+import { CardGrid } from "@preset.nz/ux-kit"
 import { listen, type UnlistenFn } from "@tauri-apps/api/event"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
@@ -13,7 +14,6 @@ import type { Orientation } from "@/lib/orientation"
 import type { Vga16Bucket } from "@/lib/vga16"
 import { selectedImageIds, useSelection } from "@/stores/selection"
 import type { ImportedRow } from "../contact-sheet/api"
-import { ThumbGrid } from "../contact-sheet/ThumbGrid"
 import { listImages, type SortDirection } from "./api"
 import { useMoveToTrash } from "./use-move-to-trash"
 
@@ -269,7 +269,7 @@ export function LibrarySheet({
           Error: <span className="select-text">{error}</span>
         </p>
       )}
-      <ThumbGrid
+      <CardGrid
         items={items}
         cellSize={cellSize}
         emptyLabel="Nothing imported yet — drop a folder or click Add."

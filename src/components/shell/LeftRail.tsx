@@ -1,12 +1,6 @@
-import {
-  ArrowDown,
-  ArrowUp,
-  CaretRight,
-  Heart,
-  Images,
-  Trash,
-} from "@phosphor-icons/react"
+import { Heart, Images, Trash } from "@phosphor-icons/react"
 import { usePersistedState } from "@preset.nz/preferences"
+import { Rail, RailRow, RailSection, RailSort } from "@preset.nz/ux-kit"
 import { useState } from "react"
 import {
   COLOUR_LABELS,
@@ -28,6 +22,9 @@ import {
   type Vga16Bucket,
 } from "@/lib/vga16"
 import { SORT_LABEL, type SortDirection, type SortKey } from "./sort-keys"
+
+const SORT_OPTIONS = (keys: SortKey[]) =>
+  keys.map((key) => ({ key, label: SORT_LABEL[key] }))
 
 type SectionId =
   | "searches"
@@ -138,9 +135,10 @@ export function LeftRail({
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }))
 
   return (
-    <aside className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-3 text-xs">
-      <NavRow
-        icon={
+    <Rail>
+      <RailRow
+        variant="nav"
+        leading={
           <Images
             weight="bold"
             className={cn(
@@ -151,10 +149,10 @@ export function LeftRail({
         }
         label="Library"
         count={libraryTotal}
-        active={libraryActive}
+        selected={libraryActive}
         onClick={onSelectLibrary}
       />
-      <Section
+      <RailSection
         id="searches"
         title="Searches"
         collapsed={collapsed.searches && !savedSearchesOpen}
@@ -162,8 +160,8 @@ export function LeftRail({
         summary={savedSearchCount > 0 ? savedSearchCount : undefined}
       >
         {savedSearches}
-      </Section>
-      <Section
+      </RailSection>
+      <RailSection
         id="projects"
         title="Projects"
         collapsed={collapsed.projects}
@@ -171,8 +169,8 @@ export function LeftRail({
         summary={projectCount > 0 ? projectCount : undefined}
       >
         {projects}
-      </Section>
-      <Section
+      </RailSection>
+      <RailSection
         id="collections"
         title="Collections"
         collapsed={collapsed.collections && !collectionsOpen}
@@ -180,56 +178,24 @@ export function LeftRail({
         summary={collectionCount > 0 ? collectionCount : undefined}
       >
         {collections}
-      </Section>
-      <Section
+      </RailSection>
+      <RailSection
         id="sort"
         title="Sort"
         collapsed={collapsed.sort}
         onToggle={() => toggle("sort")}
         summary={`${SORT_LABEL[sort]} ${direction === "asc" ? "↑" : "↓"}`}
       >
-        <div className="flex gap-1">
-          <select
-            value={sort}
-            onChange={(e) => onSortChange(e.target.value as SortKey)}
-            disabled={sortOptions.length <= 1}
-            className={cn(
-              "h-7 flex-1 rounded-sm border border-border bg-background px-2 text-xs",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-              "disabled:cursor-default disabled:opacity-80"
-            )}
-          >
-            {sortOptions.map((k) => (
-              <option key={k} value={k}>
-                {SORT_LABEL[k]}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={onDirectionToggle}
-            aria-label={
-              direction === "asc"
-                ? "Sort ascending — click to descend"
-                : "Sort descending — click to ascend"
-            }
-            title={direction === "asc" ? "Ascending" : "Descending"}
-            className={cn(
-              "inline-flex size-7 shrink-0 items-center justify-center rounded-sm border border-border bg-background text-muted-foreground",
-              "hover:bg-muted/60 hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            )}
-          >
-            {direction === "asc" ? (
-              <ArrowUp weight="bold" className="size-3.5" />
-            ) : (
-              <ArrowDown weight="bold" className="size-3.5" />
-            )}
-          </button>
-        </div>
-      </Section>
+        <RailSort
+          value={sort}
+          onValueChange={onSortChange}
+          options={SORT_OPTIONS(sortOptions)}
+          direction={direction}
+          onDirectionToggle={onDirectionToggle}
+        />
+      </RailSection>
 
-      <Section
+      <RailSection
         id="orientation"
         title="Orientation"
         collapsed={collapsed.orientation}
@@ -240,21 +206,21 @@ export function LeftRail({
       >
         <ul className="flex flex-col">
           {ORIENTATIONS.map((o) => (
-            <LabelRow
-              key={o}
-              id={o}
-              label={ORIENTATION_LABEL[o]}
-              count={orientationCounts[o] ?? 0}
-              selected={selectedOrientations.has(o)}
-              disabled={filtersDisabled}
-              onClick={() => onToggleOrientation(o)}
-              swatch={<OrientationGlyph orientation={o} />}
-            />
+            <li key={o}>
+              <RailRow
+                label={ORIENTATION_LABEL[o]}
+                count={orientationCounts[o] ?? 0}
+                selected={selectedOrientations.has(o)}
+                readOnly={filtersDisabled}
+                onClick={() => onToggleOrientation(o)}
+                leading={<OrientationGlyph orientation={o} />}
+              />
+            </li>
           ))}
         </ul>
-      </Section>
+      </RailSection>
 
-      <Section
+      <RailSection
         id="content_colour"
         title="Content colour"
         collapsed={collapsed.content_colour}
@@ -263,56 +229,43 @@ export function LeftRail({
       >
         <ul className="flex flex-col">
           {VGA16_BUCKETS.map((b) => {
-            const count = bucketCounts[b] ?? 0
             const selected = selectedBuckets.has(b)
-            const empty = count === 0 && !selected
             return (
               <li key={b}>
-                <button
-                  type="button"
-                  aria-pressed={selected}
-                  disabled={empty || filtersDisabled}
+                <RailRow
+                  label={VGA16_LABEL[b]}
+                  count={bucketCounts[b] ?? 0}
+                  selected={selected}
+                  readOnly={filtersDisabled}
                   onClick={() => onToggleBucket(b)}
-                  className={cn(
-                    "group flex w-full items-center gap-2 rounded-sm px-1 py-0.5 text-left transition-colors",
-                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                    selected
-                      ? "bg-muted text-foreground"
-                      : empty
-                        ? "text-muted-foreground/40"
-                        : "text-foreground hover:bg-muted/60",
-                    filtersDisabled &&
-                      "cursor-default opacity-60 hover:bg-transparent"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "inline-flex size-3 shrink-0 items-center justify-center rounded-[2px] border",
-                      selected
-                        ? "border-foreground/60 bg-foreground/10"
-                        : "border-border"
-                    )}
-                  >
-                    {selected && (
-                      <span className="size-1.5 rounded-[1px] bg-foreground" />
-                    )}
-                  </span>
-                  <span
-                    className="size-3 shrink-0 rounded-[2px] border border-border/70"
-                    style={{ backgroundColor: VGA16_HEX[b] }}
-                  />
-                  <span className="flex-1 truncate">{VGA16_LABEL[b]}</span>
-                  <span className="text-[10px] text-muted-foreground tabular-nums">
-                    {count.toLocaleString()}
-                  </span>
-                </button>
+                  leading={
+                    <>
+                      <span
+                        className={cn(
+                          "inline-flex size-3 shrink-0 items-center justify-center rounded-[2px] border",
+                          selected
+                            ? "border-foreground/60 bg-foreground/10"
+                            : "border-border"
+                        )}
+                      >
+                        {selected && (
+                          <span className="size-1.5 rounded-[1px] bg-foreground" />
+                        )}
+                      </span>
+                      <span
+                        className="size-3 shrink-0 rounded-[2px] border border-border/70"
+                        style={{ backgroundColor: VGA16_HEX[b] }}
+                      />
+                    </>
+                  }
+                />
               </li>
             )
           })}
         </ul>
-      </Section>
+      </RailSection>
 
-      <Section
+      <RailSection
         id="label"
         title="Label"
         collapsed={collapsed.label}
@@ -320,40 +273,41 @@ export function LeftRail({
         summary={selectedLabels.size > 0 ? selectedLabels.size : undefined}
       >
         <ul className="flex flex-col">
-          <LabelRow
-            id="favourite"
-            label="Favourited"
-            count={labelCounts.favourite ?? 0}
-            selected={selectedLabels.has("favourite")}
-            disabled={filtersDisabled}
-            onClick={() => onToggleLabel("favourite")}
-            swatch={
-              <Heart weight="fill" className="size-3 shrink-0 text-red-500" />
-            }
-          />
-          {COLOUR_LABELS.map((c) => (
-            <LabelRow
-              key={c}
-              id={c}
-              label={c.charAt(0).toUpperCase() + c.slice(1)}
-              count={labelCounts[c] ?? 0}
-              selected={selectedLabels.has(c)}
-              disabled={filtersDisabled}
-              onClick={() => onToggleLabel(c)}
-              swatch={
-                <span
-                  className={cn(
-                    "inline-block size-3 shrink-0 rounded-full",
-                    COLOUR_SWATCH[c]
-                  )}
-                />
+          <li>
+            <RailRow
+              label="Favourited"
+              count={labelCounts.favourite ?? 0}
+              selected={selectedLabels.has("favourite")}
+              readOnly={filtersDisabled}
+              onClick={() => onToggleLabel("favourite")}
+              leading={
+                <Heart weight="fill" className="size-3 shrink-0 text-red-500" />
               }
             />
+          </li>
+          {COLOUR_LABELS.map((c) => (
+            <li key={c}>
+              <RailRow
+                label={c.charAt(0).toUpperCase() + c.slice(1)}
+                count={labelCounts[c] ?? 0}
+                selected={selectedLabels.has(c)}
+                readOnly={filtersDisabled}
+                onClick={() => onToggleLabel(c)}
+                leading={
+                  <span
+                    className={cn(
+                      "inline-block size-3 shrink-0 rounded-full",
+                      COLOUR_SWATCH[c]
+                    )}
+                  />
+                }
+              />
+            </li>
           ))}
         </ul>
-      </Section>
+      </RailSection>
 
-      <Section
+      <RailSection
         id="imports"
         title="Imports"
         collapsed={collapsed.imports}
@@ -377,9 +331,9 @@ export function LeftRail({
             ))}
           </ul>
         )}
-      </Section>
+      </RailSection>
 
-      <Section
+      <RailSection
         id="system"
         title="System"
         collapsed={collapsed.system}
@@ -394,8 +348,8 @@ export function LeftRail({
             onDrop={onTrashDrop}
           />
         </ul>
-      </Section>
-    </aside>
+      </RailSection>
+    </Rail>
   )
 }
 
@@ -530,60 +484,6 @@ function BatchRow({
   )
 }
 
-function Section({
-  id,
-  title,
-  collapsed,
-  onToggle,
-  summary,
-  children,
-}: {
-  id: SectionId
-  title: string
-  collapsed: boolean
-  onToggle: () => void
-  summary?: React.ReactNode
-  children: React.ReactNode
-}) {
-  const bodyId = `rail-section-${id}-body`
-  return (
-    <section className="flex flex-col gap-1.5">
-      <button
-        type="button"
-        aria-expanded={!collapsed}
-        aria-controls={bodyId}
-        onClick={onToggle}
-        className={cn(
-          "-mx-1 flex items-center gap-1 rounded-sm px-1 py-0.5 text-left",
-          "hover:bg-muted/60",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        )}
-      >
-        <CaretRight
-          weight="bold"
-          className={cn(
-            "size-3 shrink-0 text-muted-foreground transition-transform",
-            !collapsed && "rotate-90"
-          )}
-        />
-        <h2 className="flex-1 truncate font-heading font-semibold text-[11px] text-muted-foreground uppercase tracking-[0.08em]">
-          {title}
-        </h2>
-        {collapsed && summary !== undefined && summary !== null && (
-          <span className="text-[10px] text-muted-foreground/80">
-            · {summary}
-          </span>
-        )}
-      </button>
-      {!collapsed && (
-        <div id={bodyId} className="flex flex-col gap-1">
-          {children}
-        </div>
-      )}
-    </section>
-  )
-}
-
 // A 12px frame whose aspect matches the bucket: wide, equal, tall.
 function OrientationGlyph({ orientation }: { orientation: Orientation }) {
   const size =
@@ -596,85 +496,5 @@ function OrientationGlyph({ orientation }: { orientation: Orientation }) {
     <span className="inline-flex size-3 shrink-0 items-center justify-center">
       <span className={cn("rounded-[1px] border border-foreground/60", size)} />
     </span>
-  )
-}
-
-function LabelRow({
-  label,
-  count,
-  selected,
-  disabled = false,
-  onClick,
-  swatch,
-}: {
-  id: LabelSelector | Orientation
-  label: string
-  count: number
-  selected: boolean
-  disabled?: boolean
-  onClick: () => void
-  swatch: React.ReactNode
-}) {
-  const empty = count === 0 && !selected
-  return (
-    <li>
-      <button
-        type="button"
-        aria-pressed={selected}
-        disabled={empty || disabled}
-        onClick={onClick}
-        className={cn(
-          "flex w-full items-center gap-2 rounded-sm px-1 py-0.5 text-left transition-colors",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-          selected
-            ? "bg-muted text-foreground"
-            : empty
-              ? "text-muted-foreground/40"
-              : "text-foreground hover:bg-muted/60",
-          disabled && "cursor-default opacity-60 hover:bg-transparent"
-        )}
-      >
-        {swatch}
-        <span className="flex-1 truncate">{label}</span>
-        <span className="text-[10px] text-muted-foreground tabular-nums">
-          {count.toLocaleString()}
-        </span>
-      </button>
-    </li>
-  )
-}
-
-function NavRow({
-  icon,
-  label,
-  count,
-  active,
-  onClick,
-}: {
-  icon: React.ReactNode
-  label: string
-  count: number
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        "-mx-1 flex items-center gap-2 rounded-sm px-2 py-1 text-left transition-colors",
-        "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-        active
-          ? "bg-muted text-foreground"
-          : "text-foreground hover:bg-muted/60"
-      )}
-    >
-      {icon}
-      <span className="flex-1 truncate font-medium">{label}</span>
-      <span className="text-[10px] text-muted-foreground tabular-nums">
-        {count.toLocaleString()}
-      </span>
-    </button>
   )
 }
