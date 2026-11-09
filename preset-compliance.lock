@@ -11,11 +11,11 @@ sha256 = "34c64257e93102f85fec94e0225073f1fed453311463b189066837614ca0c540"
 [[inputs]]
 path = "src-tauri/Cargo.lock"
 ecosystem = "cargo"
-sha256 = "3c7c94a38013128a51d37090ec736a9f3cbcb28e7c3dafbf96fcb76dfb772a8b"
+sha256 = "81a5db8bcb577a21dcf8be17bebfd6c2f8dda866252bfedba2cb099a65b9c329"
 
 [[inputs]]
 path = "src-tauri/Cargo.toml"
-sha256 = "55fe5d02726f1260e6fd6b31a7a5dad6673346382cba5aad153633658e39edb1"
+sha256 = "56761c6e04b8d467be81884b5e46342b0c21d7a17c68a0d9499b670d9f9a47c2"
 
 [[packages]]
 ecosystem = "cargo"
@@ -1612,7 +1612,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "cargo"
 name = "libsqlite3-sys"
-version = "0.38.2"
+version = "0.39.1"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
@@ -2412,7 +2412,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "cargo"
 name = "rusqlite"
-version = "0.40.2"
+version = "0.41.1"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
