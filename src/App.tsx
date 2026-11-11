@@ -4,8 +4,6 @@ import {
   useTextFocus,
 } from "@preset.nz/app-kit/core"
 import {
-  onSettingsMenu,
-  SettingsWindow,
   usePersistedState,
   usePreference,
   usePreferences,
@@ -78,7 +76,7 @@ import { useSavedSearches } from "./features/saved-searches/use-saved-searches"
 import { TrashSheet } from "./features/trash/TrashSheet"
 import { isTypingTarget } from "./lib/keyboard"
 import { ORIENTATIONS, type Orientation } from "./lib/orientation"
-import { isOverlayOpen, registerOverlay } from "./lib/overlay"
+import { isOverlayOpen } from "./lib/overlay"
 import { VGA16_BUCKETS, type Vga16Bucket } from "./lib/vga16"
 import { selectedImageIds, useSelection } from "./stores/selection"
 
@@ -186,8 +184,6 @@ function AppShell() {
     // Runs once, when preferences first arrive on a fresh install.
   }, [prefsLoaded])
 
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  useEffect(() => onSettingsMenu(() => setSettingsOpen(true)), [])
   const [trashDirection, setTrashDirection] = usePersistedState<SortDirection>(
     "strata.trash.sortDirection",
     "desc"
@@ -849,12 +845,6 @@ function AppShell() {
         />
       )}
       <ThemeSync />
-      <SettingsWindow
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        title="Settings"
-        onOverlay={registerOverlay}
-      />
       <AppHeader
         total={totalCount}
         filtered={filteredCount}

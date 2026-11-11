@@ -2811,9 +2811,9 @@ dependencies = [
 
 [[package]]
 name = "preset-preferences"
-version = "0.1.2"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "83116f603fb5f07f045bd9ec0a4ca02b0b7d3ee812f0eb6f86eb0042ae6a8f6e"
+checksum = "00d969eef7c6b5c25b610d49f302622a371a21931d180cbc9ab2994ce1db33b9"
 dependencies = [
  "serde",
  "serde_json",

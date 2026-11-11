@@ -6,16 +6,16 @@ version = 1
 [[inputs]]
 path = "pnpm-lock.yaml"
 ecosystem = "pnpm"
-sha256 = "34c64257e93102f85fec94e0225073f1fed453311463b189066837614ca0c540"
+sha256 = "9cbf998d29c5091f5bf74c4bd34ecef93f66e6062ede6e34c4c859cd45b20565"
 
 [[inputs]]
 path = "src-tauri/Cargo.lock"
 ecosystem = "cargo"
-sha256 = "81a5db8bcb577a21dcf8be17bebfd6c2f8dda866252bfedba2cb099a65b9c329"
+sha256 = "61fab64a7541d5652d723faf68495df213ec0a68960253aed994e7b0d60d0291"
 
 [[inputs]]
 path = "src-tauri/Cargo.toml"
-sha256 = "56761c6e04b8d467be81884b5e46342b0c21d7a17c68a0d9499b670d9f9a47c2"
+sha256 = "11950ff6163d319667d6904d633d789ea216e9d7e0d6bf59ad8bce1a497765ab"
 
 [[packages]]
 ecosystem = "cargo"
@@ -2228,7 +2228,7 @@ scope = "shipped"
 [[packages]]
 ecosystem = "cargo"
 name = "preset-preferences"
-version = "0.1.2"
+version = "0.2.0"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
@@ -4491,6 +4491,22 @@ scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "@fontsource-variable/geist"
+version = "5.3.0"
+source = "registry"
+declared = "OFL-1.1"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@fontsource-variable/jetbrains-mono"
+version = "5.3.0"
+source = "registry"
+declared = "OFL-1.1"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "@jridgewell/gen-mapping"
 version = "0.3.13"
 source = "registry"
@@ -4556,7 +4572,15 @@ scope = "shipped"
 [[packages]]
 ecosystem = "pnpm"
 name = "@preset.nz/facets"
-version = "0.3.0"
+version = "0.3.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@preset.nz/math"
+version = "0.1.0"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
@@ -4564,7 +4588,15 @@ scope = "shipped"
 [[packages]]
 ecosystem = "pnpm"
 name = "@preset.nz/preferences"
-version = "0.1.2"
+version = "0.2.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@preset.nz/ux-kit"
+version = "0.1.4"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
@@ -4779,6 +4811,14 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "@shadcn/react"
+version = "0.3.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "@tailwindcss/node"
 version = "4.3.3"
 source = "registry"
@@ -4909,6 +4949,22 @@ scope = "shipped"
 ecosystem = "pnpm"
 name = "@tanstack/react-query"
 version = "5.104.2"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@tanstack/react-virtual"
+version = "3.14.26"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@tanstack/virtual-core"
+version = "3.19.11"
 source = "registry"
 declared = "MIT"
 scope = "shipped"
@@ -5075,11 +5131,51 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "@types/debug"
+version = "4.1.13"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "@types/estree"
 version = "1.0.9"
 source = "registry"
 declared = "MIT"
-scope = "dev"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@types/estree-jsx"
+version = "1.0.5"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@types/hast"
+version = "3.0.5"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@types/mdast"
+version = "4.0.4"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@types/ms"
+version = "2.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5104,6 +5200,22 @@ version = "19.3.0"
 source = "registry"
 declared = "MIT"
 scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@types/unist"
+version = "2.0.11"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "@types/unist"
+version = "3.0.3"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5267,11 +5379,27 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "@ungap/structured-clone"
+version = "1.4.0"
+source = "registry"
+declared = "ISC"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "@vitejs/plugin-react"
 version = "5.2.0"
 source = "registry"
 declared = "MIT"
 scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "bail"
+version = "2.0.2"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5299,6 +5427,70 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "ccount"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "character-entities"
+version = "2.0.2"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "character-entities-html4"
+version = "2.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "character-entities-legacy"
+version = "3.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "character-reference-invalid"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "class-variance-authority"
+version = "0.7.1"
+source = "registry"
+declared = "Apache-2.0"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "clsx"
+version = "2.1.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "comma-separated-tokens"
+version = "2.0.3"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "convert-source-map"
 version = "2.0.0"
 source = "registry"
@@ -5319,7 +5511,23 @@ name = "debug"
 version = "4.4.3"
 source = "registry"
 declared = "MIT"
-scope = "dev"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "decode-named-character-reference"
+version = "1.3.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "dequal"
+version = "2.0.3"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5328,6 +5536,14 @@ version = "2.1.2"
 source = "registry"
 declared = "Apache-2.0"
 scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "devlop"
+version = "1.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5347,6 +5563,14 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "entities"
+version = "9.0.0"
+source = "registry"
+declared = "BSD-2-Clause"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "esbuild"
 version = "0.28.2"
 source = "registry"
@@ -5360,6 +5584,30 @@ version = "3.2.0"
 source = "registry"
 declared = "MIT"
 scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "escape-string-regexp"
+version = "5.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "estree-util-is-identifier-name"
+version = "3.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "extend"
+version = "3.0.2"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5392,6 +5640,134 @@ version = "4.2.11"
 source = "registry"
 declared = "ISC"
 scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "hast-util-from-parse5"
+version = "8.0.4"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "hast-util-parse-selector"
+version = "4.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "hast-util-raw"
+version = "9.2.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "hast-util-sanitize"
+version = "5.0.2"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "hast-util-to-jsx-runtime"
+version = "2.3.7"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "hast-util-to-parse5"
+version = "8.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "hast-util-whitespace"
+version = "3.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "hastscript"
+version = "9.0.3"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "html-url-attributes"
+version = "3.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "html-void-elements"
+version = "3.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "inline-style-parser"
+version = "0.2.9"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "is-alphabetical"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "is-alphanumerical"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "is-decimal"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "is-hexadecimal"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "is-plain-obj"
+version = "4.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5611,6 +5987,14 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "longest-streak"
+version = "3.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "lru-cache"
 version = "5.1.1"
 source = "registry"
@@ -5627,11 +6011,379 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "markdown-table"
+version = "3.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "marked"
+version = "18.2.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-find-and-replace"
+version = "3.0.4"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-from-markdown"
+version = "2.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-gfm"
+version = "3.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-gfm-autolink-literal"
+version = "2.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-gfm-footnote"
+version = "2.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-gfm-strikethrough"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-gfm-table"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-gfm-task-list-item"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-mdx-expression"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-mdx-jsx"
+version = "3.2.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-mdxjs-esm"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-phrasing"
+version = "4.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-to-hast"
+version = "13.2.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-to-markdown"
+version = "2.2.3"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "mdast-util-to-string"
+version = "4.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark"
+version = "4.0.3"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-core-commonmark"
+version = "2.0.4"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-extension-gfm"
+version = "3.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-extension-gfm-autolink-literal"
+version = "2.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-extension-gfm-footnote"
+version = "2.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-extension-gfm-strikethrough"
+version = "2.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-extension-gfm-table"
+version = "2.1.2"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-extension-gfm-tagfilter"
+version = "2.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-extension-gfm-task-list-item"
+version = "2.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-factory-destination"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-factory-label"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-factory-space"
+version = "2.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-factory-title"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-factory-whitespace"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-character"
+version = "2.1.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-chunked"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-classify-character"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-combine-extensions"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-decode-numeric-character-reference"
+version = "2.0.2"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-decode-string"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-edit-map"
+version = "1.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-encode"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-html-tag-name"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-normalize-identifier"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-resolve-all"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-sanitize-uri"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-subtokenize"
+version = "2.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-symbol"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "micromark-util-types"
+version = "2.0.3"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "ms"
 version = "2.1.3"
 source = "registry"
 declared = "MIT"
-scope = "dev"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5648,6 +6400,22 @@ version = "2.0.58"
 source = "registry"
 declared = "MIT"
 scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "parse-entities"
+version = "4.0.2"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "parse5"
+version = "8.1.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5675,6 +6443,14 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "property-information"
+version = "7.2.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "react"
 version = "19.3.0"
 source = "registry"
@@ -5696,6 +6472,70 @@ version = "0.18.0"
 source = "registry"
 declared = "MIT"
 scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "rehype-harden"
+version = "1.1.9"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "rehype-raw"
+version = "7.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "rehype-sanitize"
+version = "6.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "remark-gfm"
+version = "4.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "remark-parse"
+version = "11.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "remark-rehype"
+version = "11.1.2"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "remark-stringify"
+version = "11.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "remend"
+version = "1.4.0"
+source = "registry"
+declared = "Apache-2.0"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5739,6 +6579,46 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "space-separated-tokens"
+version = "2.0.2"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "streamdown"
+version = "2.7.1"
+source = "registry"
+declared = "Apache-2.0"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "stringify-entities"
+version = "4.0.4"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "style-to-object"
+version = "2.0.2"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "tailwind-merge"
+version = "3.7.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "tailwindcss"
 version = "4.3.3"
 source = "registry"
@@ -5763,6 +6643,30 @@ scope = "dev"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "trim-lines"
+version = "3.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "trough"
+version = "2.2.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "tw-animate-css"
+version = "1.4.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "typescript"
 version = "7.0.2"
 source = "registry"
@@ -5776,6 +6680,54 @@ version = "7.24.6"
 source = "registry"
 declared = "MIT"
 scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "unified"
+version = "11.0.5"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "unist-util-is"
+version = "6.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "unist-util-position"
+version = "5.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "unist-util-stringify-position"
+version = "4.0.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "unist-util-visit"
+version = "5.2.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "unist-util-visit-parents"
+version = "6.1.0"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5795,11 +6747,43 @@ scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
+name = "vfile"
+version = "6.0.3"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "vfile-location"
+version = "5.0.4"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "vfile-message"
+version = "4.0.4"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
 name = "vite"
 version = "7.3.7"
 source = "registry"
 declared = "MIT"
 scope = "dev"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "web-namespaces"
+version = "2.0.1"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
 
 [[packages]]
 ecosystem = "pnpm"
@@ -5813,6 +6797,14 @@ scope = "dev"
 ecosystem = "pnpm"
 name = "zustand"
 version = "5.0.15"
+source = "registry"
+declared = "MIT"
+scope = "shipped"
+
+[[packages]]
+ecosystem = "pnpm"
+name = "zwitch"
+version = "2.0.4"
 source = "registry"
 declared = "MIT"
 scope = "shipped"

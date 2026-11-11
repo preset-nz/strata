@@ -24,6 +24,7 @@ pub fn schema(store_root: &Path, db_path: &Path) -> Schema {
     let cpus = num_cpus::get() as i64;
     Schema {
         version: FILE_VERSION,
+        pages: vec![],
         sections: vec![
             section("library", "Library"),
             section("ingest", "Ingest"),

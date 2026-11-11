@@ -5,6 +5,11 @@ import { createRoot } from "react-dom/client"
 import "./index.css"
 import { ThemeProvider } from "@/components/theme-provider.tsx"
 import App from "./App.tsx"
+import { SettingsApp } from "./SettingsApp.tsx"
+
+// One frontend, two windows: Rust opens Settings with `?window=settings`.
+const isSettings =
+  new URLSearchParams(window.location.search).get("window") === "settings"
 
 const queryClient = new QueryClient()
 
@@ -26,9 +31,7 @@ if (!rootElement) throw new Error("index.html is missing #root")
 createRoot(rootElement).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <App />
-      </ThemeProvider>
+      <ThemeProvider>{isSettings ? <SettingsApp /> : <App />}</ThemeProvider>
     </QueryClientProvider>
   </StrictMode>
 )

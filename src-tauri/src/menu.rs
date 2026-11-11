@@ -5,14 +5,27 @@
 //! between View and Window.
 
 use preset_app_kit::{AppKit, Command, MenuName};
-use tauri::{AppHandle, Emitter, Runtime};
+use tauri::{AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
 
 use crate::history::Curation;
 
 pub const MENU_CONFIG: &str = include_str!("../menu.toml");
 
-/// `@preset.nz/preferences` opens its window on this event.
-const SETTINGS_EVENT: &str = "menu://app/settings";
+/// Show the Settings window, creating it the first time. Same frontend, told
+/// apart by `?window=settings`; `@preset.nz/preferences` fills it.
+fn open_settings<R: Runtime>(app: &AppHandle<R>) {
+    if let Some(w) = app.get_webview_window("settings") {
+        let _ = w.show();
+        let _ = w.set_focus();
+        return;
+    }
+    let url = WebviewUrl::App("index.html?window=settings".into());
+    let _ = WebviewWindowBuilder::new(app, "settings", url)
+        .title("Settings")
+        .inner_size(560.0, 520.0)
+        .min_inner_size(420.0, 360.0)
+        .build();
+}
 
 fn commands() -> Vec<Command> {
     vec![
@@ -94,7 +107,7 @@ pub fn install<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         .commands(commands())
         .on_command(|app, id| match id {
             "app.settings" => {
-                let _ = app.emit(SETTINGS_EVENT, ());
+                open_settings(app);
                 true
             }
             _ => false,

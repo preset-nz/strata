@@ -1,7 +1,7 @@
 import tailwindcss from "@tailwindcss/vite"
 import react from "@vitejs/plugin-react"
 import path from "path"
-import { defineConfig, searchForWorkspaceRoot } from "vite"
+import { defineConfig } from "vite"
 
 const host = process.env.TAURI_DEV_HOST
 
@@ -12,11 +12,9 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // The @preset.nz packages are path dependencies of unbuilt TypeScript.
-    // Rollup resolves their imports from their real location, which has no
-    // node_modules of its own, so pin the shared runtime to this app's copy.
-    // facets is in the list because two copies would mean two registries;
-    // app-kit (a path dependency with its own node_modules) per its README.
+    // The @preset.nz packages ship unbuilt TypeScript. Pin the shared runtime
+    // to this app's copy; facets is in the list because two copies would mean
+    // two registries.
     dedupe: [
       "react",
       "react-dom",
@@ -31,15 +29,6 @@ export default defineConfig({
   server: {
     port: 1450,
     strictPort: true,
-    // ux-kit is a path dependency (link:../../packages/ux-kit) until its next
-    // release, so its source sits outside this workspace. Drop the second
-    // entry when the app is back on the registry version.
-    fs: {
-      allow: [
-        searchForWorkspaceRoot(process.cwd()),
-        path.resolve(__dirname, "../../packages"),
-      ],
-    },
     host: host || false,
     hmr: host
       ? {
