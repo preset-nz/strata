@@ -1,3 +1,14 @@
+## 0.1.2 (2026-11-12)
+
+### Features
+
+- select several images, then heart, label, collect
+
+### Fixes
+
+- take serde_with 3.24, clearing its serialisation panic
+- backend-counted progress, thumbnails as they land
+
 ## 0.1.1 (2026-10-13)
 
 ### Features
